@@ -1,0 +1,53 @@
+import { createContext, useContext, useEffect, useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { SUPABASE_URL, SUPABASE_KEY } from './supabase-config.js'
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+// 아이디로 로그인하지만 Supabase 는 이메일 형식이 필요해서, 아이디를 내부용 주소로 바꾼다.
+// 실제로 메일이 가지 않는 주소다.
+const EMAIL_DOMAIN = 'users.daerim-desk.app'
+export const idToEmail = (id) => `${id.trim().toLowerCase()}@${EMAIL_DOMAIN}`
+export const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{2,19}$/
+
+const AuthContext = createContext(null)
+export const useAuth = () => useContext(AuthContext)
+
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(undefined) // undefined = 확인 중
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  async function loadProfile(uid) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+    setProfile(data)
+  }
+
+  useEffect(() => {
+    if (session?.user) loadProfile(session.user.id)
+    else setProfile(null)
+  }, [session?.user?.id])
+
+  const value = {
+    session,
+    profile,
+    loading: session === undefined || (session && profile === null),
+    reloadProfile: () => session?.user && loadProfile(session.user.id),
+    signOut: () => supabase.auth.signOut(),
+  }
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+const KO_ERRORS = [
+  [/Invalid login credentials/i, '아이디 또는 비밀번호가 맞지 않습니다.'],
+  [/already registered|already exists/i, '이미 쓰고 있는 아이디입니다.'],
+  [/Password should be at least/i, '비밀번호는 6자 이상이어야 합니다.'],
+  [/rate limit/i, '잠시 후 다시 시도해 주세요.'],
+  [/Email not confirmed/i, '이메일 인증 설정이 켜져 있습니다. 관리자에게 알려주세요.'],
+]
+export const toKorean = (msg) => (KO_ERRORS.find(([re]) => re.test(msg))?.[1]) ?? `문제가 생겼습니다: ${msg}`

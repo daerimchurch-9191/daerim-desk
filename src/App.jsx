@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from './auth.jsx'
+import { LoginPage, WaitingPage } from './LoginPage.jsx'
+import { AdminPage } from './AdminPage.jsx'
 import {
-  me, todayLabel, weekLabel, groups, week, mySermons, initialTodos, dawn, services,
+  todayLabel, weekLabel, groups, week, mySermons, initialTodos, dawn, services,
   cars, notices, links, folderColors, initialFolders,
   monthLabel, monthStartDow, monthDays, todayDate, monthBookings,
 } from './data.js'
@@ -41,6 +44,8 @@ function FolderIcon({ color }) {
 }
 
 function Sidebar({ open, onClose, page }) {
+  const { profile, signOut } = useAuth()
+  const [gearOpen, setGearOpen] = useState(false)
   return (
     <nav className={`sidebar${open ? ' is-open' : ''}`} aria-label="주 메뉴">
       <div className="sidebar-top">
@@ -53,12 +58,18 @@ function Sidebar({ open, onClose, page }) {
       <div className="profile">
         <span className="avatar"><Icon name="user" /></span>
         <div className="profile-text">
-          <strong>{me.name} {me.title}님</strong>
-          <span>{me.dept}</span>
+          <strong>{profile.name} {profile.title}님</strong>
+          <span>{profile.dept || '소속 없음'}{profile.role === 'admin' ? ' · 관리자' : ''}</span>
         </div>
-        <button type="button" className="icon-btn" aria-label="설정 (프로필 · 로그인 관리)">
+        <button type="button" className="icon-btn" aria-label="설정" aria-expanded={gearOpen} onClick={() => setGearOpen(!gearOpen)}>
           <Icon name="gear" size={22} />
         </button>
+        {gearOpen && (
+          <div className="gear-menu">
+            {profile.role === 'admin' && <a href="#admin" onClick={() => { setGearOpen(false); onClose() }}>회원 관리</a>}
+            <button type="button" onClick={signOut}>로그아웃</button>
+          </div>
+        )}
       </div>
 
       <div className="nav">
@@ -364,7 +375,7 @@ function CarsMonth() {
 }
 
 function usePage() {
-  const read = () => (location.hash === '#cars' ? 'cars' : 'home')
+  const read = () => ({ '#cars': 'cars', '#admin': 'admin' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -374,7 +385,7 @@ function usePage() {
   return page
 }
 
-export default function App() {
+function Desk() {
   const page = usePage()
   const [menuOpen, setMenuOpen] = useState(false)
   return (
@@ -394,7 +405,7 @@ export default function App() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminPage /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
@@ -414,4 +425,13 @@ export default function App() {
       </main>
     </div>
   )
+}
+
+export default function App() {
+  const { session, profile, loading } = useAuth()
+  if (session === undefined || loading) return <div className="splash">불러오는 중…</div>
+  if (!session) return <LoginPage />
+  if (!profile) return <div className="splash">계정 정보를 찾을 수 없습니다. 관리자에게 문의해 주세요.</div>
+  if (profile.status !== 'approved') return <WaitingPage />
+  return <Desk />
 }
