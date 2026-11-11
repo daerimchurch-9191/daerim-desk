@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase, idToEmail, ID_PATTERN, toKorean, useAuth } from './auth.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
@@ -21,7 +21,11 @@ export function LoginPage() {
   const [form, setForm] = useState({ id: '', pw: '', pw2: '', name: '', title: '전도사', dept: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [depts, setDepts] = useState([])
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  useEffect(() => {
+    supabase.from('departments').select('id, name, grp').order('sort').then(({ data }) => setDepts((data ?? []).filter((d) => d.id !== 'all')))
+  }, [])
 
   async function submit(e) {
     e.preventDefault()
@@ -59,7 +63,13 @@ export function LoginPage() {
             <label className="field">이름<input value={form.name} onChange={set('name')} placeholder="예: 박수아" /></label>
             <div className="field-row">
               <label className="field">직분<input value={form.title} onChange={set('title')} /></label>
-              <label className="field">소속 부서<input value={form.dept} onChange={set('dept')} placeholder="예: 유년부" /></label>
+              <label className="field">소속 부서
+                <select value={form.dept} onChange={set('dept')}>
+                  <option value="">고르기</option>
+                  <optgroup label="교육부">{depts.filter((d) => d.grp === 'edu').map((d) => <option key={d.id}>{d.name}</option>)}</optgroup>
+                  <optgroup label="교구">{depts.filter((d) => d.grp === 'parish').map((d) => <option key={d.id}>{d.name}</option>)}</optgroup>
+                </select>
+              </label>
             </div>
           </>
         )}

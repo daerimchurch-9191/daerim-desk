@@ -16,6 +16,7 @@ export const useAuth = () => useContext(AuthContext)
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined) // undefined = 확인 중
   const [profile, setProfile] = useState(null)
+  const [profileReady, setProfileReady] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -26,17 +27,18 @@ export function AuthProvider({ children }) {
   async function loadProfile(uid) {
     const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
     setProfile(data)
+    setProfileReady(true)
   }
 
   useEffect(() => {
     if (session?.user) loadProfile(session.user.id)
-    else setProfile(null)
+    else { setProfile(null); setProfileReady(false) }
   }, [session?.user?.id])
 
   const value = {
     session,
     profile,
-    loading: session === undefined || (session && profile === null),
+    loading: session === undefined || (Boolean(session) && !profileReady),
     reloadProfile: () => session?.user && loadProfile(session.user.id),
     signOut: () => supabase.auth.signOut(),
   }

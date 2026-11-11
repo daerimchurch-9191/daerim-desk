@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuth } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage } from './AdminPage.jsx'
-import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth } from './live.jsx'
-import {
-  todayLabel, mySermons, initialTodos, dawn, services, notices, links, folderColors, initialFolders,
-} from './data.js'
+import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, DOW_KO } from './live.jsx'
+import { MySermons, SermonTable } from './sermons.jsx'
+import { initialTodos, notices, links, folderColors, initialFolders } from './data.js'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -46,6 +45,12 @@ function Sidebar({ open, onClose, page }) {
   const { profile, signOut } = useAuth()
   const { openModal } = useData()
   const [gearOpen, setGearOpen] = useState(false)
+  useEffect(() => {
+    if (!gearOpen) return
+    const close = (e) => { if (!e.target.closest('.profile')) setGearOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [gearOpen])
   return (
     <nav className={`sidebar${open ? ' is-open' : ''}`} aria-label="주 메뉴">
       <div className="sidebar-top">
@@ -78,7 +83,7 @@ function Sidebar({ open, onClose, page }) {
         <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={18} width={2.2} />차량 신청</button>
         <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#" className="nav-item">교회 캘린더</a>
-        <a href="#" className="nav-item">예배 설교표</a>
+        <a href="#home" className="nav-item" onClick={() => { onClose(); setTimeout(() => document.getElementById('sermon-table')?.scrollIntoView({ behavior: 'smooth' }), 80) }}>예배 설교표</a>
         <a href="#" className="nav-item">부서 방</a>
         <a href="#" className="nav-item">내 책상</a>
       </div>
@@ -163,32 +168,6 @@ function Folders() {
   )
 }
 
-function MySermons() {
-  return (
-    <section className="block" aria-labelledby="sermon-h">
-      <h2 id="sermon-h" className="pill">내 설교</h2>
-      <div className="card">
-        <div className="card-head">
-          <span className="muted">이번 주 설교</span>
-          <span className="count">{mySermons.length} <small>편</small></span>
-        </div>
-        {mySermons.map((s, i) => (
-          <div key={i} className="sermon-row">
-            <span className={`date-badge${s.done ? ' is-done' : ''}`}><b>{s.date}</b><span>{s.dow}</span></span>
-            <div className="grow">
-              <span className="muted small">{s.time} {s.done ? '· 완료' : <span className="chip">{s.dday}</span>}</span>
-              <span className={s.done ? 'muted' : ''}>{s.title} · {s.passage}</span>
-            </div>
-            <button type="button" className="link-btn">수정</button>
-          </div>
-        ))}
-        <button type="button" className="btn btn-dashed">+ 설교 추가</button>
-        <p className="note push">예배 설교표와 연동됩니다. 본문은 어느 쪽에서 고쳐도 같이 바뀝니다.</p>
-      </div>
-    </section>
-  )
-}
-
 function Todos() {
   const [todos, setTodos] = useState(initialTodos)
   const [filter, setFilter] = useState('week')
@@ -226,46 +205,7 @@ function Todos() {
   )
 }
 
-function SermonTable() {
-  return (
-    <section className="block" aria-labelledby="table-h">
-      <div className="block-head">
-        <h2 id="table-h" className="pill">예배 설교표</h2>
-        <strong>이번 주 · 모두 함께 보고 씁니다</strong>
-      </div>
-      <div className="card">
-        <div className="grid-2">
-          <div className="box">
-            <h3>새벽기도회 <small>매일 05:30 · 주일 포함</small></h3>
-            {dawn.map((d) => (
-              <div key={d.day} className="table-row">
-                <b className={d.today ? 'accent' : ''}>{d.day}</b>
-                {d.preacher
-                  ? <span className="grow">{d.preacher} · [본문] {d.mine && <span className="chip">내 설교</span>}</span>
-                  : <span className="grow muted">아직 비어 있음</span>}
-                <button type="button" className="link-btn">{d.preacher ? '수정' : '입력'}</button>
-              </div>
-            ))}
-          </div>
-          <div className="stack">
-            {services.map((s) => (
-              <div key={s.name} className="box">
-                <div className="table-row no-line">
-                  <div className="grow">
-                    <h3>{s.name} <small>{s.when}</small></h3>
-                    <span>[설교자] · [본문]</span>
-                  </div>
-                  <button type="button" className="link-btn">수정</button>
-                </div>
-                {s.special && <button type="button" className="btn btn-dashed">+ 특별 예배 추가</button>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
+const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
   const read = () => ({ '#cars': 'cars', '#admin': 'admin' }[location.hash] ?? 'home')
@@ -302,7 +242,7 @@ function Desk() {
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
-          <span className="muted">대림교회 / 사역 대시보드 / {todayLabel}</span>
+          <span className="muted">대림교회 / 사역 대시보드 / {todayLabel()}</span>
         </header>
 
         <Folders />

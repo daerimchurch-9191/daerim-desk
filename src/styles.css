@@ -119,8 +119,7 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .tag { font-size: 13px; padding: 6px 8px; border-radius: 8px; }
 .tag.round { padding: 5px 10px; border-radius: 999px; font-weight: 500; }
 .tag-all { background: #ddf0e8; color: #0c4f3e; }
-.tag-child { background: #fcebcf; color: #6e3c00; }
-.tag-youth { background: #dce8f8; color: #1b4480; }
+.tag-edu { background: #fcebcf; color: #6e3c00; }
 .tag-parish { background: #ebe3f6; color: #4b2e78; }
 
 .table-row { display: flex; align-items: center; gap: 10px; min-height: 46px; border-bottom: 1px solid var(--line-2); }
@@ -254,3 +253,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .inline-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding-top: 12px; }
 .inline-form .btn { min-height: 44px; }
 @media (max-width: 860px) { .field-row.three { grid-template-columns: 1fr 1fr; } .field-row.three > :first-child { grid-column: 1 / -1; } }
+
+.field select { min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #8b948f; font: inherit; font-size: 15px; background: #fff; width: 100%; min-width: 0; }
+.tag-btn small { display: block; color: inherit; opacity: .85; font-size: 11px; }
+.table-row .skeleton { height: 18px; }

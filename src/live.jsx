@@ -4,11 +4,11 @@ import { supabase, useAuth, toKorean } from './auth.jsx'
 
 /* ---------- 날짜 ---------- */
 const DOW_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
+export const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
 export const pad = (n) => String(n).padStart(2, '0')
 export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 export const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
-const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 export const startOfWeek = (d = new Date()) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -x.getDay()) }
 const sameDay = (a, b) => ymd(a) === ymd(b)
 const local = (date, time) => new Date(`${date}T${time || '00:00'}`)
@@ -29,6 +29,7 @@ export const useData = () => useContext(DataContext)
 export function DataProvider({ children }) {
   const [departments, setDepartments] = useState([])
   const [vehicles, setVehicles] = useState([])
+  const [staff, setStaff] = useState([])
   const [version, setVersion] = useState(0)
   const [toast, setToast] = useState(null)
   const [modal, setModal] = useState(null) // { type: 'event' | 'car', initial }
@@ -42,13 +43,15 @@ export function DataProvider({ children }) {
   useEffect(() => {
     supabase.from('departments').select('*').order('sort').then(({ data }) => setDepartments(data ?? []))
     supabase.from('vehicles').select('*').eq('active', true).order('sort').order('id').then(({ data }) => setVehicles(data ?? []))
+    supabase.from('profiles').select('id, name, title').eq('status', 'approved').order('name').then(({ data }) => setStaff(data ?? []))
   }, [version])
 
-  const value = { departments, vehicles, version, refresh, notify, openModal: setModal }
+  const value = { departments, vehicles, staff, version, refresh, notify, openModal: setModal }
   return (
     <DataContext.Provider value={value}>
       {children}
       {modal?.type === 'event' && <EventModal initial={modal.initial} onClose={() => setModal(null)} />}
+      {modal?.render?.(() => setModal(null))}
       {modal?.type === 'car' && <CarModal initial={modal.initial} onClose={() => setModal(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </DataContext.Provider>
@@ -56,9 +59,26 @@ export function DataProvider({ children }) {
 }
 
 const deptName = (departments, id) => departments.find((d) => d.id === id)?.name ?? ''
+// 색은 부서 묶음(교회 전체·교육부·교구) 기준
+const deptTag = (departments, id) => `tag-${departments.find((d) => d.id === id)?.grp ?? 'all'}`
+export const GROUPS = [{ id: 'all', name: '교회 전체' }, { id: 'edu', name: '교육부' }, { id: 'parish', name: '교구' }]
+
+export function DeptSelect({ value, onChange }) {
+  const { departments } = useData()
+  const of = (g) => departments.filter((d) => d.grp === g)
+  return (
+    <label className="field">부서
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {of('all').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+        <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+      </select>
+    </label>
+  )
+}
 
 /* ---------- 모달 틀 ---------- */
-function Modal({ title, onClose, onSubmit, children, footer }) {
+export function Modal({ title, onClose, onSubmit, children, footer }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -75,26 +95,10 @@ function Modal({ title, onClose, onSubmit, children, footer }) {
   )
 }
 
-function Segment({ options, value, onChange, label }) {
-  return (
-    <fieldset className="segment-field">
-      <legend>{label}</legend>
-      <div className="segment">
-        {options.map((o) => (
-          <label key={o.id} className={value === o.id ? 'is-on' : ''}>
-            <input type="radio" name={label} checked={value === o.id} onChange={() => onChange(o.id)} />
-            {o.name}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  )
-}
-
 /* ---------- 일정 등록·수정 ---------- */
 function EventModal({ initial, onClose }) {
   const { profile } = useAuth()
-  const { departments, refresh, notify } = useData()
+  const { refresh, notify } = useData()
   const editing = Boolean(initial?.id)
   const canEdit = !editing || initial.created_by === profile.id || profile.role === 'admin'
   const s = initial?.starts_at ? new Date(initial.starts_at) : null
@@ -157,7 +161,7 @@ function EventModal({ initial, onClose }) {
           <label className="field">시작<input type="time" value={f.start} onChange={set('start')} required /></label>
           <label className="field">끝 <small>(선택)</small><input type="time" value={f.end} onChange={set('end')} /></label>
         </div>
-        <Segment label="부서" options={departments} value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
+        <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
         <label className="field">장소 <small>(선택)</small><input value={f.location} onChange={set('location')} /></label>
         <label className="field">메모 <small>(선택)</small><input value={f.note} onChange={set('note')} /></label>
       </fieldset>
@@ -233,7 +237,7 @@ function CarModal({ initial, onClose }) {
           )
         })}
       </fieldset>
-      <Segment label="부서" options={departments} value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
+      <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
       <div className="field-row">
         <label className="field">운전자<input value={f.driver} onChange={set('driver')} /></label>
         <label className="field">목적·행선지<input value={f.purpose} onChange={set('purpose')} /></label>
@@ -266,7 +270,7 @@ export function WeekCalendar() {
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
         <strong className="grow">{week0.getFullYear()}년 {kDate(days[0]).replace(/ \(.\)/, '')} – {kDate(days[6]).replace(/ \(.\)/, '')}</strong>
-        {departments.map((d) => <span key={d.id} className={`tag tag-${d.id} round`}>{d.name}</span>)}
+        {GROUPS.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
       </div>
       <div className="card scroll-x">
         <div className="week">
@@ -277,8 +281,9 @@ export function WeekCalendar() {
                 <span className="week-head">{DOW_EN[d.getDay()]} · {d.getDate()}</span>
                 {events === null && <span className="skeleton" />}
                 {list.map((e) => (
-                  <button key={e.id} type="button" className={`tag tag-${e.dept_id} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
+                  <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
                     {hm(new Date(e.starts_at))} {e.title}
+                    {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                   </button>
                 ))}
                 <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
@@ -313,7 +318,7 @@ function BookingTag({ b, departments, showCar, vehicles }) {
     refresh(); notify('차량 신청을 취소했습니다.')
   }
   return (
-    <span className={`tag tag-${b.dept_id ?? 'all'}`}>
+    <span className={`tag ${deptTag(departments, b.dept_id)}`}>
       {showCar && <b>{vehicles.find((v) => v.id === b.vehicle_id)?.name}</b>}
       <b>{deptName(departments, b.dept_id) || '예약'}</b>
       {hm(b.span[0])} – {hm(b.span[1])}
