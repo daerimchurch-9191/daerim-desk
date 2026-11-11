@@ -10,7 +10,7 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | sermons | 예배 설교표(공개)와 직접 추가한 내 설교(비공개). 새벽·수요·금요는 날짜마다 한 칸 | 공개는 모두, 비공개는 본인 | 공개는 모두, 비공개는 본인 |
 | vehicles | 차량 | 승인된 사역자 | 관리자 |
 | vehicle_bookings | 차량 예약 (같은 차량 시간 겹침은 거부) | 승인된 사역자 | 신청한 사람, 관리자 |
-| todos | 내 할 일 (repeat_dow 로 매주 반복) | 본인만 | 본인만 |
+| todos | 내 할 일 (repeat_dow 만 있으면 매주, repeat_week 까지 있으면 매월 n째·마지막 주 반복) | 본인만 | 본인만 |
 | notices | 공지 (audience: all·parish·edu) | 승인된 사역자 | 관리자 |
 | folders | 내 폴더 | 본인만 | 본인만 |
 

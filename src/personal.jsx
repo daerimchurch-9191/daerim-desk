@@ -8,14 +8,36 @@ import { folderColors } from './data.js'
  한 번만 하는 일: due(선택), 끝내면 last_done_on 에 끝낸 날짜.
  매주 반복: repeat_dow(0=일…6=토). 이번 주에 끝냈으면 last_done_on 이 이번 주 안에 있다.
  매주 월요일이 아니라 주일(일요일)에 새 주가 시작된다. */
-const isDoneNow = (t, week0) => (t.repeat_dow == null ? t.done : Boolean(t.last_done_on) && t.last_done_on >= ymd(week0))
+const isDoneNow = (t, week0) => (t.repeat_dow == null ? t.done : Boolean(t.last_done_on) && t.last_done_on >= ymd(week0) && dueThisWeek(t, week0))
+
+// 매월 반복: repeat_week 1~4 = 첫째~넷째, -1 = 마지막 주의 repeat_dow 요일
+const WEEK_NAMES = { 1: '첫째', 2: '둘째', 3: '셋째', 4: '넷째', '-1': '마지막' }
+function nthWeekday(year, month, dow, n) {
+  if (n === -1) {
+    const last = new Date(year, month + 1, 0)
+    return addDays(last, -((last.getDay() - dow + 7) % 7))
+  }
+  const first = new Date(year, month, 1)
+  return addDays(first, (dow - first.getDay() + 7) % 7 + (n - 1) * 7)
+}
+// week0(주일) 이후 가장 가까운 날짜
+function nextMonthly(t, week0) {
+  for (let i = 0; i < 3; i++) {
+    const d = nthWeekday(week0.getFullYear(), week0.getMonth() + i, t.repeat_dow, t.repeat_week)
+    if (d >= week0) return d
+  }
+}
+// 이번 주에 해야 하는 반복 할 일인지
+const dueThisWeek = (t, week0) => t.repeat_week == null || ymd(nextMonthly(t, week0)) <= ymd(addDays(week0, 6))
+const repeatLabel = (t) => (t.repeat_week == null ? `매주 ${DOW_KO[t.repeat_dow]}` : `매월 ${WEEK_NAMES[t.repeat_week]} ${DOW_KO[t.repeat_dow]}`)
 
 function TodoModal({ initial, onClose }) {
   const { refresh, notify } = useData()
   const editing = Boolean(initial?.id)
   const [f, setF] = useState({
     text: initial?.text ?? '',
-    kind: initial?.repeat_dow != null ? 'repeat' : 'once',
+    kind: initial?.repeat_dow == null ? 'once' : initial.repeat_week == null ? 'repeat' : 'monthly',
+    week: initial?.repeat_week ?? 1,
     due: initial?.due ?? '',
     dow: initial?.repeat_dow ?? new Date().getDay(),
   })
@@ -32,9 +54,9 @@ function TodoModal({ initial, onClose }) {
   function save(e) {
     e.preventDefault()
     if (!f.text.trim()) return setError('할 일을 적어 주세요.')
-    const row = f.kind === 'repeat'
-      ? { text: f.text.trim(), repeat_dow: Number(f.dow), due: null }
-      : { text: f.text.trim(), repeat_dow: null, due: f.due || null }
+    const row = f.kind === 'once'
+      ? { text: f.text.trim(), repeat_dow: null, repeat_week: null, due: f.due || null }
+      : { text: f.text.trim(), repeat_dow: Number(f.dow), repeat_week: f.kind === 'monthly' ? Number(f.week) : null, due: null }
     run(editing ? supabase.from('todos').update(row).eq('id', initial.id) : supabase.from('todos').insert(row), editing ? '할 일을 고쳤습니다.' : '할 일을 추가했습니다.')
   }
 
@@ -50,7 +72,7 @@ function TodoModal({ initial, onClose }) {
       <fieldset className="segment-field">
         <legend>종류</legend>
         <div className="segment">
-          {[['once', '한 번'], ['repeat', '매주 반복']].map(([id, name]) => (
+          {[['once', '한 번'], ['repeat', '매주 반복'], ['monthly', '매월 반복']].map(([id, name]) => (
             <label key={id} className={f.kind === id ? 'is-on' : ''}>
               <input type="radio" name="kind" checked={f.kind === id} onChange={() => setF({ ...f, kind: id })} />{name}
             </label>
@@ -60,8 +82,21 @@ function TodoModal({ initial, onClose }) {
       {f.kind === 'once' ? (
         <label className="field">마감일 <small>(선택)</small><input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
       ) : (
+        <>
+        {f.kind === 'monthly' && (
+          <fieldset className="segment-field">
+            <legend>몇째 주</legend>
+            <div className="segment">
+              {[1, 2, 3, 4, -1].map((n) => (
+                <label key={n} className={Number(f.week) === n ? 'is-on' : ''}>
+                  <input type="radio" name="week" checked={Number(f.week) === n} onChange={() => setF({ ...f, week: n })} />{WEEK_NAMES[n]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <fieldset className="segment-field">
-          <legend>반복 요일</legend>
+          <legend>{f.kind === 'monthly' ? '요일' : '반복 요일'}</legend>
           <div className="segment">
             {DOW_KO.map((d, i) => (
               <label key={d} className={Number(f.dow) === i ? 'is-on' : ''}>
@@ -70,6 +105,11 @@ function TodoModal({ initial, onClose }) {
             ))}
           </div>
         </fieldset>
+        {f.kind === 'monthly' && (() => {
+          const d = nextMonthly({ repeat_dow: Number(f.dow), repeat_week: Number(f.week) }, new Date(new Date().toDateString()))
+          return <p className="muted small">다음 날짜: {d.getMonth() + 1}월 {d.getDate()}일 ({DOW_KO[d.getDay()]}). 해당 날짜가 있는 주에만 이번 주 목록에 나타납니다.</p>
+        })()}
+        </>
       )}
       <p className="muted small">나만 보는 할 일입니다.{f.kind === 'repeat' && ' 매주 주일에 새로 시작됩니다.'}</p>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -95,10 +135,10 @@ export function Todos() {
   // 끝낸 일회성 할 일은 끝낸 주까지만 보인다
   const visible = (todos ?? []).filter((t) => t.repeat_dow != null || !t.done || (t.last_done_on && t.last_done_on >= ymd(week0)))
   const filters = [
-    { id: 'week', name: '이번 주', test: (t) => t.repeat_dow != null || !t.due || t.due <= weekEnd },
-    { id: 'today', name: '오늘', test: (t) => (t.repeat_dow != null ? t.repeat_dow === todayDow : !t.done && t.due && t.due <= today) },
-    { id: 'repeat', name: '매주 반복', test: (t) => t.repeat_dow != null },
-    { id: 'later', name: '다음 주 이후', test: (t) => t.repeat_dow == null && Boolean(t.due) && t.due > weekEnd },
+    { id: 'week', name: '이번 주', test: (t) => (t.repeat_dow != null ? dueThisWeek(t, week0) : !t.due || t.due <= weekEnd) },
+    { id: 'today', name: '오늘', test: (t) => (t.repeat_dow != null ? t.repeat_dow === todayDow && dueThisWeek(t, week0) : !t.done && t.due && t.due <= today) },
+    { id: 'repeat', name: '반복', test: (t) => t.repeat_dow != null },
+    { id: 'later', name: '다음 주 이후', test: (t) => (t.repeat_dow != null ? !dueThisWeek(t, week0) : Boolean(t.due) && t.due > weekEnd) },
   ]
   const shown = visible.filter(filters.find((f) => f.id === filter).test)
     .sort((a, b) => isDoneNow(a, week0) - isDoneNow(b, week0) || (a.repeat_dow ?? 9) - (b.repeat_dow ?? 9) || (a.due ?? '9').localeCompare(b.due ?? '9'))
@@ -114,7 +154,11 @@ export function Todos() {
   }
 
   const chip = (t) => {
-    if (t.repeat_dow != null) return <span className="chip">매주 {DOW_KO[t.repeat_dow]}</span>
+    if (t.repeat_dow != null) {
+      if (t.repeat_week == null) return <span className="chip">{repeatLabel(t)}</span>
+      const d = nextMonthly(t, week0)
+      return <span className="chip">{repeatLabel(t)} · {d.getMonth() + 1}/{d.getDate()}</span>
+    }
     if (!t.due) return null
     if (!t.done && t.due < today) return <span className="chip chip-warn">지남 {Number(t.due.slice(5, 7))}/{Number(t.due.slice(8))}</span>
     if (t.due === today) return <span className="chip chip-plain">오늘</span>
