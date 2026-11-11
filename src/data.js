@@ -71,9 +71,13 @@ export const services = [
   { name: '특별 · 연합속회', when: '[날짜와 시간]', special: true },
 ]
 
+// date 는 week 의 date 와 맞춘다. group 은 일정 구분 색과 같다
 export const cars = [
-  { name: '[차량 1 이름]', bookings: ['화 10일 13:30 – 17:00 · 교구', '토 14일 09:00 – 15:00 · 유년부'] },
-  { name: '[차량 2 이름]', bookings: ['토 14일 08:30 – 13:00 · 청년부'] },
+  { name: '[차량 1 이름]', bookings: [
+    { date: 10, time: '13:30 – 17:00', who: '교구', group: 'parish' },
+    { date: 14, time: '09:00 – 15:00', who: '유년부', group: 'child' },
+  ] },
+  { name: '[차량 2 이름]', bookings: [{ date: 14, time: '08:30 – 13:00', who: '청년부', group: 'youth' }] },
   { name: '[차량 3 이름]', bookings: [] },
 ]
 
@@ -103,4 +107,20 @@ export const folderColors = [
 export const initialFolders = [
   { id: 1, name: '설교 원고', color: 'green', href: '#' },
   { id: 2, name: '주간 업무', color: 'blue', href: '#' },
+]
+
+// 차량 월별 보기용 예시 (2026년 11월). day 는 날짜, car 는 cars 의 순서(0부터)
+export const monthLabel = '2026년 11월'
+export const monthStartDow = 0 // 11월 1일이 일요일
+export const monthDays = 30
+export const todayDate = 11
+export const monthBookings = [
+  { day: 3, car: 0, time: '10:00 – 12:00', who: '교구', group: 'parish' },
+  { day: 7, car: 1, time: '09:00 – 17:00', who: '청년부', group: 'youth' },
+  { day: 10, car: 0, time: '13:30 – 17:00', who: '교구', group: 'parish' },
+  { day: 14, car: 0, time: '09:00 – 15:00', who: '유년부', group: 'child' },
+  { day: 14, car: 1, time: '08:30 – 13:00', who: '청년부', group: 'youth' },
+  { day: 18, car: 2, time: '14:00 – 16:00', who: '교회 전체', group: 'all' },
+  { day: 21, car: 0, time: '10:00 – 18:00', who: '유년부', group: 'child' },
+  { day: 26, car: 1, time: '13:00 – 15:00', who: '교구', group: 'parish' },
 ]

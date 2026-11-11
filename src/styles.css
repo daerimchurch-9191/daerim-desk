@@ -127,6 +127,30 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .table-row:last-child, .table-row.no-line { border-bottom: 0; }
 .table-row b { width: 52px; flex: none; }
 
+.car-cal { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.car-cal th, .car-cal td { border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); padding: 6px 5px; vertical-align: top; }
+.car-cal tr > :last-child { border-right: 0; }
+.car-cal tbody tr:last-child > * { border-bottom: 0; }
+.car-cal thead th { font-weight: 700; color: var(--muted); padding: 8px 0; }
+.car-cal thead th.is-today { background: var(--accent); color: #fff; border-radius: 8px; }
+.car-cal th[scope='row'] { width: 132px; text-align: left; font-size: 14px; padding: 12px 8px; vertical-align: middle; }
+.car-cal thead th:first-child { width: 132px; text-align: left; padding-left: 8px; }
+.car-cal td { height: 64px; }
+.car-cal td.is-today { background: var(--bg); }
+.car-cal .tag { display: flex; flex-direction: column; gap: 2px; }
+
+.btn-link { display: inline-flex; align-items: center; text-decoration: none; font-weight: 700; color: var(--ink); }
+.icon-btn.light { border-color: #c9cfca; color: var(--ink); background: #fff; font-size: 22px; }
+.month-nav { display: flex; gap: 6px; }
+.page-title { font-size: 68px; }
+.month { display: grid; grid-template-columns: repeat(7, minmax(120px, 1fr)); min-width: 860px; border-top: 1px solid var(--line-2); border-left: 1px solid var(--line-2); }
+.month-dow { text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); padding: 8px 0; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); }
+.month-cell { min-height: 108px; padding: 6px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); }
+.month-cell.is-empty { background: var(--bg); }
+.month-cell.is-today .month-date { background: var(--accent); color: #fff; }
+.month-date { align-self: flex-start; font-size: 13px; font-weight: 700; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.month .tag { display: flex; flex-direction: column; gap: 1px; font-size: 12px; padding: 4px 6px; }
+
 /* ---------- 창(폴더 추가) ---------- */
 .overlay { position: fixed; inset: 0; background: rgba(21, 23, 22, 0.5); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 30; }
 .dialog { width: 440px; max-width: 100%; background: #fff; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
@@ -157,6 +181,7 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
   .mobile-bar .display { font-size: 30px; }
   .ticker { display: none; }
   .title h1 { display: none; }
+  .title h1.page-title { display: block; font-size: 44px; }
   .grid-2 { grid-template-columns: 1fr; }
   .folders { gap: 12px; }
   .folder { width: 78px; font-size: 13px; }

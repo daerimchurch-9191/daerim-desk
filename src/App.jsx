@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   me, todayLabel, weekLabel, groups, week, mySermons, initialTodos, dawn, services,
   cars, notices, links, folderColors, initialFolders,
+  monthLabel, monthStartDow, monthDays, todayDate, monthBookings,
 } from './data.js'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
@@ -39,7 +40,7 @@ function FolderIcon({ color }) {
   )
 }
 
-function Sidebar({ open, onClose }) {
+function Sidebar({ open, onClose, page }) {
   return (
     <nav className={`sidebar${open ? ' is-open' : ''}`} aria-label="주 메뉴">
       <div className="sidebar-top">
@@ -61,9 +62,9 @@ function Sidebar({ open, onClose }) {
       </div>
 
       <div className="nav">
-        <a href="#" className="nav-item is-current" aria-current="page">홈</a>
+        <a href="#home" onClick={onClose} className={`nav-item${page === 'home' ? ' is-current' : ''}`} aria-current={page === 'home' ? 'page' : undefined}>홈</a>
         <a href="#" className="nav-item is-action"><Icon name="plus" size={18} width={2.2} />일정 등록</a>
-        <a href="#" className="nav-item is-action"><Icon name="plus" size={18} width={2.2} />차량 신청</a>
+        <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ' is-action'}`} aria-current={page === 'cars' ? 'page' : undefined}><Icon name="plus" size={18} width={2.2} />차량 신청</a>
         <a href="#" className="nav-item">교회 캘린더</a>
         <a href="#" className="nav-item">예배 설교표</a>
         <a href="#" className="nav-item">부서 방</a>
@@ -281,27 +282,104 @@ function Cars() {
     <section className="block" aria-labelledby="car-h">
       <div className="block-head">
         <h2 id="car-h" className="pill">차량 현황</h2>
-        <strong>이번 주</strong>
+        <strong className="grow">{weekLabel}</strong>
+        <a href="#cars" className="btn btn-link">월별로 보기</a>
       </div>
-      <div className="card grid-3">
-        {cars.map((c) => (
-          <div key={c.name} className="box">
-            <h3>{c.name}</h3>
-            {c.bookings.length
-              ? c.bookings.map((b) => <span key={b}>{b}</span>)
-              : <span className="accent">이번 주 예약 없음</span>}
-          </div>
-        ))}
+      <div className="card scroll-x">
+        <table className="car-cal">
+          <thead>
+            <tr>
+              <th scope="col">차량</th>
+              {week.map((d) => (
+                <th key={d.date} scope="col" className={d.today ? 'is-today' : ''}>{d.day} · {d.date}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cars.map((c) => (
+              <tr key={c.name}>
+                <th scope="row">{c.name}</th>
+                {week.map((d) => (
+                  <td key={d.date} className={d.today ? 'is-today' : ''}>
+                    {c.bookings.filter((b) => b.date === d.date).map((b) => (
+                      <span key={b.time} className={`tag tag-${b.group}`}><b>{b.who}</b>{b.time}</span>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   )
 }
 
+function CarsMonth() {
+  const [carFilter, setCarFilter] = useState('all')
+  const cells = []
+  for (let i = 0; i < monthStartDow; i++) cells.push(null)
+  for (let d = 1; d <= monthDays; d++) cells.push(d)
+  while (cells.length % 7) cells.push(null)
+  const shown = monthBookings.filter((b) => carFilter === 'all' || b.car === carFilter)
+
+  return (
+    <>
+      <header className="title">
+        <h1 className="display page-title">VEHICLE</h1>
+        <span className="muted">차량 신청 · 월별 현황</span>
+      </header>
+      <section className="block" aria-labelledby="month-h">
+        <div className="block-head">
+          <h2 id="month-h" className="pill">{monthLabel}</h2>
+          <div className="month-nav">
+            <button type="button" className="icon-btn light" aria-label="이전 달">‹</button>
+            <button type="button" className="icon-btn light" aria-label="다음 달">›</button>
+          </div>
+          <div className="tabs grow">
+            <button type="button" className={`tab${carFilter === 'all' ? ' is-on' : ''}`} aria-pressed={carFilter === 'all'} onClick={() => setCarFilter('all')}>전체 차량</button>
+            {cars.map((c, i) => (
+              <button key={c.name} type="button" className={`tab${carFilter === i ? ' is-on' : ''}`} aria-pressed={carFilter === i} onClick={() => setCarFilter(i)}>{c.name}</button>
+            ))}
+          </div>
+          <button type="button" className="btn btn-primary">+ 차량 신청하기</button>
+        </div>
+        <div className="card scroll-x">
+          <div className="month">
+            {['일', '월', '화', '수', '목', '금', '토'].map((w) => <span key={w} className="month-dow">{w}</span>)}
+            {cells.map((d, i) => (
+              <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d === todayDate ? ' is-today' : ''}`}>
+                {d !== null && <span className="month-date">{d}</span>}
+                {d !== null && shown.filter((b) => b.day === d).map((b, j) => (
+                  <span key={j} className={`tag tag-${b.group}`}><b>{cars[b.car].name}</b>{b.who} · {b.time}</span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="note">이미 예약된 시간에는 같은 차량을 신청할 수 없습니다.</p>
+      </section>
+    </>
+  )
+}
+
+function usePage() {
+  const read = () => (location.hash === '#cars' ? 'cars' : 'home')
+  const [page, setPage] = useState(read)
+  useEffect(() => {
+    const on = () => { setPage(read()); window.scrollTo(0, 0) }
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return page
+}
+
 export default function App() {
+  const page = usePage()
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <div className="app">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <Sidebar open={menuOpen} page={page} onClose={() => setMenuOpen(false)} />
       {menuOpen && <div className="scrim only-mobile" onClick={() => setMenuOpen(false)} />}
 
       <main className="main">
@@ -316,6 +394,8 @@ export default function App() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
+        {page === 'cars' ? <CarsMonth /> : (
+          <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
           <span className="muted">대림교회 / 사역 대시보드 / {todayLabel}</span>
@@ -329,6 +409,8 @@ export default function App() {
         <WeekCalendar />
         <SermonTable />
         <Cars />
+          </>
+        )}
       </main>
     </div>
   )
