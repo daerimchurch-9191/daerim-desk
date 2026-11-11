@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuth } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage } from './AdminPage.jsx'
+import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth } from './live.jsx'
 import {
-  todayLabel, weekLabel, groups, week, mySermons, initialTodos, dawn, services,
-  cars, notices, links, folderColors, initialFolders,
-  monthLabel, monthStartDow, monthDays, todayDate, monthBookings,
+  todayLabel, mySermons, initialTodos, dawn, services, notices, links, folderColors, initialFolders,
 } from './data.js'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
@@ -45,6 +44,7 @@ function FolderIcon({ color }) {
 
 function Sidebar({ open, onClose, page }) {
   const { profile, signOut } = useAuth()
+  const { openModal } = useData()
   const [gearOpen, setGearOpen] = useState(false)
   return (
     <nav className={`sidebar${open ? ' is-open' : ''}`} aria-label="주 메뉴">
@@ -74,8 +74,9 @@ function Sidebar({ open, onClose, page }) {
 
       <div className="nav">
         <a href="#home" onClick={onClose} className={`nav-item${page === 'home' ? ' is-current' : ''}`} aria-current={page === 'home' ? 'page' : undefined}>홈</a>
-        <a href="#" className="nav-item is-action"><Icon name="plus" size={18} width={2.2} />일정 등록</a>
-        <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ' is-action'}`} aria-current={page === 'cars' ? 'page' : undefined}><Icon name="plus" size={18} width={2.2} />차량 신청</a>
+        <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'event' }) }}><Icon name="plus" size={18} width={2.2} />일정 등록</button>
+        <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={18} width={2.2} />차량 신청</button>
+        <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#" className="nav-item">교회 캘린더</a>
         <a href="#" className="nav-item">예배 설교표</a>
         <a href="#" className="nav-item">부서 방</a>
@@ -225,28 +226,6 @@ function Todos() {
   )
 }
 
-function WeekCalendar() {
-  return (
-    <section className="block" aria-labelledby="week-h">
-      <div className="block-head">
-        <h2 id="week-h" className="pill">Weekly Calendar</h2>
-        <strong className="grow">{weekLabel}</strong>
-        {groups.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
-      </div>
-      <div className="card scroll-x">
-        <div className="week">
-          {week.map((d) => (
-            <div key={d.date} className={`week-day${d.today ? ' is-today' : ''}`}>
-              <span className="week-head">{d.day} · {d.date}</span>
-              {d.events.map((e, i) => <span key={i} className={`tag tag-${e.group}`}>{e.time} {e.title}</span>)}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function SermonTable() {
   return (
     <section className="block" aria-labelledby="table-h">
@@ -285,92 +264,6 @@ function SermonTable() {
         </div>
       </div>
     </section>
-  )
-}
-
-function Cars() {
-  return (
-    <section className="block" aria-labelledby="car-h">
-      <div className="block-head">
-        <h2 id="car-h" className="pill">차량 현황</h2>
-        <strong className="grow">{weekLabel}</strong>
-        <a href="#cars" className="btn btn-link">월별로 보기</a>
-      </div>
-      <div className="card scroll-x">
-        <table className="car-cal">
-          <thead>
-            <tr>
-              <th scope="col">차량</th>
-              {week.map((d) => (
-                <th key={d.date} scope="col" className={d.today ? 'is-today' : ''}>{d.day} · {d.date}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {cars.map((c) => (
-              <tr key={c.name}>
-                <th scope="row">{c.name}</th>
-                {week.map((d) => (
-                  <td key={d.date} className={d.today ? 'is-today' : ''}>
-                    {c.bookings.filter((b) => b.date === d.date).map((b) => (
-                      <span key={b.time} className={`tag tag-${b.group}`}><b>{b.who}</b>{b.time}</span>
-                    ))}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
-}
-
-function CarsMonth() {
-  const [carFilter, setCarFilter] = useState('all')
-  const cells = []
-  for (let i = 0; i < monthStartDow; i++) cells.push(null)
-  for (let d = 1; d <= monthDays; d++) cells.push(d)
-  while (cells.length % 7) cells.push(null)
-  const shown = monthBookings.filter((b) => carFilter === 'all' || b.car === carFilter)
-
-  return (
-    <>
-      <header className="title">
-        <h1 className="display page-title">VEHICLE</h1>
-        <span className="muted">차량 신청 · 월별 현황</span>
-      </header>
-      <section className="block" aria-labelledby="month-h">
-        <div className="block-head">
-          <h2 id="month-h" className="pill">{monthLabel}</h2>
-          <div className="month-nav">
-            <button type="button" className="icon-btn light" aria-label="이전 달">‹</button>
-            <button type="button" className="icon-btn light" aria-label="다음 달">›</button>
-          </div>
-          <div className="tabs grow">
-            <button type="button" className={`tab${carFilter === 'all' ? ' is-on' : ''}`} aria-pressed={carFilter === 'all'} onClick={() => setCarFilter('all')}>전체 차량</button>
-            {cars.map((c, i) => (
-              <button key={c.name} type="button" className={`tab${carFilter === i ? ' is-on' : ''}`} aria-pressed={carFilter === i} onClick={() => setCarFilter(i)}>{c.name}</button>
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary">+ 차량 신청하기</button>
-        </div>
-        <div className="card scroll-x">
-          <div className="month">
-            {['일', '월', '화', '수', '목', '금', '토'].map((w) => <span key={w} className="month-dow">{w}</span>)}
-            {cells.map((d, i) => (
-              <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d === todayDate ? ' is-today' : ''}`}>
-                {d !== null && <span className="month-date">{d}</span>}
-                {d !== null && shown.filter((b) => b.day === d).map((b, j) => (
-                  <span key={j} className={`tag tag-${b.group}`}><b>{cars[b.car].name}</b>{b.who} · {b.time}</span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="note">이미 예약된 시간에는 같은 차량을 신청할 수 없습니다.</p>
-      </section>
-    </>
   )
 }
 
@@ -419,7 +312,7 @@ function Desk() {
         </div>
         <WeekCalendar />
         <SermonTable />
-        <Cars />
+        <CarsWeek />
           </>
         )}
       </main>
@@ -433,5 +326,5 @@ export default function App() {
   if (!session) return <LoginPage />
   if (!profile) return <div className="splash">계정 정보를 찾을 수 없습니다. 관리자에게 문의해 주세요.</div>
   if (profile.status !== 'approved') return <WaitingPage />
-  return <Desk />
+  return <DataProvider><Desk /></DataProvider>
 }

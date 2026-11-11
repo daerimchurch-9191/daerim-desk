@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
+import { VehicleAdmin } from './live.jsx'
 
 const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반려됨' }
 
@@ -47,7 +48,7 @@ export function AdminPage() {
     <>
       <header className="title">
         <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인과 관리자 지정</span>
+        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 차량 등록</span>
       </header>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">
@@ -61,6 +62,7 @@ export function AdminPage() {
         <h2 id="all-h" className="pill">사역자 {others.length}</h2>
         <div className="card">{others.map(row)}</div>
       </section>
+      <VehicleAdmin />
     </>
   )
 }
