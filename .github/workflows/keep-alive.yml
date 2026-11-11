@@ -12,5 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sf "https://jwdqfoavqibxvrccquna.supabase.co/rest/v1/departments?select=id&limit=1" \
-            -H "apikey: sb_publishable_QbAicaAC7nefb8vbE1BNCA_pcJjvY6Z" -o /dev/null -w "%{http_code}\n"
+          curl -sf "https://pvxhzpuoijazqsgjgmne.supabase.co/rest/v1/departments?select=id&limit=1" \
+            -H "apikey: sb_publishable_vSgdb8DPddXxVQI4qblElw_NEuAkOGb" -o /dev/null -w "%{http_code}\n"

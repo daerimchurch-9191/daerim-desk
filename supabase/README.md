@@ -1,6 +1,6 @@
 # 데이터베이스 구조
 
-Supabase 프로젝트 `jwdqfoavqibxvrccquna` 에 적용된 표와 권한 규칙.
+Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 
 | 표 | 내용 | 볼 수 있는 사람 | 고칠 수 있는 사람 |
 |---|---|---|---|
