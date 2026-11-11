@@ -5,7 +5,8 @@ import { AdminPage } from './AdminPage.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable } from './sermons.jsx'
 import { Todos, Folders } from './personal.jsx'
-import { notices, links } from './data.js'
+import { links } from './data.js'
+import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -32,7 +33,7 @@ function Icon({ name, size = 20, width = 1.7 }) {
   )
 }
 
-function Sidebar({ open, onClose, page }) {
+function Sidebar({ open, onClose, page, notices }) {
   const { profile, signOut } = useAuth()
   const { openModal } = useData()
   const [gearOpen, setGearOpen] = useState(false)
@@ -79,19 +80,7 @@ function Sidebar({ open, onClose, page }) {
         <a href="#" className="nav-item">내 책상</a>
       </div>
 
-      <section className="side-notice" aria-labelledby="notice-h">
-        <div className="side-notice-head">
-          <h2 id="notice-h" className="side-label">공지</h2>
-          <span className="badge-new">새 글 {notices.length}</span>
-        </div>
-        {notices.map((n, i) => (
-          <a href="#" key={i} className="side-notice-item">
-            <strong>{n.title}</strong>
-            <span>{n.meta}</span>
-          </a>
-        ))}
-        <a href="#" className="side-more">공지 전체 보기</a>
-      </section>
+      <SideNotices notices={notices} onNavigate={onClose} />
 
       <section aria-labelledby="links-h">
         <h2 id="links-h" className="side-label pad">바로가기</h2>
@@ -108,7 +97,7 @@ function Sidebar({ open, onClose, page }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => ({ '#cars': 'cars', '#admin': 'admin' }[location.hash] ?? 'home')
+  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -120,10 +109,11 @@ function usePage() {
 
 function Desk() {
   const page = usePage()
+  const notices = useNotices()
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <div className="app">
-      <Sidebar open={menuOpen} page={page} onClose={() => setMenuOpen(false)} />
+      <Sidebar open={menuOpen} page={page} notices={notices} onClose={() => setMenuOpen(false)} />
       {menuOpen && <div className="scrim only-mobile" onClick={() => setMenuOpen(false)} />}
 
       <main className="main">
@@ -138,13 +128,14 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminPage /> : page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
           <span className="muted">대림교회 / 사역 대시보드 / {todayLabel()}</span>
         </header>
 
+        <NoticeStrip notices={notices} />
         <Folders />
         <div className="grid-2 top">
           <MySermons />

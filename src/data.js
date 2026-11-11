@@ -1,10 +1,5 @@
-// 아직 실제 데이터로 연결하지 않은 공지 예시와, 바로가기·폴더 색 목록.
+// 바로가기 목록과 폴더 색. (주소가 정해지면 href 를 채운다)
 
-
-export const notices = [
-  { title: '[공지 제목]', meta: '전체 · 11월 10일' },
-  { title: '[공지 제목]', meta: '교육부 · 11월 9일' },
-]
 
 export const links = [
   { icon: 'globe', name: '교회 홈페이지', href: '#' },
