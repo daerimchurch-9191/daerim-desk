@@ -4,7 +4,8 @@ import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage } from './AdminPage.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable } from './sermons.jsx'
-import { initialTodos, notices, links, folderColors, initialFolders } from './data.js'
+import { Todos, Folders } from './personal.jsx'
+import { notices, links } from './data.js'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -27,16 +28,6 @@ function Icon({ name, size = 20, width = 1.7 }) {
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 20 20" fill="none"
       stroke="currentColor" strokeWidth={width} strokeLinecap="round" strokeLinejoin="round">
       {ICONS[name]}
-    </svg>
-  )
-}
-
-function FolderIcon({ color }) {
-  const c = folderColors.find((f) => f.id === color) ?? folderColors[0]
-  return (
-    <svg aria-hidden="true" width="72" height="56" viewBox="0 0 76 60">
-      <path d="M4 12a6 6 0 0 1 6-6h18l7 8h31a6 6 0 0 1 6 6v30a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" fill={c.dark} />
-      <path d="M4 22h68v28a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" fill={c.light} />
     </svg>
   )
 }
@@ -111,97 +102,6 @@ function Sidebar({ open, onClose, page }) {
         ))}
       </section>
     </nav>
-  )
-}
-
-function Folders() {
-  const [folders, setFolders] = useState(initialFolders)
-  const [adding, setAdding] = useState(false)
-  const [name, setName] = useState('')
-  const [href, setHref] = useState('')
-  const [color, setColor] = useState('green')
-
-  function add(e) {
-    e.preventDefault()
-    if (!name.trim()) return
-    setFolders([...folders, { id: Date.now(), name: name.trim(), color, href: href.trim() || '#' }])
-    setName(''); setHref(''); setColor('green'); setAdding(false)
-  }
-
-  return (
-    <section className="folders" aria-label="내 폴더">
-      {folders.map((f) => (
-        <a key={f.id} href={f.href} className="folder"><FolderIcon color={f.color} />{f.name}</a>
-      ))}
-      <button type="button" className="folder folder-add" onClick={() => setAdding(true)}>
-        <span className="folder-add-box"><Icon name="plus" size={22} width={2.2} /></span>폴더 추가
-      </button>
-
-      {adding && (
-        <div className="overlay" onClick={() => setAdding(false)}>
-          <form className="dialog" onSubmit={add} onClick={(e) => e.stopPropagation()} aria-labelledby="folder-h">
-            <h2 id="folder-h" className="pill">폴더 추가</h2>
-            <div className="dialog-preview"><FolderIcon color={color} /><span>고른 색으로 홈 화면 폴더 줄에 나타납니다.</span></div>
-            <label className="field">폴더 이름
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 예배 자료" autoFocus />
-            </label>
-            <label className="field">연결할 위치
-              <input value={href} onChange={(e) => setHref(e.target.value)} placeholder="나스 폴더 경로 또는 링크 주소" />
-            </label>
-            <fieldset className="swatches">
-              <legend>폴더 색</legend>
-              {folderColors.map((c) => (
-                <label key={c.id} className="swatch">
-                  <input type="radio" name="color" checked={color === c.id} onChange={() => setColor(c.id)} />
-                  <span className="swatch-dot" style={{ background: c.dark }} />{c.name}
-                </label>
-              ))}
-            </fieldset>
-            <div className="dialog-actions">
-              <button type="button" className="btn" onClick={() => setAdding(false)}>취소</button>
-              <button type="submit" className="btn btn-primary">추가하기</button>
-            </div>
-          </form>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function Todos() {
-  const [todos, setTodos] = useState(initialTodos)
-  const [filter, setFilter] = useState('week')
-  const filters = [
-    { id: 'week', name: '이번 주', test: () => true },
-    { id: 'today', name: '오늘', test: (t) => t.today },
-    { id: 'repeat', name: '매주 반복', test: (t) => t.repeat },
-  ]
-  const shown = todos.filter(filters.find((f) => f.id === filter).test)
-  const toggle = (id) => setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
-
-  return (
-    <section className="block" aria-labelledby="todo-h">
-      <h2 id="todo-h" className="pill">Todolist</h2>
-      <div className="card">
-        <div className="tabs">
-          {filters.map((f) => (
-            <button key={f.id} type="button" className={`tab${filter === f.id ? ' is-on' : ''}`}
-              aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-              {f.name} {todos.filter(f.test).length}
-            </button>
-          ))}
-          <button type="button" className="btn btn-primary tabs-end">+ 할 일 추가</button>
-        </div>
-        {shown.map((t) => (
-          <div key={t.id} className="todo-row">
-            <input id={`todo-${t.id}`} type="checkbox" checked={t.done} onChange={() => toggle(t.id)} />
-            <label htmlFor={`todo-${t.id}`} className={`grow${t.done ? ' is-done' : ''}`}>{t.text}</label>
-            {t.repeat ? <span className="chip">매주 {t.repeat}</span> : <span className="chip chip-plain">오늘</span>}
-            <button type="button" className="link-btn">수정</button>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }
 

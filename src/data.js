@@ -1,13 +1,5 @@
-// 아직 실제 데이터로 연결하지 않은 부분의 예시 데이터 (할 일, 공지, 폴더)와 바로가기 목록.
+// 아직 실제 데이터로 연결하지 않은 공지 예시와, 바로가기·폴더 색 목록.
 
-export const initialTodos = [
-  { id: 1, text: '주일 설교 원고 초안', today: true, done: false },
-  { id: 2, text: '야외활동 준비물 확인', today: true, done: false },
-  { id: 3, text: '교역자 회의 자료 준비', repeat: '화', done: true },
-  { id: 4, text: '교사 쪽지 발송', repeat: '목', done: false },
-  { id: 5, text: '주일 설교 원고 마감', repeat: '금', done: false },
-  { id: 6, text: '예배 위원 확인', repeat: '토', done: false },
-]
 
 export const notices = [
   { title: '[공지 제목]', meta: '전체 · 11월 10일' },
@@ -31,7 +23,3 @@ export const folderColors = [
   { id: 'gray', name: '회색', dark: '#4A524E', light: '#7E8883' },
 ]
 
-export const initialFolders = [
-  { id: 1, name: '설교 원고', color: 'green', href: '#' },
-  { id: 2, name: '주간 업무', color: 'blue', href: '#' },
-]
