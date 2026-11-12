@@ -68,11 +68,36 @@ export function ChangePasswordModal({ onClose }) {
   )
 }
 
-const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반려됨' }
+const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반려됨', inactive: '사용 중지' }
+
+// 교회를 떠난 사역자: 계정과 기록은 남기고 로그인해도 아무것도 볼 수 없게 한다
+function DeactivateModal({ person, onClose, onDone }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function save(e) {
+    e.preventDefault()
+    setBusy(true)
+    const { error } = await supabase.from('profiles').update({ status: 'inactive', role: 'member' }).eq('id', person.id)
+    setBusy(false)
+    if (error) return setError(toKorean(error.message))
+    onDone(); onClose()
+  }
+  return (
+    <Modal title="사용 중지" onClose={onClose} onSubmit={save}
+      footer={<>
+        <button type="button" className="btn" onClick={onClose}>닫기</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '처리 중…' : '사용 중지'}</button>
+      </>}>
+      <p><strong>{person.name} {person.title}</strong>님의 계정을 사용 중지합니다.</p>
+      <p className="muted small">로그인해도 대시보드를 볼 수 없게 됩니다. 이분이 등록한 일정·설교·차량 기록은 그대로 남습니다. 필요하면 아래 "사용 중지된 계정"에서 언제든 다시 사용하게 할 수 있습니다.</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+    </Modal>
+  )
+}
 
 export function AdminPage() {
   const { profile: me } = useAuth()
-  const { openModal } = useData()
+  const { openModal, refresh, notify } = useData()
   const [people, setPeople] = useState(null)
   const [error, setError] = useState('')
 
@@ -92,7 +117,8 @@ export function AdminPage() {
 
   if (me?.role !== 'admin') return <p className="card">관리자만 볼 수 있는 화면입니다.</p>
   const pending = people?.filter((p) => p.status === 'pending') ?? []
-  const others = people?.filter((p) => p.status !== 'pending') ?? []
+  const others = people?.filter((p) => p.status === 'approved' || p.status === 'rejected') ?? []
+  const inactive = people?.filter((p) => p.status === 'inactive') ?? []
 
   const row = (p) => (
     <div key={p.id} className="member-row">
@@ -101,7 +127,8 @@ export function AdminPage() {
         <span className="muted small"> · {p.login_id}{p.dept ? ` · ${p.dept}` : ''}</span>
       </div>
       <span className={`chip${p.status === 'approved' ? '' : ' chip-plain'}`}>{STATUS[p.status]}{p.role === 'admin' ? ' · 관리자' : ''}</span>
-      {p.status !== 'approved' && <button type="button" className="btn btn-primary" onClick={() => update(p.id, { status: 'approved' })}>승인</button>}
+      {p.status === 'inactive' && <button type="button" className="btn btn-primary" onClick={async () => { await update(p.id, { status: 'approved' }); refresh(); notify(`${p.name} ${p.title}님 계정을 다시 쓸 수 있게 했습니다.`) }}>다시 사용</button>}
+      {(p.status === 'pending' || p.status === 'rejected') && <button type="button" className="btn btn-primary" onClick={() => update(p.id, { status: 'approved' })}>승인</button>}
       {p.status === 'pending' && <button type="button" className="btn" onClick={() => update(p.id, { status: 'rejected' })}>반려</button>}
       {p.status === 'approved' && p.id !== me.id && (
         p.role === 'admin'
@@ -111,6 +138,9 @@ export function AdminPage() {
       {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn" onClick={() => openModal({ render: (close) => <ResetPasswordModal person={p} onClose={close} /> })}>비밀번호 초기화</button>
       )}
+      {p.status === 'approved' && p.id !== me.id && (
+        <button type="button" className="btn btn-danger" onClick={() => openModal({ render: (close) => <DeactivateModal person={p} onClose={close} onDone={() => { load(); refresh(); notify(`${p.name} ${p.title}님 계정을 사용 중지했습니다.`) }} /> })}>사용 중지</button>
+      )}
     </div>
   )
 
@@ -118,7 +148,7 @@ export function AdminPage() {
     <>
       <header className="title">
         <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 차량 등록</span>
+        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 사용 중지, 차량 등록</span>
       </header>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">
@@ -132,6 +162,12 @@ export function AdminPage() {
         <h2 id="all-h" className="pill">사역자 {others.length}</h2>
         <div className="card">{others.map(row)}</div>
       </section>
+      {inactive.length > 0 && (
+        <section className="block" aria-labelledby="inactive-h">
+          <h2 id="inactive-h" className="pill">사용 중지된 계정 {inactive.length}</h2>
+          <div className="card">{inactive.map(row)}</div>
+        </section>
+      )}
       <VehicleAdmin />
     </>
   )

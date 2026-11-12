@@ -174,7 +174,10 @@ function EventModal({ initial, onClose }) {
 /* ---------- 차량 신청 ---------- */
 function CarModal({ initial, onClose }) {
   const { departments, vehicles, refresh, notify } = useData()
-  const [f, setF] = useState({ date: initial?.date ?? ymd(new Date()), from: '09:00', to: '12:00', vehicle_id: null, dept_id: 'all', driver: '', purpose: '' })
+  const editing = Boolean(initial?.id)
+  const [f, setF] = useState(editing
+    ? { date: ymd(initial.span[0]), from: hm(initial.span[0]), to: hm(initial.span[1]), vehicle_id: initial.vehicle_id, dept_id: initial.dept_id ?? 'all', driver: initial.driver ?? '', purpose: initial.purpose ?? '' }
+    : { date: initial?.date ?? ymd(new Date()), from: '09:00', to: '12:00', vehicle_id: null, dept_id: 'all', driver: '', purpose: '' })
   const [dayBookings, setDayBookings] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -183,7 +186,7 @@ function CarModal({ initial, onClose }) {
   useEffect(() => {
     const a = local(f.date), b = addDays(a, 1)
     supabase.from('vehicle_bookings').select('*').overlaps('during', range(a, b))
-      .then(({ data }) => setDayBookings((data ?? []).map((x) => ({ ...x, span: parseRange(x.during) }))))
+      .then(({ data }) => setDayBookings((data ?? []).filter((x) => x.id !== initial?.id).map((x) => ({ ...x, span: parseRange(x.during) }))))
   }, [f.date])
 
   const valid = f.to > f.from
@@ -196,23 +199,35 @@ function CarModal({ initial, onClose }) {
     if (!valid) return setError('반납 시간이 출발보다 늦어야 합니다.')
     if (!f.vehicle_id) return setError('쓸 수 있는 차량을 골라 주세요.')
     setBusy(true)
-    const { error } = await supabase.from('vehicle_bookings').insert({
+    const row = {
       vehicle_id: f.vehicle_id, during: range(want[0], want[1]), dept_id: f.dept_id,
       driver: f.driver.trim() || null, purpose: f.purpose.trim() || null,
-    })
+    }
+    const { error } = editing
+      ? await supabase.from('vehicle_bookings').update(row).eq('id', initial.id)
+      : await supabase.from('vehicle_bookings').insert(row)
     setBusy(false)
     if (error) {
       // 23P01: 같은 차량 시간 겹침 (그 사이 다른 사람이 먼저 신청한 경우)
       return setError(error.code === '23P01' ? '방금 다른 분이 같은 시간에 이 차량을 신청했습니다. 다른 차량이나 시간을 골라 주세요.' : toKorean(error.message))
     }
-    refresh(); notify('차량을 신청했습니다.'); onClose()
+    refresh(); notify(editing ? '차량 신청을 고쳤습니다.' : '차량을 신청했습니다.'); onClose()
+  }
+
+  async function cancelBooking() {
+    setBusy(true)
+    const { error } = await supabase.from('vehicle_bookings').delete().eq('id', initial.id)
+    setBusy(false)
+    if (error) return setError(toKorean(error.message))
+    refresh(); notify('차량 신청을 취소했습니다.'); onClose()
   }
 
   return (
-    <Modal title="차량 신청" onClose={onClose} onSubmit={save}
+    <Modal title={editing ? '차량 신청 고치기' : '차량 신청'} onClose={onClose} onSubmit={save}
       footer={<>
-        <button type="button" className="btn" onClick={onClose}>취소</button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '신청 중…' : '신청하기'}</button>
+        {editing && <button type="button" className="btn btn-danger" onClick={cancelBooking} disabled={busy}>신청 취소</button>}
+        <button type="button" className="btn" onClick={onClose}>닫기</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '저장 중…' : editing ? '저장' : '신청하기'}</button>
       </>}>
       <p className="muted small">날짜와 시간을 먼저 고르면, 그 시간에 쓸 수 있는 차량만 고를 수 있습니다.</p>
       <div className="field-row three">
@@ -311,19 +326,23 @@ function useBookings(from, to) {
 
 function BookingTag({ b, departments, showCar, vehicles }) {
   const { profile } = useAuth()
-  const { refresh, notify } = useData()
+  const { refresh, notify, openModal } = useData()
   const mine = b.created_by === profile.id || profile.role === 'admin'
   async function cancel() {
     const { error } = await supabase.from('vehicle_bookings').delete().eq('id', b.id)
     if (error) return notify(toKorean(error.message))
     refresh(); notify('차량 신청을 취소했습니다.')
   }
+  const label = <>
+    {showCar && <b>{vehicles.find((v) => v.id === b.vehicle_id)?.name}</b>}
+    <b>{deptName(departments, b.dept_id) || '예약'}</b>
+    {hm(b.span[0])} – {hm(b.span[1])}
+  </>
+  if (!mine) return <span className={`tag ${deptTag(departments, b.dept_id)}`}>{label}</span>
   return (
     <span className={`tag ${deptTag(departments, b.dept_id)}`}>
-      {showCar && <b>{vehicles.find((v) => v.id === b.vehicle_id)?.name}</b>}
-      <b>{deptName(departments, b.dept_id) || '예약'}</b>
-      {hm(b.span[0])} – {hm(b.span[1])}
-      {mine && <button type="button" className="tag-x" aria-label="신청 취소" title="신청 취소" onClick={cancel}>취소</button>}
+      <button type="button" className="tag-edit" title="눌러서 고치기" onClick={() => openModal({ type: 'car', initial: b })}>{label}</button>
+      <button type="button" className="tag-x" aria-label="신청 취소" title="신청 취소" onClick={cancel}>취소</button>
     </span>
   )
 }

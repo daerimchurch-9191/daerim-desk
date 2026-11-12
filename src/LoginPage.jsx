@@ -97,6 +97,15 @@ export function LoginPage() {
 export function WaitingPage() {
   const { profile, signOut, reloadProfile } = useAuth()
   const rejected = profile?.status === 'rejected'
+  if (profile?.status === 'inactive') return (
+    <Shell>
+      <div className="auth-card">
+        <h1 className="pill">사용이 중지된 계정입니다</h1>
+        <p><strong>{profile?.name} {profile?.title}님</strong>, 이 계정은 관리자가 사용을 중지했습니다. 다시 쓰려면 관리자에게 문의해 주세요.</p>
+        <button type="button" className="btn btn-block" onClick={signOut}>로그아웃</button>
+      </div>
+    </Shell>
+  )
   return (
     <Shell>
       <div className="auth-card">
