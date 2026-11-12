@@ -168,7 +168,7 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .dialog-actions .btn-primary { flex: 2; }
 
 /* ---------- 휴대폰 ---------- */
-@media (max-width: 860px) {
+@media (max-width: 1100px) {
   .only-mobile { display: flex !important; }
   .sidebar { position: fixed; inset: 0 auto 0 0; width: 322px; max-width: 86vw; z-index: 20; overflow-y: auto; transform: translateX(-100%); transition: transform 0.2s ease; }
   .sidebar.is-open { transform: none; }
@@ -303,3 +303,14 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .logo-link { display: flex; border-radius: 10px; }
 .logo-link:focus-visible { outline: 2px solid #bfe8d4; outline-offset: 4px; }
 .mobile-home { color: #fff; text-decoration: none; }
+
+/* ---------- 좁은 화면에서 글자가 쪼개지지 않게 ---------- */
+/* 제목 줄의 글자·버튼은 줄어들지 않고, 자리가 모자라면 통째로 다음 줄로 내려간다 */
+.block-head > * { flex-shrink: 0; }
+.block-head > strong, .block-head > span { white-space: nowrap; }
+.block-head > .grow { flex: 1 1 auto; min-width: max-content; }
+.block-head > .tabs.grow { min-width: 0; flex: 1 1 260px; }
+.tab, .chip, .pill, .btn, .tag.round { white-space: nowrap; }
+.tabs .tab { flex: none; }
+.inline-select select { max-width: 100%; }
+.month-nav { flex: none; }
