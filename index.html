@@ -16,6 +16,17 @@
 </head>
 <body>
 <div id="root"></div>
+<script>
+  // 새 버전 배포 직후 예전 페이지가 남아 화면이 비면, 한 번만 새로 불러온다
+  setTimeout(function () {
+    var root = document.getElementById('root')
+    if (root && !root.firstChild && !sessionStorage.getItem('dd-reloaded')) {
+      sessionStorage.setItem('dd-reloaded', '1')
+      location.replace(location.pathname + '?v=' + Date.now() + location.hash)
+    }
+  }, 4000)
+  window.addEventListener('load', function () { setTimeout(function () { if (document.getElementById('root').firstChild) sessionStorage.removeItem('dd-reloaded') }, 5000) })
+</script>
 <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

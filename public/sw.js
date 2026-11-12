@@ -1,7 +1,11 @@
 // 대림교회 사역 데스크 서비스 워커: 홈 화면 앱 설치와 알림 받기만 맡는다 (화면 저장은 하지 않음).
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
-self.addEventListener('fetch', () => {})
+// 페이지(index.html)는 항상 서버에서 새로 받는다. 예전 화면이 남아 사라진 파일을 찾다 하얀 화면이 되는 것을 막는다.
+self.addEventListener('fetch', (e) => {
+  if (e.request.mode !== 'navigate') return
+  e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => fetch(e.request)))
+})
 
 self.addEventListener('push', (e) => {
   let d = {}
