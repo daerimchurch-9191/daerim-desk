@@ -169,7 +169,7 @@ export function SermonTable() {
           <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
-        <strong className="grow">{md(days[0])} – {md(days[6])} · 모두 함께 보고 씁니다</strong>
+        <strong className="grow">{md(days[0])} – {md(days[6])}</strong>
       </div>
       <div className="card">
         <div className="grid-2">
@@ -310,7 +310,7 @@ export function SermonsMonth() {
     <>
       <header className="title">
         <h1 className="display page-title">SERMONS</h1>
-        <span className="muted">예배 설교표 · 월별 · 모두 함께 보고 씁니다</span>
+        <span className="muted">예배 설교표 · 월별</span>
       </header>
       <section className="block" aria-labelledby="smonth-h">
         <div className="block-head">
