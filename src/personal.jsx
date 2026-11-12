@@ -205,7 +205,7 @@ export function Todos() {
 function FolderIcon({ color }) {
   const c = folderColors.find((f) => f.id === color) ?? folderColors[0]
   return (
-    <svg aria-hidden="true" width="72" height="56" viewBox="0 0 76 60">
+    <svg aria-hidden="true" width="72" height="56" viewBox="0 0 76 60" className="folder-svg">
       <path d="M4 12a6 6 0 0 1 6-6h18l7 8h31a6 6 0 0 1 6 6v30a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" fill={c.dark} />
       <path d="M4 22h68v28a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" fill={c.light} />
     </svg>

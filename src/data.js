@@ -10,10 +10,10 @@ export const links = [
 ]
 
 export const folderColors = [
-  { id: 'green', name: '초록', dark: '#0F6B54', light: '#3E9C78' },
-  { id: 'blue', name: '파랑', dark: '#2F5FA8', light: '#5C8AD0' },
-  { id: 'amber', name: '노랑', dark: '#B5741A', light: '#E0A54A' },
-  { id: 'purple', name: '보라', dark: '#6B479E', light: '#9778C4' },
-  { id: 'gray', name: '회색', dark: '#4A524E', light: '#7E8883' },
+  { id: 'green', name: '초록', dark: '#639F90', light: '#9ECEBC' },
+  { id: 'blue', name: '파랑', dark: '#7897C6', light: '#AEC4E8' },
+  { id: 'amber', name: '노랑', dark: '#CFA56A', light: '#F0D2A4' },
+  { id: 'purple', name: '보라', dark: '#9F87C0', light: '#CBBCE2' },
+  { id: 'gray', name: '회색', dark: '#898F8C', light: '#BEC4C1' },
 ]
 
