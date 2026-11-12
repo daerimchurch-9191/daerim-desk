@@ -46,7 +46,9 @@ function Sidebar({ open, onClose, page, notices }) {
   return (
     <nav className={`sidebar${open ? ' is-open' : ''}`} aria-label="주 메뉴">
       <div className="sidebar-top">
-        <img className="logo" src={logoWhite} alt="대림교회 로고" />
+        <a href="#home" className="logo-link" onClick={() => { onClose(); window.scrollTo(0, 0) }} aria-label="홈으로">
+          <img className="logo" src={logoWhite} alt="대림교회 로고" />
+        </a>
         <button type="button" className="icon-btn only-mobile" aria-label="메뉴 닫기" onClick={onClose}>
           <Icon name="close" width={2.2} />
         </button>
@@ -122,7 +124,7 @@ function Desk() {
           <button type="button" className="icon-btn" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
             <Icon name="menu" size={22} width={2.2} />
           </button>
-          <span className="display">MINISTRY DESK</span>
+          <a href="#home" className="display mobile-home" onClick={() => window.scrollTo(0, 0)}>MINISTRY DESK</a>
         </div>
 
         <div className="ticker" aria-hidden="true">
