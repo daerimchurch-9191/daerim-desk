@@ -35,7 +35,8 @@ export function useNotices() {
 }
 
 /* ---------- 공유: 제목과 내용을 그대로 보낸다 ---------- */
-const shareText = (n) => (n.body ? `[대림교회 공지] ${n.title}\n\n${n.body}` : `[대림교회 공지] ${n.title}`)
+// 맨 위에 [대림교회 공지], 다음 줄에 제목, 한 줄 띄우고 내용
+const shareText = (n) => (n.body ? `[대림교회 공지]\n${n.title}\n\n${n.body}` : `[대림교회 공지]\n${n.title}`)
 
 function ShareButtons({ notice }) {
   const { notify } = useData()
@@ -51,7 +52,7 @@ function ShareButtons({ notice }) {
   // 기기 공유 창(카카오톡 등 고르기)을 연다. 지원하지 않는 기기에서는 복사로 대신한다.
   async function share() {
     if (typeof navigator.share !== 'function') return copy()
-    try { await navigator.share({ title: notice.title, text }) } catch (e) { if (e?.name !== 'AbortError') copy() }
+    try { await navigator.share({ text }) } catch (e) { if (e?.name !== 'AbortError') copy() }
   }
   return (
     <div className="share-row">
