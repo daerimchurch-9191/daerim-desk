@@ -159,11 +159,11 @@ function EventModal({ initial, onClose }) {
         <div className="field-row three">
           <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
           <label className="field">시작<input type="time" value={f.start} onChange={set('start')} required /></label>
-          <label className="field">끝 <small>(선택)</small><input type="time" value={f.end} onChange={set('end')} /></label>
+          <label className="field"><span>끝 <small>(선택)</small></span><input type="time" value={f.end} onChange={set('end')} /></label>
         </div>
         <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
-        <label className="field">장소 <small>(선택)</small><input value={f.location} onChange={set('location')} /></label>
-        <label className="field">메모 <small>(선택)</small><input value={f.note} onChange={set('note')} /></label>
+        <label className="field"><span>장소 <small>(선택)</small></span><input value={f.location} onChange={set('location')} /></label>
+        <label className="field"><span>메모 <small>(선택)</small></span><input value={f.note} onChange={set('note')} /></label>
       </fieldset>
       {!canEdit && <p className="muted small">등록한 사람과 관리자만 고칠 수 있습니다.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -476,7 +476,7 @@ export function VehicleAdmin() {
         ))}
         <form className="inline-form" onSubmit={add}>
           <label className="field grow">차량 이름<input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 스타렉스" /></label>
-          <label className="field">번호판 <small>(선택)</small><input value={plate} onChange={(e) => setPlate(e.target.value)} /></label>
+          <label className="field"><span>번호판 <small>(선택)</small></span><input value={plate} onChange={(e) => setPlate(e.target.value)} /></label>
           <button type="submit" className="btn btn-primary">차량 등록</button>
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}

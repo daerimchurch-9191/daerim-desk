@@ -97,7 +97,7 @@ function SermonModal({ initial, onClose }) {
           <label className="field">예배 이름<input value={f.title} onChange={set('title')} placeholder={personal ? '예: 유년부 예배' : '예: 연합속회'} autoFocus /></label>
           <div className="field-row">
             <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-            <label className="field">시간 <small>(선택)</small><input type="time" value={f.time} onChange={set('time')} /></label>
+            <label className="field"><span>시간 <small>(선택)</small></span><input type="time" value={f.time} onChange={set('time')} /></label>
           </div>
         </>
       )}

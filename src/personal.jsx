@@ -80,7 +80,7 @@ function TodoModal({ initial, onClose }) {
         </div>
       </fieldset>
       {f.kind === 'once' ? (
-        <label className="field">마감일 <small>(선택)</small><input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
+        <label className="field"><span>마감일 <small>(선택)</small></span><input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
       ) : (
         <>
         {f.kind === 'monthly' && (

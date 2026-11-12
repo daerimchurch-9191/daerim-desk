@@ -132,10 +132,10 @@ function NoticeEditor({ initial, onClose }) {
         </div>
       </fieldset>
       <p className="muted small">교구·교육부 공지는 그 소속 사역자와 관리자에게만 보입니다.</p>
-      <label className="field">게시 기간 <small>(이 날까지 보임, 비우면 계속)</small>
+      <label className="field"><span>게시 기간 <small>(이 날까지 보임, 비우면 계속)</small></span>
         <input type="date" value={f.until} onChange={(e) => setF({ ...f, until: e.target.value })} />
       </label>
-      <label className="field">내용 <small>(선택)</small>
+      <label className="field"><span>내용 <small>(선택)</small></span>
         <textarea rows={6} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />
       </label>
       <label className="check-inline"><input type="checkbox" checked={push} onChange={(e) => setPush(e.target.checked)} />{editing ? '고친 내용으로 알림 다시 보내기' : '휴대폰 알림 보내기'} <small className="muted">(알림을 켜 둔 사역자에게)</small></label>
