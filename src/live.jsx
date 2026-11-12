@@ -271,6 +271,7 @@ export function WeekCalendar() {
         </div>
         <strong className="grow">{week0.getFullYear()}년 {kDate(days[0]).replace(/ \(.\)/, '')} – {kDate(days[6]).replace(/ \(.\)/, '')}</strong>
         {GROUPS.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
+        <a href="#calendar" className="btn btn-link">월별로 보기</a>
       </div>
       <div className="card scroll-x">
         <div className="week">
@@ -462,5 +463,89 @@ export function VehicleAdmin() {
         {error && <p className="form-error" role="alert">{error}</p>}
       </div>
     </section>
+  )
+}
+
+/* ---------- 교회 캘린더 (월별) ---------- */
+export function CalendarMonth() {
+  const { departments, version, openModal } = useData()
+  const now = new Date()
+  const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
+  const [group, setGroup] = useState('every') // every | all | edu | parish
+  const [dept, setDept] = useState('') // 부서 하나만 볼 때
+  const [events, setEvents] = useState(null)
+  const next = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+
+  useEffect(() => {
+    setEvents(null)
+    supabase.from('events').select('*').gte('starts_at', month.toISOString()).lt('starts_at', next.toISOString()).order('starts_at')
+      .then(({ data }) => setEvents(data ?? []))
+  }, [month.getTime(), version])
+
+  const grpOf = (id) => departments.find((d) => d.id === id)?.grp ?? 'all'
+  const shown = (events ?? []).filter((e) => (dept ? e.dept_id === dept : group === 'every' || grpOf(e.dept_id) === group))
+  const cells = []
+  for (let i = 0; i < month.getDay(); i++) cells.push(null)
+  for (let d = new Date(month); d < next; d = addDays(d, 1)) cells.push(d)
+  while (cells.length % 7) cells.push(null)
+  const groupTabs = [{ id: 'every', name: '모두' }, ...GROUPS]
+  const deptsOf = (g) => departments.filter((d) => d.grp === g)
+
+  return (
+    <>
+      <header className="title">
+        <h1 className="display page-title">CALENDAR</h1>
+        <span className="muted">교회 캘린더 · 월별 · 부서마다 등록한 일정을 한눈에</span>
+      </header>
+      <section className="block" aria-labelledby="cal-h">
+        <div className="block-head">
+          <h2 id="cal-h" className="pill">{month.getFullYear()}년 {month.getMonth() + 1}월</h2>
+          <div className="month-nav">
+            <button type="button" className="icon-btn light" aria-label="이전 달" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>‹</button>
+            <button type="button" className="icon-btn light" aria-label="다음 달" onClick={() => setMonth(next)}>›</button>
+          </div>
+          <div className="tabs">
+            {groupTabs.map((g) => (
+              <button key={g.id} type="button" className={`tab${!dept && group === g.id ? ' is-on' : ''}`} aria-pressed={!dept && group === g.id}
+                onClick={() => { setGroup(g.id); setDept('') }}>{g.name}</button>
+            ))}
+          </div>
+          <label className="inline-select grow">
+            <span className="visually-hidden">부서 하나만 보기</span>
+            <select value={dept} onChange={(e) => setDept(e.target.value)}>
+              <option value="">부서 하나만 보기</option>
+              <optgroup label="교육부">{deptsOf('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+              <optgroup label="교구">{deptsOf('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+            </select>
+          </label>
+          <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'event', initial: { date: ymd(month.getMonth() === now.getMonth() ? now : month) } })}>+ 일정 등록</button>
+        </div>
+        <div className="card scroll-x">
+          <div className="month">
+            {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} className="month-cell is-empty" />
+              const list = shown.filter((e) => sameDay(new Date(e.starts_at), d))
+              return (
+                <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}`}>
+                  <span className="month-date">{d.getDate()}</span>
+                  {events === null && <span className="skeleton" />}
+                  {list.map((e) => (
+                    <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
+                      {hm(new Date(e.starts_at))} {e.title}
+                      {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
+                    </button>
+                  ))}
+                  <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <p className="note">
+          {dept ? `${deptName(departments, dept)} 일정만 보고 있습니다.` : `이번 달 일정 ${shown.length}개.`} 날짜 칸의 + 로 그날 일정을 등록하고, 일정을 누르면 내용을 보거나 고칠 수 있습니다.
+        </p>
+      </section>
+    </>
   )
 }

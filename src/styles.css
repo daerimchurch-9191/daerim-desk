@@ -293,3 +293,9 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .sermon-slot.is-empty { background: none; border: 1px dashed #c9cfca; color: var(--muted); }
 .sermon-slot.is-mine { background: var(--accent); color: #fff; }
 .sermon-slot:hover { filter: brightness(0.96); }
+
+/* ---------- 교회 캘린더 월별 ---------- */
+.inline-select select { min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #c9cfca; background: #fff; font: inherit; font-size: 13px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.month-cell .add-slot { width: 100%; }
+.month-cell:hover .add-slot { border-color: #c9cfca; color: var(--muted); }
