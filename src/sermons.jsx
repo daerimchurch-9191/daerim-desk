@@ -221,15 +221,16 @@ export function MySermons() {
       .then(({ data }) => setRows(data ?? []))
   }, [version, profile.id])
 
-  const thisWeek = (rows ?? []).filter((s) => s.date <= ymd(addDays(week0, 6))).length
+  // 오늘을 포함해 앞으로 남은 설교 수 (지난 설교는 목록에는 '완료'로 남지만 세지 않는다)
+  const upcoming = (rows ?? []).filter((s) => s.date >= ymd(today)).length
 
   return (
     <section className="block" aria-labelledby="sermon-h">
       <h2 id="sermon-h" className="pill">내 설교</h2>
       <div className="card">
         <div className="card-head">
-          <span className="muted">이번 주 설교 · 다음 주까지 표시</span>
-          <span className="count">{thisWeek} <small>편</small></span>
+          <span className="muted">다가오는 설교 · 2주 안</span>
+          <span className="count">{upcoming} <small>편</small></span>
         </div>
         {rows === null && <span className="skeleton" />}
         {rows?.length === 0 && <div className="empty">2주 안에 잡힌 설교가 없습니다.</div>}
