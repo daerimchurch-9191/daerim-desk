@@ -254,3 +254,100 @@ export function MySermons() {
     </section>
   )
 }
+
+/* ---------- 예배 설교표 월별 ---------- */
+const SHORT = { dawn: '새벽', wed: '수요', fri: '금요' }
+
+export function SermonsMonth() {
+  const { profile } = useAuth()
+  const { version } = useData()
+  const now = new Date()
+  const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
+  const [show, setShow] = useState('all') // all | dawn | wedfri | special | mine
+  const [rows, setRows] = useState(null)
+  const open = useOpenSermon()
+  const nameOf = usePreacherName()
+  const next = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+  const today = ymd(now)
+
+  useEffect(() => {
+    setRows(null)
+    supabase.from('sermons').select('*').eq('is_public', true)
+      .gte('date', ymd(month)).lt('date', ymd(next)).order('time')
+      .then(({ data }) => setRows(data ?? []))
+  }, [month.getTime(), version])
+
+  const cells = []
+  for (let i = 0; i < month.getDay(); i++) cells.push(null)
+  for (let d = new Date(month); d < next; d = addDays(d, 1)) cells.push(d)
+  while (cells.length % 7) cells.push(null)
+
+  const filters = [
+    { id: 'all', name: '전체' }, { id: 'dawn', name: '새벽' }, { id: 'wedfri', name: '수요·금요' },
+    { id: 'special', name: '특별' }, { id: 'mine', name: '내 설교만' },
+  ]
+  const wants = (service) => show === 'all' || show === 'mine' || show === service || (show === 'wedfri' && (service === 'wed' || service === 'fri'))
+  const mineOnly = show === 'mine'
+  const filled = (rows ?? []).filter((s) => !isEmpty(s)).length
+
+  // 날짜 하루에 들어갈 칸: 새벽(매일), 수요(수), 금요(금)는 비어 있어도 자리를 보여주고, 특별 예배는 있는 것만
+  function slotsOf(d) {
+    const key = ymd(d)
+    const list = []
+    for (const service of ['dawn', 'wed', 'fri']) {
+      if (service === 'wed' && d.getDay() !== 3) continue
+      if (service === 'fri' && d.getDay() !== 5) continue
+      if (!wants(service)) continue
+      const s = (rows ?? []).find((x) => x.service === service && x.date === key)
+      list.push({ service, s, initial: s ?? { service, date: key } })
+    }
+    if (wants('special')) (rows ?? []).filter((x) => x.service === 'special' && x.date === key).forEach((s) => list.push({ service: 'special', s, initial: s }))
+    return mineOnly ? list.filter((x) => x.s?.preacher_id === profile.id) : list
+  }
+
+  return (
+    <>
+      <header className="title">
+        <h1 className="display page-title">SERMONS</h1>
+        <span className="muted">예배 설교표 · 월별 · 모두 함께 보고 씁니다</span>
+      </header>
+      <section className="block" aria-labelledby="smonth-h">
+        <div className="block-head">
+          <h2 id="smonth-h" className="pill">{month.getFullYear()}년 {month.getMonth() + 1}월</h2>
+          <div className="month-nav">
+            <button type="button" className="icon-btn light" aria-label="이전 달" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>‹</button>
+            <button type="button" className="icon-btn light" aria-label="다음 달" onClick={() => setMonth(next)}>›</button>
+          </div>
+          <div className="tabs grow">
+            {filters.map((f) => (
+              <button key={f.id} type="button" className={`tab${show === f.id ? ' is-on' : ''}`} aria-pressed={show === f.id} onClick={() => setShow(f.id)}>{f.name}</button>
+            ))}
+          </div>
+          <button type="button" className="btn btn-primary" onClick={() => open({ service: 'special', date: ymd(month.getMonth() === now.getMonth() ? now : month) })}>+ 특별 예배</button>
+        </div>
+        <div className="card scroll-x">
+          <div className="month">
+            {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
+            {cells.map((d, i) => (
+              <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && ymd(d) === today ? ' is-today' : ''}`}>
+                {d && <span className="month-date">{d.getDate()}</span>}
+                {d && rows === null && <span className="skeleton" />}
+                {d && rows !== null && slotsOf(d).map(({ service, s, initial }, j) => {
+                  const empty = isEmpty(s)
+                  const mine = s?.preacher_id === profile.id
+                  return (
+                    <button key={j} type="button" className={`sermon-slot${empty ? ' is-empty' : ''}${mine ? ' is-mine' : ''}`} onClick={() => open(initial)}>
+                      <b>{service === 'special' ? s.title : SHORT[service]}</b>
+                      {empty ? <span>비어 있음</span> : <span>{nameOf(s) || '설교자 미정'}{s.passage && ` · ${s.passage}`}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="note">이번 달 입력된 설교 {filled}편. 칸을 누르면 설교자와 본문을 입력하거나 고칠 수 있습니다. 진한 초록 칸은 내 설교입니다.</p>
+      </section>
+    </>
+  )
+}

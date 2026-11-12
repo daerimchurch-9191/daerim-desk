@@ -285,3 +285,11 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .btn-dark { border: 0; background: var(--ink); color: #fff; font-weight: 700; }
 .check-inline { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 44px; }
 .check-inline input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* ---------- 설교표 월별 ---------- */
+.sermon-slot { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 4px 6px; border: 0; border-radius: 7px; background: #ddf0e8; color: #0c4f3e; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.sermon-slot b { font-size: 11px; }
+.sermon-slot span { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sermon-slot.is-empty { background: none; border: 1px dashed #c9cfca; color: var(--muted); }
+.sermon-slot.is-mine { background: var(--accent); color: #fff; }
+.sermon-slot:hover { filter: brightness(0.96); }

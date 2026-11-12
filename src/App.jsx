@@ -3,7 +3,7 @@ import { useAuth } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage, ChangePasswordModal } from './AdminPage.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, DOW_KO } from './live.jsx'
-import { MySermons, SermonTable } from './sermons.jsx'
+import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos, Folders } from './personal.jsx'
 import { links } from './data.js'
 import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
@@ -76,7 +76,7 @@ function Sidebar({ open, onClose, page, notices }) {
         <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={18} width={2.2} />차량 신청</button>
         <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#" className="nav-item">교회 캘린더</a>
-        <a href="#home" className="nav-item" onClick={() => { onClose(); setTimeout(() => document.getElementById('sermon-table')?.scrollIntoView({ behavior: 'smooth' }), 80) }}>예배 설교표</a>
+        <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
         <a href="#" className="nav-item">부서 방</a>
         <a href="#" className="nav-item">내 책상</a>
       </div>
@@ -98,7 +98,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices' }[location.hash] ?? 'home')
+  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -129,7 +129,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
