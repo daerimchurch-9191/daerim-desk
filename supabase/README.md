@@ -30,3 +30,14 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 - `notify-notice` 함수: 새 공지 알림 보내기(관리자만), 시험 알림(본인 기기만), 기기 등록.
 - 푸시 비밀 키는 데이터베이스 금고(vault)의 `vapid_private_key`에 있다. `get_vapid_private_key()`는 service_role만 부를 수 있다. 공개 키는 `src/push.js`와 함수 코드에 있다.
 - 아이폰은 사파리에서 "홈 화면에 추가"로 설치한 앱에서만 알림을 받는다 (iOS 16.4 이상).
+
+## 심방보고 (visit_reports)
+
+- `profiles.visit_role`: 없음 / `writer`(자기가 쓴 보고만) / `all`(모든 보고 열람, 담임목사). 관리자만 회원 관리에서 바꿀 수 있다 (guard_profile).
+- 조회: `all`은 전부, `writer`는 자기 것만. 권한이 없으면 한 줄도 못 꺼낸다. 고치기·지우기는 모두 자기가 쓴 것만.
+- 사용 중지된 계정은 `my_visit_role()`이 비어서 바로 못 본다.
+- 주민번호·연락처·주소는 적지 않는다 (디모데에서 확인).
+
+## 주보 광고 (bulletin_ads)
+
+- `week_of`는 그 주 주일 날짜. 승인된 사역자 누구나 보고 올린다. 고치기·지우기는 올린 사람과 관리자.

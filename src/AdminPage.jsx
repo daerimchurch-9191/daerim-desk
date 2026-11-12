@@ -96,7 +96,7 @@ function DeactivateModal({ person, onClose, onDone }) {
 }
 
 export function AdminPage() {
-  const { profile: me } = useAuth()
+  const { profile: me, reloadProfile } = useAuth()
   const { openModal, refresh, notify } = useData()
   const [people, setPeople] = useState(null)
   const [error, setError] = useState('')
@@ -138,6 +138,16 @@ export function AdminPage() {
       {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn" onClick={() => openModal({ render: (close) => <ResetPasswordModal person={p} onClose={close} /> })}>비밀번호 초기화</button>
       )}
+      {p.status === 'approved' && (
+        <label className="visit-role-select">
+          <span>심방보고</span>
+          <select value={p.visit_role ?? ''} onChange={async (e) => { await update(p.id, { visit_role: e.target.value || null }); if (p.id === me.id) reloadProfile() }}>
+            <option value="">권한 없음</option>
+            <option value="writer">자기 보고만</option>
+            <option value="all">전체 열람</option>
+          </select>
+        </label>
+      )}
       {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn btn-danger" onClick={() => openModal({ render: (close) => <DeactivateModal person={p} onClose={close} onDone={() => { load(); refresh(); notify(`${p.name} ${p.title}님 계정을 사용 중지했습니다.`) }} /> })}>사용 중지</button>
       )}
@@ -148,7 +158,7 @@ export function AdminPage() {
     <>
       <header className="title">
         <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 사용 중지, 차량 등록</span>
+        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 심방보고 권한, 사용 중지, 차량 등록</span>
       </header>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">

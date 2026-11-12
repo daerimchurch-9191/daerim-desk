@@ -410,3 +410,22 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 }
 
 .push-end { margin-left: auto; }
+
+/* ---------- 심방보고 · 주보 광고 ---------- */
+.pre { white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; margin: 4px 0; }
+.visit-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.visit-filters input, .visit-filters select { flex: 1 1 200px; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #c9cfca; background: #fff; font: inherit; font-size: 15px; }
+.visit-row { border-bottom: 1px solid var(--line-2); }
+.visit-row:last-child { border-bottom: 0; }
+.visit-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 4px; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.visit-head .grow { display: flex; flex-direction: column; gap: 2px; }
+.visit-date { flex: none; min-width: 64px; font-weight: 700; font-size: 14px; }
+.visit-body { padding: 0 4px 16px 80px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-size: 14px; }
+.visit-body p { margin: 0; }
+.visit-role-select { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.visit-role-select select { min-height: 40px; padding: 0 8px; border-radius: 10px; border: 1px solid #c9cfca; background: #fff; font: inherit; font-size: 13px; }
+.ad-row { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--line-2); }
+.ad-row:last-of-type { border-bottom: 0; }
+.ad-row .grow { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.ad-no { flex: none; width: 28px; height: 28px; border-radius: 14px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 700px) { .visit-body { padding-left: 4px; } }

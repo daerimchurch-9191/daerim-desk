@@ -3,6 +3,8 @@ import { useAuth } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage, ChangePasswordModal } from './AdminPage.jsx'
 import { PushSettingsModal } from './PushSettings.jsx'
+import { VisitsPage } from './visits.jsx'
+import { AdsPage } from './ads.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos, Folders } from './personal.jsx'
@@ -81,6 +83,8 @@ function Sidebar({ open, onClose, page, notices }) {
         <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#calendar" onClick={onClose} className={`nav-item${page === 'calendar' ? ' is-current' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined}>교회 캘린더</a>
         <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
+        <a href="#ads" onClick={onClose} className={`nav-item${page === 'ads' ? ' is-current' : ''}`} aria-current={page === 'ads' ? 'page' : undefined}>주보 광고</a>
+        {profile.visit_role && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방보고</a>}
         <a href="#" className="nav-item">부서 방</a>
         <a href="#" className="nav-item">내 책상</a>
       </div>
@@ -102,7 +106,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar' }[location.hash] ?? 'home')
+  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -133,7 +137,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
