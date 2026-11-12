@@ -35,9 +35,9 @@ export function DataProvider({ children }) {
   const [modal, setModal] = useState(null) // { type: 'event' | 'car', initial }
 
   const refresh = useCallback(() => setVersion((v) => v + 1), [])
-  const notify = useCallback((text) => {
+  const notify = useCallback((text, ms = 2600) => {
     setToast(text)
-    setTimeout(() => setToast((t) => (t === text ? null : t)), 2600)
+    setTimeout(() => setToast((t) => (t === text ? null : t)), ms)
   }, [])
 
   useEffect(() => {

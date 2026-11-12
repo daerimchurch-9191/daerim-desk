@@ -215,12 +215,26 @@ function FolderIcon({ color }) {
 // 주소에 http(s):// 가 없으면 붙여서 연다. 비어 있으면 열 곳이 없다.
 const toHref = (s) => (!s ? null : /^[a-z][a-z0-9+.-]*:/i.test(s) ? s : `https://${s}`)
 
+// 웹 페이지는 보안 때문에 컴퓨터 폴더나 나스 공유 폴더(\\서버\폴더, smb://)를 직접 열 수 없다.
+// 그래서 경로형 폴더는 누르면 경로를 복사하고, 탐색기·Finder 에 붙여 넣는 방법을 알려 준다.
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+const PATH_HELP = isMac
+  ? 'Finder에서 ⌘+K(서버에 연결) 또는 ⌘+Shift+G(폴더로 이동)를 누르고 붙여 넣으세요.'
+  : '파일 탐색기 위쪽 주소창을 누르고 붙여 넣은 뒤 Enter 를 누르세요.'
+const looksLikePath = (s) => /^(\\\\|smb:\/\/|afp:\/\/|file:\/\/|[a-zA-Z]:\\|\/|~\/)/.test(s.trim())
+
+const KINDS = [
+  { id: 'web', name: '웹 주소', hint: '나스 File Station 링크, 구글 드라이브 등. 누르면 새 탭으로 열립니다.', placeholder: 'https:// 로 시작하는 주소' },
+  { id: 'path', name: '컴퓨터·나스 경로', hint: '누르면 경로가 복사됩니다. 탐색기(Finder)에 붙여 넣어 바로 엽니다.', placeholder: isMac ? '예: smb://192.168.1.2/공유폴더/설교 또는 /Users/…' : '예: \\\\192.168.1.2\\공유폴더\\설교 또는 C:\\Users\\…' },
+]
+
 function FolderModal({ initial, count, onClose }) {
   const { refresh, notify } = useData()
   const editing = Boolean(initial?.id)
-  const [f, setF] = useState({ name: initial?.name ?? '', href: initial?.href ?? '', color: initial?.color ?? 'green' })
+  const [f, setF] = useState({ name: initial?.name ?? '', href: initial?.href ?? '', color: initial?.color ?? 'green', kind: initial?.kind ?? 'web' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const kind = KINDS.find((k) => k.id === f.kind)
 
   async function run(action, msg) {
     setBusy(true)
@@ -232,10 +246,13 @@ function FolderModal({ initial, count, onClose }) {
   function save(e) {
     e.preventDefault()
     if (!f.name.trim()) return setError('폴더 이름을 적어 주세요.')
-    const row = { name: f.name.trim(), href: f.href.trim() || null, color: f.color }
+    if (f.kind === 'path' && !f.href.trim()) return setError('폴더 경로를 적어 주세요.')
+    const row = { name: f.name.trim(), href: f.href.trim() || null, color: f.color, kind: f.kind }
     run(editing ? supabase.from('folders').update(row).eq('id', initial.id) : supabase.from('folders').insert({ ...row, sort: count }),
       editing ? '폴더를 고쳤습니다.' : '폴더를 추가했습니다.')
   }
+  // 웹 주소 칸에 경로를 넣으면 경로형으로 바꾸라고 알려 준다
+  const wrongKind = f.kind === 'web' && looksLikePath(f.href)
 
   return (
     <Modal title={editing ? '폴더 수정' : '폴더 추가'} onClose={onClose} onSubmit={save}
@@ -246,8 +263,27 @@ function FolderModal({ initial, count, onClose }) {
         <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '저장 중…' : editing ? '저장' : '추가하기'}</button>
       </>}>
       <div className="dialog-preview"><FolderIcon color={f.color} /><span>고른 색으로 홈 화면 폴더 줄에 나타납니다. 나만 보는 폴더입니다.</span></div>
-      <label className="field">폴더 이름<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="예: 예배 자료" autoFocus /></label>
-      <label className="field">연결할 주소<input value={f.href} onChange={(e) => setF({ ...f, href: e.target.value })} placeholder="나스 폴더 주소, 구글 드라이브 링크 등" /></label>
+      <label className="field">폴더 이름<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="예: 설교 원고" autoFocus /></label>
+      <fieldset className="segment-field">
+        <legend>연결 방식</legend>
+        <div className="segment">
+          {KINDS.map((k) => (
+            <label key={k.id} className={f.kind === k.id ? 'is-on' : ''}>
+              <input type="radio" name="kind" checked={f.kind === k.id} onChange={() => setF({ ...f, kind: k.id })} />{k.name}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="field">{f.kind === 'web' ? '주소' : '폴더 경로'}
+        <input value={f.href} onChange={(e) => setF({ ...f, href: e.target.value })} placeholder={kind.placeholder} />
+      </label>
+      <p className="muted small">{kind.hint}</p>
+      {wrongKind && (
+        <p className="form-note">
+          컴퓨터나 나스 경로처럼 보입니다. 웹 페이지에서는 이런 경로를 바로 열 수 없어서, "컴퓨터·나스 경로"로 바꾸는 것을 권합니다.
+          {' '}<button type="button" className="link-btn" onClick={() => setF({ ...f, kind: 'path' })}>바꾸기</button>
+        </p>
+      )}
       <fieldset className="swatches">
         <legend>폴더 색</legend>
         {folderColors.map((c) => (
@@ -263,22 +299,37 @@ function FolderModal({ initial, count, onClose }) {
 }
 
 export function Folders() {
-  const { version, openModal } = useData()
+  const { version, openModal, notify } = useData()
   const [folders, setFolders] = useState(null)
   useEffect(() => {
     supabase.from('folders').select('*').order('sort').order('id').then(({ data }) => setFolders(data ?? []))
   }, [version])
   const open = (initial) => openModal({ render: (close) => <FolderModal initial={initial} count={folders?.length ?? 0} onClose={close} /> })
 
+  async function copyPath(f) {
+    try {
+      await navigator.clipboard.writeText(f.href)
+      notify(`"${f.name}" 경로를 복사했습니다. ${PATH_HELP}`, 7000)
+    } catch {
+      notify(`복사하지 못했습니다. 경로: ${f.href}`, 7000)
+    }
+  }
+
   return (
     <section className="folders" aria-label="내 폴더">
       {(folders ?? []).map((f) => {
-        const href = toHref(f.href)
+        const href = f.kind === 'web' ? toHref(f.href) : null
         return (
           <div key={f.id} className="folder-wrap">
-            {href
-              ? <a href={href} target="_blank" rel="noreferrer" className="folder"><FolderIcon color={f.color} />{f.name}</a>
-              : <button type="button" className="folder folder-plain" onClick={() => open(f)}><FolderIcon color={f.color} />{f.name}</button>}
+            {href ? (
+              <a href={href} target="_blank" rel="noreferrer" className="folder" title={f.href}><FolderIcon color={f.color} />{f.name}</a>
+            ) : f.kind === 'path' && f.href ? (
+              <button type="button" className="folder folder-plain" title={`누르면 경로 복사: ${f.href}`} onClick={() => copyPath(f)}>
+                <FolderIcon color={f.color} />{f.name}<small className="folder-kind">경로 복사</small>
+              </button>
+            ) : (
+              <button type="button" className="folder folder-plain" onClick={() => open(f)}><FolderIcon color={f.color} />{f.name}</button>
+            )}
             <button type="button" className="folder-edit" aria-label={`${f.name} 폴더 수정`} onClick={() => open(f)}>⋮</button>
           </div>
         )

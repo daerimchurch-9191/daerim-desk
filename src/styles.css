@@ -314,3 +314,8 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .tabs .tab { flex: none; }
 .inline-select select { max-width: 100%; }
 .month-nav { flex: none; }
+
+.folder-kind { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: -4px; }
+.form-note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff6e0; color: #5c3200; font-size: 13px; }
+.form-note .link-btn { min-height: 0; padding: 0; }
+.toast { max-width: calc(100vw - 32px); text-align: center; }
