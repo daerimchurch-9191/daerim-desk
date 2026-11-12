@@ -12,7 +12,6 @@ export const AUDIENCES = [
 const audienceName = (id) => AUDIENCES.find((a) => a.id === id)?.name ?? '전체'
 const dateLabel = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일` }
 export const isExpired = (n) => Boolean(n.until) && n.until < ymd(new Date())
-const noticeLink = () => `${location.origin}${location.pathname}#notices`
 
 // 공지 목록과 읽음 표시를 불러온다. DataProvider 의 version 이 바뀌면 다시 불러온다.
 export function useNotices() {
@@ -35,26 +34,29 @@ export function useNotices() {
   return { list, active, unread, isRead: (id) => read.has(id), markRead }
 }
 
-/* ---------- 공유 (카카오 키를 받기 전 임시 방식) ---------- */
+/* ---------- 공유: 제목과 내용을 그대로 보낸다 ---------- */
+const shareText = (n) => (n.body ? `[대림교회 공지] ${n.title}\n\n${n.body}` : `[대림교회 공지] ${n.title}`)
+
 function ShareButtons({ notice }) {
   const { notify } = useData()
-  const text = `[대림교회 공지] ${notice.title}`
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-  async function share() {
-    try { await navigator.share({ title: notice.title, text, url: noticeLink() }) } catch { /* 사용자가 닫음 */ }
-  }
+  const text = shareText(notice)
   async function copy() {
     try {
-      await navigator.clipboard.writeText(`${text}\n${noticeLink()}`)
-      notify('공지 제목과 링크를 복사했습니다. 단톡방에 붙여 넣으세요.')
+      await navigator.clipboard.writeText(text)
+      notify('공지 제목과 내용을 복사했습니다. 단톡방에 붙여 넣으세요.')
     } catch {
-      notify('복사하지 못했습니다. 주소창의 링크를 직접 복사해 주세요.')
+      notify('복사하지 못했습니다. 공지 내용을 직접 선택해 복사해 주세요.')
     }
+  }
+  // 기기 공유 창(카카오톡 등 고르기)을 연다. 지원하지 않는 기기에서는 복사로 대신한다.
+  async function share() {
+    if (typeof navigator.share !== 'function') return copy()
+    try { await navigator.share({ title: notice.title, text }) } catch (e) { if (e?.name !== 'AbortError') copy() }
   }
   return (
     <div className="share-row">
-      {canShare && <button type="button" className="btn btn-dark" onClick={share}>카카오톡 등으로 공유</button>}
-      <button type="button" className="btn" onClick={copy}>제목과 링크 복사</button>
+      <button type="button" className="btn btn-dark" onClick={share}>카카오톡 등으로 공유</button>
+      <button type="button" className="btn" onClick={copy}>제목과 내용 복사</button>
     </div>
   )
 }
@@ -94,7 +96,7 @@ function NoticeEditor({ initial, onClose }) {
       <Modal title="공지가 등록되었습니다" onClose={onClose} onSubmit={(e) => { e.preventDefault(); onClose() }}
         footer={<button type="submit" className="btn btn-primary">닫기</button>}>
         <p><strong>{saved.title}</strong> <span className="chip">{audienceName(saved.audience)}</span></p>
-        <p className="muted small">교역자 단톡방에도 알리려면 아래 버튼으로 공유하세요. 카카오톡 바로 공유는 카카오 키를 받으면 붙입니다.</p>
+        <p className="muted small">교역자 단톡방에도 알리려면 공유 버튼으로 카카오톡을 고르거나, 복사해서 붙여 넣으세요.</p>
         <ShareButtons notice={saved} />
       </Modal>
     )
