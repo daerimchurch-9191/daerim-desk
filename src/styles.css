@@ -323,3 +323,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .folder-svg path { fill-opacity: 0.85; }
 .tag-edit { border: 0; background: none; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; display: inherit; flex-direction: inherit; gap: inherit; align-items: inherit; width: 100%; }
 .tag-edit:hover b { text-decoration: underline; }
+.sub-h { font-size: 14px; font-weight: 700; margin: 8px 0 0; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row .btn { flex: 1 1 140px; }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }

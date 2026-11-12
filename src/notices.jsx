@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
 import { useData, Modal, ymd } from './live.jsx'
+import { sendNoticePush } from './push.js'
 
 export const AUDIENCES = [
   { id: 'all', name: '전체' },
@@ -70,6 +71,8 @@ function NoticeEditor({ initial, onClose }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(null)
+  const [push, setPush] = useState(!editing)
+  const [pushResult, setPushResult] = useState('')
 
   async function save(e) {
     e.preventDefault()
@@ -83,6 +86,12 @@ function NoticeEditor({ initial, onClose }) {
     if (res.error) return setError(toKorean(res.error.message))
     refresh(); notify(editing ? '공지를 고쳤습니다.' : '공지를 등록했습니다.')
     setSaved(res.data)
+    if (push) {
+      setPushResult('알림을 보내는 중…')
+      sendNoticePush(res.data.id)
+        .then((r) => setPushResult(r?.sent ? `알림을 기기 ${r.sent}대에 보냈습니다.` : '알림을 켜 둔 사역자가 아직 없어 알림은 보내지 않았습니다.'))
+        .catch(() => setPushResult('알림을 보내지 못했습니다. 공지는 등록되었습니다.'))
+    }
   }
   async function remove() {
     setBusy(true)
@@ -94,9 +103,10 @@ function NoticeEditor({ initial, onClose }) {
 
   if (saved) {
     return (
-      <Modal title="공지가 등록되었습니다" onClose={onClose} onSubmit={(e) => { e.preventDefault(); onClose() }}
+      <Modal title={editing ? "공지가 저장되었습니다" : "공지가 등록되었습니다"} onClose={onClose} onSubmit={(e) => { e.preventDefault(); onClose() }}
         footer={<button type="submit" className="btn btn-primary">닫기</button>}>
         <p><strong>{saved.title}</strong> <span className="chip">{audienceName(saved.audience)}</span></p>
+        {pushResult && <p className="small">{pushResult}</p>}
         <p className="muted small">교역자 단톡방에도 알리려면 공유 버튼으로 카카오톡을 고르거나, 복사해서 붙여 넣으세요.</p>
         <ShareButtons notice={saved} />
       </Modal>
@@ -128,6 +138,7 @@ function NoticeEditor({ initial, onClose }) {
       <label className="field">내용 <small>(선택)</small>
         <textarea rows={6} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />
       </label>
+      <label className="check-inline"><input type="checkbox" checked={push} onChange={(e) => setPush(e.target.checked)} />{editing ? '고친 내용으로 알림 다시 보내기' : '휴대폰 알림 보내기'} <small className="muted">(알림을 켜 둔 사역자에게)</small></label>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
   )

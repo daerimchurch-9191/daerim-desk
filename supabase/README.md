@@ -23,3 +23,10 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | 함수 | 하는 일 | 누가 |
 |---|---|---|
 | reset-password | 다른 사역자의 비밀번호를 새로 정함 (`functions/reset-password`) | 승인된 관리자만. 함수 안에서 확인함 |
+
+## 휴대폰 알림 (웹 푸시)
+
+- `push_subscriptions`: 알림을 켠 기기 목록. 본인 기기만 보고 지울 수 있다. 등록은 `notify-notice` 함수가 대신 한다.
+- `notify-notice` 함수: 새 공지 알림 보내기(관리자만), 시험 알림(본인 기기만), 기기 등록.
+- 푸시 비밀 키는 데이터베이스 금고(vault)의 `vapid_private_key`에 있다. `get_vapid_private_key()`는 service_role만 부를 수 있다. 공개 키는 `src/push.js`와 함수 코드에 있다.
+- 아이폰은 사파리에서 "홈 화면에 추가"로 설치한 앱에서만 알림을 받는다 (iOS 16.4 이상).
