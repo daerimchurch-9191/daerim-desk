@@ -331,7 +331,7 @@ export function SermonsMonth() {
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => (
               <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && ymd(d) === today ? ' is-today' : ''}`}>
-                {d && <span className="month-date">{d.getDate()}</span>}
+                {d && <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>}
                 {d && rows === null && <span className="skeleton" />}
                 {d && rows !== null && slotsOf(d).map(({ service, s, initial }, j) => {
                   const empty = isEmpty(s)

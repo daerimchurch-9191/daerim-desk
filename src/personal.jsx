@@ -169,7 +169,10 @@ export function Todos() {
 
   return (
     <section className="block" aria-labelledby="todo-h">
-      <h2 id="todo-h" className="pill">Todolist</h2>
+      <div className="block-head">
+        <h2 id="todo-h" className="pill">Todolist</h2>
+        <button type="button" className="btn btn-primary push-end" onClick={() => open(null)}>+ 할 일 추가</button>
+      </div>
       <div className="card">
         <div className="tabs">
           {filters.map((f) => (
@@ -178,7 +181,6 @@ export function Todos() {
               {f.name} {visible.filter(f.test).filter((t) => !isDoneNow(t, week0)).length}
             </button>
           ))}
-          <button type="button" className="btn btn-primary tabs-end" onClick={() => open(null)}>+ 할 일 추가</button>
         </div>
         {todos === null && <span className="skeleton" />}
         {todos !== null && shown.length === 0 && (

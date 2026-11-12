@@ -294,7 +294,7 @@ export function WeekCalendar() {
             const list = (events ?? []).filter((e) => sameDay(new Date(e.starts_at), d))
             return (
               <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
-                <span className="week-head">{DOW_EN[d.getDay()]} · {d.getDate()}</span>
+                <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
                 {events === null && <span className="skeleton" />}
                 {list.map((e) => (
                   <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
@@ -387,6 +387,22 @@ export function CarsWeek() {
             </tbody>
           </table>
         )}
+        {vehicles.length > 0 && (
+          <ul className="car-agenda" aria-label="이번 주 차량 신청 (휴대폰 보기)">
+            {days.map((d) => {
+              const list = (bookings ?? []).filter((b) => sameDay(b.span[0], d))
+              return (
+                <li key={ymd(d)} className={sameDay(d, today) ? 'is-today' : ''}>
+                  <span className="agenda-date">{d.getDate()}<small>{DOW_KO[d.getDay()]}</small></span>
+                  <div className="agenda-items">
+                    {list.length ? list.map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />) : <span className="muted small">신청 없음</span>}
+                  </div>
+                  <button type="button" className="agenda-add" aria-label={`${kDate(d)} 차량 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
     </section>
   )
@@ -428,11 +444,11 @@ export function CarsMonth() {
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'car' })}>+ 차량 신청</button>
         </div>
         <div className="card scroll-x">
-          <div className="month">
+          <div className="month month-hide-empty" data-empty="이번 달 차량 신청이 없습니다.">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => (
               <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && sameDay(d, now) ? ' is-today' : ''}`}>
-                {d && <span className="month-date">{d.getDate()}</span>}
+                {d && <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>}
                 {d && shown.filter((b) => sameDay(b.span[0], d)).map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />)}
               </div>
             ))}
@@ -540,14 +556,14 @@ export function CalendarMonth() {
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'event', initial: { date: ymd(month.getMonth() === now.getMonth() ? now : month) } })}>+ 일정 등록</button>
         </div>
         <div className="card scroll-x">
-          <div className="month">
+          <div className="month month-hide-empty" data-empty="이번 달 일정이 없습니다.">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => {
               if (!d) return <div key={i} className="month-cell is-empty" />
               const list = shown.filter((e) => sameDay(new Date(e.starts_at), d))
               return (
                 <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}`}>
-                  <span className="month-date">{d.getDate()}</span>
+                  <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {events === null && <span className="skeleton" />}
                   {list.map((e) => (
                     <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
