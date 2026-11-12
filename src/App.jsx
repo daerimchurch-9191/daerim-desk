@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
-import { AdminPage } from './AdminPage.jsx'
+import { AdminPage, ChangePasswordModal } from './AdminPage.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable } from './sermons.jsx'
 import { Todos, Folders } from './personal.jsx'
@@ -64,6 +64,7 @@ function Sidebar({ open, onClose, page, notices }) {
         {gearOpen && (
           <div className="gear-menu">
             {profile.role === 'admin' && <a href="#admin" onClick={() => { setGearOpen(false); onClose() }}>회원 관리</a>}
+            <button type="button" onClick={() => { setGearOpen(false); onClose(); openModal({ render: (close) => <ChangePasswordModal onClose={close} /> }) }}>비밀번호 변경</button>
             <button type="button" onClick={signOut}>로그아웃</button>
           </div>
         )}

@@ -50,6 +50,7 @@ const KO_ERRORS = [
   [/already registered|already exists/i, '이미 쓰고 있는 아이디입니다.'],
   [/Password should be at least/i, '비밀번호는 6자 이상이어야 합니다.'],
   [/rate limit/i, '잠시 후 다시 시도해 주세요.'],
+  [/should be different from the old password/i, '지금 비밀번호와 다른 비밀번호를 적어 주세요.'],
   [/Email not confirmed/i, '이메일 인증 설정이 켜져 있습니다. 관리자에게 알려주세요.'],
 ]
 export const toKorean = (msg) => (KO_ERRORS.find(([re]) => re.test(msg))?.[1]) ?? `문제가 생겼습니다: ${msg}`

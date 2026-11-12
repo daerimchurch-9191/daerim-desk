@@ -16,3 +16,9 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | folders | 내 폴더 | 본인만 | 본인만 |
 
 승인 대기(pending) 상태인 사람은 자기 정보 외에는 아무것도 볼 수 없다.
+
+## 서버 함수
+
+| 함수 | 하는 일 | 누가 |
+|---|---|---|
+| reset-password | 다른 사역자의 비밀번호를 새로 정함 (`functions/reset-password`) | 승인된 관리자만. 함수 안에서 확인함 |
