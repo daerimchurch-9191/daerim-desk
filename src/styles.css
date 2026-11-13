@@ -498,3 +498,11 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
   .perm-table tr.is-dirty { border-color: var(--accent); }
   .perm-table tr.is-dirty td, .perm-table tr.is-dirty th { background: none; }
 }
+/* 권한 관리: 관리 | 심방보고 구분선 */
+.perm-table .grp-start { border-left: 2px solid var(--ink); }
+.perm-table thead .perm-group.grp-start { border-left: 2px solid var(--ink); }
+@media (max-width: 700px) {
+  .perm-table td.grp-start { border-left: 0; flex-basis: 100%; text-align: left; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line-2); }
+  .perm-table td.grp-start::before { content: '심방보고'; display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .perm-table td.grp-start::after { display: inline-flex; }
+}

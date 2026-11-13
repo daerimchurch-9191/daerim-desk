@@ -18,7 +18,7 @@ export function PermissionsPage() {
   const columns = useMemo(() => [
     { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지·광고 권한 모두 포함 (심방보고는 따로)', group: '관리' },
     ...PERMS.map((p) => ({ ...p, group: '관리' })),
-    { key: 'visit_all', name: '모든 교구', hint: '모든 교구 심방보고 보기·쓰기 (담임목사님)', group: '심방보고' },
+    { key: 'visit_all', start: true, name: '모든 교구', hint: '모든 교구 심방보고 보기·쓰기 (담임목사님)', group: '심방보고' },
     ...parishes.map((d) => ({ key: `visit:${d.id}`, name: d.name, hint: `${d.name} 심방보고 보기·쓰기`, group: '심방보고' })),
   ], [parishes.length])
 
@@ -87,9 +87,9 @@ export function PermissionsPage() {
                 <tr>
                   <th rowSpan={2} className="perm-name">사역자</th>
                   <th colSpan={1 + PERMS.length} className="perm-group">관리</th>
-                  <th colSpan={1 + parishes.length} className="perm-group">심방보고</th>
+                  <th colSpan={1 + parishes.length} className="perm-group grp-start">심방보고</th>
                 </tr>
-                <tr>{columns.map((c) => <th key={c.key} title={c.hint}>{c.name}</th>)}</tr>
+                <tr>{columns.map((c) => <th key={c.key} title={c.hint} className={c.start ? 'grp-start' : undefined}>{c.name}</th>)}</tr>
               </thead>
               <tbody>
                 {people.map((p) => {
@@ -102,7 +102,7 @@ export function PermissionsPage() {
                         const implied = c.key !== 'admin' && !c.key.startsWith('visit') && draft[p.id]?.admin
                         const viaAll = c.key.startsWith('visit:') && has(p.id, 'visit_all')
                         return (
-                          <td key={c.key} data-label={c.name} data-group={c.group}>
+                          <td key={c.key} data-label={c.name} data-group={c.group} className={c.start ? 'grp-start' : undefined}>
                             <input type="checkbox" checked={on || implied || viaAll} disabled={implied || viaAll}
                               aria-label={`${p.name} ${c.name}`} onChange={() => toggle(p.id, c.key)} />
                           </td>
