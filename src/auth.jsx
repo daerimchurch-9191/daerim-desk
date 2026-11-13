@@ -55,11 +55,10 @@ const KO_ERRORS = [
 ]
 export const toKorean = (msg) => (KO_ERRORS.find(([re]) => re.test(msg))?.[1]) ?? `문제가 생겼습니다: ${msg}`
 
-// 세부 권한 (profiles.perms). 관리자는 notice·vehicles·ads 를 모두 가진다.
+// 세부 권한 (profiles.perms). 관리자는 notice·ads 를 모두 가진다. (차량 목록은 누구나 관리)
 // 심방방은 관리자라도 따로 받아야 한다 (성도 개인정보).
 export const PERMS = [
   { key: 'notice', name: '공지 작성', hint: '공지 쓰기·고치기, 알림 보내기' },
-  { key: 'vehicles', name: '차량 관리', hint: '차량 목록에 넣고 빼기' },
   { key: 'ads', name: '광고 정리', hint: '다른 사람이 올린 주보 광고 고치기·지우기' },
 ]
 export function can(profile, key) {

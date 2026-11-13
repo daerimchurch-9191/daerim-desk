@@ -16,7 +16,7 @@ export function PermissionsPage() {
   const parishes = departments.filter((d) => d.grp === 'parish')
 
   const columns = useMemo(() => [
-    { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지·차량·광고 권한 모두 포함 (심방방은 따로)', group: '관리' },
+    { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지·광고 권한 모두 포함 (심방방은 따로)', group: '관리' },
     ...PERMS.map((p) => ({ ...p, group: '관리' })),
     { key: 'visit_all', name: '모든 교구', hint: '모든 교구 심방방 열람·작성 (담임목사님)', group: '심방방' },
     ...parishes.map((d) => ({ key: `visit:${d.id}`, name: d.name, hint: `${d.name} 심방방 열람·작성`, group: '심방방' })),
@@ -117,7 +117,7 @@ export function PermissionsPage() {
         </div>
         <ul className="note perm-legend">
           {columns.map((c) => <li key={c.key}><b>{c.name}</b> {c.hint}</li>)}
-          <li>흐린 체크는 다른 권한에 이미 포함된 것입니다 (관리자 → 공지·차량·광고, 모든 교구 → 각 교구).</li>
+          <li>흐린 체크는 다른 권한에 이미 포함된 것입니다 (관리자 → 공지·광고, 모든 교구 → 각 교구).</li>
         </ul>
       </section>
     </>

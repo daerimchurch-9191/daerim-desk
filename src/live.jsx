@@ -508,12 +508,12 @@ export function CarsMonth() {
         </div>
         <p className="note">같은 차량은 시간이 겹치게 신청할 수 없습니다. 내가 신청한 예약은 "취소"로 지울 수 있습니다.</p>
       </section>
-      {can(profile, 'vehicles') && <VehicleAdmin />}
+      <VehicleAdmin />
     </>
   )
 }
 
-/* ---------- 차량 관리 권한: 차량 등록 ---------- */
+/* ---------- 차량 등록 (사역자 누구나) ---------- */
 export function VehicleAdmin() {
   const { vehicles, refresh, notify } = useData()
   const [name, setName] = useState('')

@@ -33,8 +33,8 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 
 ## 권한 (profiles.perms)
 
-- 관리자(`role = 'admin'`): 회원 관리·권한 관리. 공지·차량·광고 권한을 모두 포함한다. 심방방은 포함하지 않는다.
-- `perms` 배열: `notice`(공지 작성) `vehicles`(차량 목록 관리) `ads`(주보 광고 정리) `visit_all`(모든 교구 심방방) `visit:<교구 부서 id>`(그 교구 심방방).
+- 관리자(`role = 'admin'`): 회원 관리·권한 관리. 공지·광고 권한을 모두 포함한다. 차량 목록은 승인된 사역자 누구나 넣고 뺀다. 심방방은 포함하지 않는다.
+- `perms` 배열: `notice`(공지 작성) `ads`(주보 광고 정리) `visit_all`(모든 교구 심방방) `visit:<교구 부서 id>`(그 교구 심방방).
 - `has_perm(이름)`이 데이터베이스 규칙에서 확인한다. 권한은 관리자만 바꿀 수 있다 (guard_profile). 화면은 "권한 관리"(#perms).
 
 ## 심방방 (visit_messages)
