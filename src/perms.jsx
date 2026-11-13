@@ -70,7 +70,7 @@ export function PermissionsPage() {
     <>
       <header className="title">
         <h1 className="display page-title">PERMISSIONS</h1>
-        <span className="muted">권한 관리 · 체크한 뒤 "저장"을 눌러야 반영됩니다</span>
+        <span className="muted">권한 관리</span>
       </header>
       <section className="block" aria-labelledby="perm-h">
         <div className="block-head">
@@ -89,7 +89,7 @@ export function PermissionsPage() {
                   <th colSpan={1 + PERMS.length} className="perm-group">관리</th>
                   <th colSpan={1 + parishes.length} className="perm-group grp-start">심방보고</th>
                 </tr>
-                <tr>{columns.map((c) => <th key={c.key} title={c.hint} className={c.start ? 'grp-start' : undefined}>{c.name}</th>)}</tr>
+                <tr>{columns.map((c) => <th key={c.key} className={c.start ? 'grp-start' : undefined}>{c.name}</th>)}</tr>
               </thead>
               <tbody>
                 {people.map((p) => {
@@ -115,10 +115,6 @@ export function PermissionsPage() {
             </table>
           )}
         </div>
-        <ul className="note perm-legend">
-          {columns.map((c) => <li key={c.key}><b>{c.name}</b> {c.hint}</li>)}
-          <li>흐린 체크는 다른 권한에 이미 포함된 것입니다 (관리자 → 공지·광고, 모든 교구 → 각 교구).</li>
-        </ul>
       </section>
     </>
   )
