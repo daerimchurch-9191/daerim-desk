@@ -23,7 +23,6 @@ try {
   $file = Join-Path $dir ('daerim-desk-' + (Get-Date -Format 'yyyy-MM-dd') + '.json')
   Invoke-WebRequest -Uri $url -Headers @{ 'x-backup-token' = $token } -OutFile $file -UseBasicParsing
   $kb = [math]::Round((Get-Item $file).Length / 1KB)
-  Get-ChildItem $dir -Filter 'daerim-desk-*.json' | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-90) } | Remove-Item
   Add-Content $log ('{0} 성공 {1}KB' -f (Get-Date -Format 'yyyy-MM-dd HH:mm'), $kb)
   if (-not $auto) {
     Write-Host ''
@@ -96,7 +95,7 @@ export function BackupAdmin() {
           <li>교회 컴퓨터에서 이 파일을 백업을 모아 둘 <b>나스 폴더</b>에 넣습니다. (파일 탐색기 주소창에 \\192.168.1.2 를 입력하면 나스 폴더가 열립니다)</li>
           <li>나스 폴더에 넣은 파일을 <b>두 번 클릭</b>합니다. 바로 한 번 백업하고, 그 뒤로는 매일 낮 12시 30분에 그 폴더로 자동 백업합니다.</li>
         </ol>
-        <p className="muted small">백업 파일에는 심방보고를 포함한 모든 기록이 들어 있습니다. 나스 폴더는 관리자만 열 수 있게 해 주세요. 90일이 지난 백업은 저절로 지워집니다. 비밀번호는 백업되지 않습니다.</p>
+        <p className="muted small">백업 파일에는 심방보고를 포함한 모든 기록이 들어 있습니다. 나스 폴더는 관리자만 열 수 있게 해 주세요.  백업 파일은 지우지 않고 모두 보관합니다. 비밀번호는 백업되지 않습니다.</p>
         <div className="btn-row">
           <button type="button" className="btn btn-primary" disabled={busy} onClick={download}>백업 프로그램 받기</button>
           <button type="button" className="btn" disabled={busy} onClick={rotate}>열쇠 바꾸기</button>
