@@ -72,6 +72,47 @@ export function ChangePasswordModal({ onClose }) {
 const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반려됨', inactive: '사용 중지' }
 
 // 교회를 떠난 사역자: 계정과 기록은 남기고 로그인해도 아무것도 볼 수 없게 한다
+// 사역자 정보 고치기: 이름·직분·부서 (부서는 공지 받는 범위를 정하므로 관리자만)
+function EditMemberModal({ person, onClose, onDone }) {
+  const { departments } = useData()
+  const [f, setF] = useState({ name: person.name ?? '', title: person.title ?? '', dept: person.dept ?? '' })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setError('') }
+  const of = (g) => departments.filter((d) => d.grp === g)
+  async function save(e) {
+    e.preventDefault()
+    if (!f.name.trim()) return setError('이름을 적어 주세요.')
+    setBusy(true)
+    const { error } = await supabase.from('profiles').update({ name: f.name.trim(), title: f.title.trim() || null, dept: f.dept || null }).eq('id', person.id)
+    setBusy(false)
+    if (error) return setError(toKorean(error.message))
+    onDone(); onClose()
+  }
+  return (
+    <Modal title="사역자 정보 고치기" onClose={onClose} onSubmit={save}
+      footer={<>
+        <button type="button" className="btn" onClick={onClose}>취소</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
+      </>}>
+      <p className="muted small">아이디 {person.login_id}</p>
+      <div className="field-row">
+        <label className="field">이름<input value={f.name} onChange={set('name')} /></label>
+        <label className="field">직분<input value={f.title} onChange={set('title')} /></label>
+      </div>
+      <label className="field">소속 부서
+        <select value={f.dept} onChange={set('dept')}>
+          <option value="">소속 없음</option>
+          <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</optgroup>
+          <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</optgroup>
+        </select>
+      </label>
+      <p className="muted small">부서를 바꾸면 받는 공지 범위(교구·교육부)도 함께 바뀝니다. 심방보고 방은 권한 관리에서 따로 바꿔 주세요.</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+    </Modal>
+  )
+}
+
 function DeactivateModal({ person, onClose, onDone }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -97,7 +138,8 @@ function DeactivateModal({ person, onClose, onDone }) {
 }
 
 export function AdminPage() {
-  const { profile: me } = useAuth()
+  const { profile: me, reloadProfile } = useAuth()
+  const f = (p) => `${p.name} ${p.title ?? ''}님`
   const { openModal, refresh, notify } = useData()
   const [people, setPeople] = useState(null)
   const [error, setError] = useState('')
@@ -131,6 +173,9 @@ export function AdminPage() {
       {p.status === 'inactive' && <button type="button" className="btn btn-primary" onClick={async () => { await update(p.id, { status: 'approved' }); refresh(); notify(`${p.name} ${p.title}님 계정을 다시 쓸 수 있게 했습니다.`) }}>다시 사용</button>}
       {(p.status === 'pending' || p.status === 'rejected') && <button type="button" className="btn btn-primary" onClick={() => update(p.id, { status: 'approved' })}>승인</button>}
       {p.status === 'pending' && <button type="button" className="btn" onClick={() => update(p.id, { status: 'rejected' })}>반려</button>}
+      {p.status !== 'inactive' && (
+        <button type="button" className="btn" onClick={() => openModal({ render: (close) => <EditMemberModal person={p} onClose={close} onDone={() => { load(); refresh(); if (p.id === me.id) reloadProfile(); notify(`${f(p)} 정보를 고쳤습니다.`) }} /> })}>정보 수정</button>
+      )}
       {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn" onClick={() => openModal({ render: (close) => <ResetPasswordModal person={p} onClose={close} /> })}>비밀번호 초기화</button>
       )}
@@ -144,7 +189,7 @@ export function AdminPage() {
     <>
       <header className="title">
         <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인, 비밀번호 초기화, 사용 중지</span>
+        <span className="muted">회원 관리 · 가입 승인, 정보 수정, 비밀번호 초기화, 사용 중지</span>
       </header>
       <p className="note">관리자 지정과 공지·광고·심방보고 권한은 <a href="#perms">권한 관리</a>에서 체크해서 줍니다.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
