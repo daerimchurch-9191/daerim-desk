@@ -145,7 +145,7 @@ export function AdminPage() {
         <h1 className="display page-title">MEMBERS</h1>
         <span className="muted">회원 관리 · 가입 승인, 비밀번호 초기화, 사용 중지</span>
       </header>
-      <p className="note">관리자 지정과 공지·차량·광고·심방방 권한은 <a href="#perms">권한 관리</a>에서 체크해서 줍니다.</p>
+      <p className="note">관리자 지정과 공지·광고·심방보고 권한은 <a href="#perms">권한 관리</a>에서 체크해서 줍니다.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">
         <h2 id="pending-h" className="pill">승인 대기 {pending.length}</h2>

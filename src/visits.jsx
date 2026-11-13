@@ -1,4 +1,4 @@
-// 심방방: 교구마다 방이 하나씩 있고, 채팅처럼 심방 내용을 주고받는다.
+// 심방보고: 교구마다 방이 하나씩 있고, 채팅처럼 심방 내용을 주고받는다.
 // - 권한 관리에서 "모든 교구"(담임목사님)를 받으면 모든 방, "1교구" 등을 받으면 그 방만 들어간다.
 // - 누가 어느 방을 보는지는 데이터베이스 권한 규칙(has_perm)이 정한다. 화면은 그에 맞춰 보여 줄 뿐이다.
 // - 고치기·지우기는 자기가 쓴 글만.
@@ -90,7 +90,7 @@ function Room({ room }) {
       <div className="chat-list" ref={listRef} onScroll={onScroll} aria-live="polite">
         {msgs === null && <span className="skeleton" />}
         {more && <button type="button" className="btn btn-link chat-more" onClick={loadOlder}>이전 글 더 보기</button>}
-        {msgs?.length === 0 && <div className="empty">{room.name} 심방방이 비어 있습니다. 첫 심방 내용을 남겨 보세요.<br />아래 "양식 넣기"를 누르면 심방보고 틀이 들어갑니다.</div>}
+        {msgs?.length === 0 && <div className="empty">{room.name} 심방보고가 비어 있습니다. 첫 심방 내용을 남겨 보세요.<br />아래 "양식 넣기"를 누르면 심방보고 틀이 들어갑니다.</div>}
         {msgs?.map((m) => {
           const d = new Date(m.created_at)
           const day = ymd(d)
@@ -142,8 +142,8 @@ export function VisitsPage() {
   if (!rooms.length) {
     return (
       <>
-        <header className="title"><h1 className="display page-title">VISITS</h1><span className="muted">심방방</span></header>
-        <div className="card"><div className="empty">들어갈 수 있는 심방방이 없습니다. 관리자에게 권한을 요청해 주세요.</div></div>
+        <header className="title"><h1 className="display page-title">VISITS</h1><span className="muted">심방보고</span></header>
+        <div className="card"><div className="empty">볼 수 있는 심방보고가 없습니다. 관리자에게 권한을 요청해 주세요.</div></div>
       </>
     )
   }
@@ -151,9 +151,9 @@ export function VisitsPage() {
     <>
       <header className="title">
         <h1 className="display page-title">VISITS</h1>
-        <span className="muted">교구별 심방방 · 권한을 받은 사역자만 들어옵니다</span>
+        <span className="muted">교구별 교구별 심방보고 · 권한을 받은 사역자만 들어옵니다</span>
       </header>
-      <section className="block" aria-label="심방방">
+      <section className="block" aria-label="심방보고">
         <div className="block-head">
           <div className="tabs grow" role="tablist">
             {rooms.map((r) => (

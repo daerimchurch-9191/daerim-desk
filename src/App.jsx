@@ -86,7 +86,7 @@ function Sidebar({ open, onClose, page, notices }) {
         <a href="#calendar" onClick={onClose} className={`nav-item${page === 'calendar' ? ' is-current' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined}>교회 캘린더</a>
         <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
         <a href="#ads" onClick={onClose} className={`nav-item${page === 'ads' ? ' is-current' : ''}`} aria-current={page === 'ads' ? 'page' : undefined}>주보 광고</a>
-        {visitRooms(profile, departments).length > 0 && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방방</a>}
+        {visitRooms(profile, departments).length > 0 && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방보고</a>}
       </div>
 
       <SideNotices notices={notices} onNavigate={onClose} />

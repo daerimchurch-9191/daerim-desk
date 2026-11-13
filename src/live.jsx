@@ -199,11 +199,13 @@ function EventModal({ initial, onClose }) {
           <label className="field">시작<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end && f.end <= v ? '' : f.end })} /></label>
           <label className="field"><span>끝 <small>(선택)</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>
         </div>
-        <div className="quick-row" aria-label="끝 시간 빠르게 정하기">
+        <div className="quick-row" aria-label="끝 시간 더하기">
           <span className="muted small">끝 시간</span>
-          {[[30, '+30분'], [60, '+1시간'], [90, '+1시간 30분'], [120, '+2시간']].map(([m, t]) => (
-            <button key={m} type="button" className={`chip-btn${f.end === plusMinutes(f.start, m) ? ' is-on' : ''}`} onClick={() => setF({ ...f, end: plusMinutes(f.start, m) })}>{t}</button>
+          {[[30, '+30분'], [60, '+1시간']].map(([m, t]) => (
+            <button key={m} type="button" className="chip-btn" onClick={() => setF({ ...f, end: plusMinutes(f.end || f.start, m) })}>{t}</button>
           ))}
+          {f.end && <span className="small">→ {timeLabel(f.end)} 끝</span>}
+          {f.end && <button type="button" className="btn-link small" onClick={() => setF({ ...f, end: '' })}>지우기</button>}
         </div>
         <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
         <label className="field"><span>장소 <small>(선택)</small></span><input value={f.location} onChange={set('location')} /></label>
@@ -508,12 +510,12 @@ export function CarsMonth() {
         </div>
         <p className="note">같은 차량은 시간이 겹치게 신청할 수 없습니다. 내가 신청한 예약은 "취소"로 지울 수 있습니다.</p>
       </section>
-      <VehicleAdmin />
+      {profile.role === 'admin' && <VehicleAdmin />}
     </>
   )
 }
 
-/* ---------- 차량 등록 (사역자 누구나) ---------- */
+/* ---------- 차량 등록 (관리자만) ---------- */
 export function VehicleAdmin() {
   const { vehicles, refresh, notify } = useData()
   const [name, setName] = useState('')
