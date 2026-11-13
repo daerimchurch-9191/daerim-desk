@@ -193,7 +193,7 @@ function Room({ room }) {
         {editing && <p className="chat-editing">글 고치는 중 · <button type="button" className="btn-link" onClick={() => { setEditing(null); setText(''); setTarget('') }}>그만두기</button></p>}
         <input className="chat-target" value={target} onChange={(e) => setTarget(e.target.value)} maxLength={60} placeholder="대상 (가정·성도 이름, 선택) — 같은 대상끼리 묶어 볼 수 있어요" aria-label="심방 대상" />
         <textarea value={text} rows={Math.min(8, Math.max(2, text.split('\n').length))} onChange={(e) => { setText(e.target.value); setError('') }} onKeyDown={onKey}
-          placeholder={`${room.name}에 심방 내용 남기기 (주민번호·연락처·주소는 적지 마세요)`} aria-label="심방 내용" />
+          placeholder={`${room.name}에 심방 내용 남기기`} aria-label="심방 내용" />
         <div className="chat-bar">
           <button type="button" className="chip-btn" onClick={() => setText((t) => t ? t : TEMPLATE(new Date()))}>양식 넣기</button>
           <span className="muted small grow">{touch() ? '' : 'Enter 보내기 · Shift+Enter 줄바꿈'}</span>
