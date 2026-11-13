@@ -1,4 +1,4 @@
-// 관리자: 자동 백업 설정. 교회 컴퓨터에서 한 번 실행하면 매일 나스 폴더에 백업 파일을 저장한다.
+// 관리자: 자동 백업 설정. 교회 컴퓨터에서 한 번 실행하면 매주 토요일 나스 폴더에 백업 파일을 저장한다.
 // 백업 열쇠는 이 화면에서만 받는다 (채팅·깃허브에 남기지 않기 위해).
 import { useEffect, useState } from 'react'
 import { supabase, toKorean } from './auth.jsx'
@@ -29,10 +29,10 @@ try {
     Write-Host ('백업 완료: ' + $file + ' (' + $kb + 'KB)')
     try {
       $act = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c ""' + $self + '" auto"')
-      $trg = New-ScheduledTaskTrigger -Daily -At '12:30'
+      $trg = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday -At '12:00'
       $set = New-ScheduledTaskSettingsSet -StartWhenAvailable -Hidden -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
       Register-ScheduledTask -TaskName 'DaerimDeskBackup' -Action $act -Trigger $trg -Settings $set -Force | Out-Null
-      Write-Host '이제 매일 낮 12시 30분에 이 폴더로 자동 백업합니다. (그 시간에 컴퓨터가 꺼져 있었으면 켜진 뒤 바로)'
+      Write-Host '이제 매주 토요일 낮 12시에 이 폴더로 자동 백업합니다. (그 시간에 컴퓨터가 꺼져 있었으면 켜진 뒤 바로)'
     } catch {
       Write-Host ('자동 실행 등록은 실패했습니다: ' + $_.Exception.Message)
       Write-Host '파일을 오른쪽 클릭해 "관리자 권한으로 실행"으로 한 번 더 실행해 주세요.'
@@ -88,12 +88,12 @@ export function BackupAdmin() {
           {runs === null ? '확인하는 중…'
             : !last ? <>아직 백업한 적이 없습니다.</>
               : <><b>마지막 백업</b> {new Date(last.at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })} · {Math.round(last.bytes / 1024)}KB
-                {ago >= 3 && <span className="chip chip-warn">{ago}일째 백업이 없습니다</span>}</>}
+                {ago >= 9 && <span className="chip chip-warn">{ago}일째 백업이 없습니다</span>}</>}
         </p>
         <ol className="steps small">
           <li>"백업 프로그램 받기"로 <b>대시보드백업.bat</b>을 내려받습니다.</li>
           <li>교회 컴퓨터에서 이 파일을 백업을 모아 둘 <b>나스 폴더</b>에 넣습니다. (파일 탐색기 주소창에 \\192.168.1.2 를 입력하면 나스 폴더가 열립니다)</li>
-          <li>나스 폴더에 넣은 파일을 <b>두 번 클릭</b>합니다. 바로 한 번 백업하고, 그 뒤로는 매일 낮 12시 30분에 그 폴더로 자동 백업합니다.</li>
+          <li>나스 폴더에 넣은 파일을 <b>두 번 클릭</b>합니다. 바로 한 번 백업하고, 그 뒤로는 매주 토요일 낮 12시에 그 폴더로 자동 백업합니다.</li>
         </ol>
         <p className="muted small">백업 파일에는 심방보고를 포함한 모든 기록이 들어 있습니다. 나스 폴더는 관리자만 열 수 있게 해 주세요.  백업 파일은 지우지 않고 모두 보관합니다. 비밀번호는 백업되지 않습니다.</p>
         <div className="btn-row">
