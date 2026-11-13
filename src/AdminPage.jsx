@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
 import { useData, Modal } from './live.jsx'
+import { BackupAdmin } from './backup.jsx'
 
 // 관리자가 다른 사역자의 비밀번호를 새로 정해 준다 (Supabase 함수 reset-password)
 function ResetPasswordModal({ person, onClose }) {
@@ -164,6 +165,7 @@ export function AdminPage() {
           <div className="card">{inactive.map(row)}</div>
         </section>
       )}
+      <BackupAdmin />
     </>
   )
 }
