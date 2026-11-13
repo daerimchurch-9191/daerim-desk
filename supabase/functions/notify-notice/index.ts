@@ -1,5 +1,5 @@
 // 공지 알림을 휴대폰·컴퓨터로 보낸다 (웹 푸시).
-// - { notice_id }: 관리자만. 그 공지의 받는 범위(전체·교구·교육부)에 맞는 승인된 사역자에게 보낸다. 쓴 사람은 뺀다.
+// - { notice_id }: 관리자 또는 공지 작성 권한(notice)이 있는 사람만. 그 공지의 받는 범위(전체·교구·교육부)에 맞는 승인된 사역자에게 보낸다. 쓴 사람은 뺀다.
 // - { test: true }: 누구나. 부른 사람 자기 기기에만 시험 알림을 보낸다.
 // - { subscribe: {endpoint, keys} }: 이 기기를 부른 사람의 알림 기기로 등록한다 (같은 기기를 다른 사람이 쓰던 경우도 넘겨받는다).
 // 푸시 비밀 키는 데이터베이스 금고(vault)에 있고, service_role 만 꺼낼 수 있다.
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
   const { data: who } = await admin.auth.getUser(token)
   if (!who?.user) return reply({ error: '로그인이 필요합니다.' }, 401)
-  const { data: me } = await admin.from('profiles').select('id, role, status').eq('id', who.user.id).maybeSingle()
+  const { data: me } = await admin.from('profiles').select('id, role, status, perms').eq('id', who.user.id).maybeSingle()
   if (!me || me.status !== 'approved') return reply({ error: '승인된 사역자만 쓸 수 있습니다.' }, 403)
 
   let body: { notice_id?: number; test?: boolean; subscribe?: { endpoint?: string; keys?: { p256dh?: string; auth?: string } } }
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     userIds = [me.id]
     payload = { title: '대림교회 사역 데스크', body: '알림이 잘 켜졌습니다.', url: './#home', tag: 'test' }
   } else {
-    if (me.role !== 'admin') return reply({ error: '관리자만 공지 알림을 보낼 수 있습니다.' }, 403)
+    if (me.role !== 'admin' && !(me.perms ?? []).includes('notice')) return reply({ error: '공지 작성 권한이 있어야 알림을 보낼 수 있습니다.' }, 403)
     const { data: n } = await admin.from('notices').select('id, title, body, audience, created_by').eq('id', body.notice_id ?? -1).maybeSingle()
     if (!n) return reply({ error: '공지를 찾을 수 없습니다.' }, 404)
     const [{ data: people }, { data: depts }] = await Promise.all([

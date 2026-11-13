@@ -1,7 +1,7 @@
 // 공지: 관리자가 쓰고, 받는 범위(전체·교구·교육부)에 맞는 사람에게 보인다.
 // 누가 어떤 공지를 보는지는 데이터베이스 권한 규칙이 정한다(소속 부서 기준, 관리자는 전부).
 import { useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean } from './auth.jsx'
+import { supabase, useAuth, toKorean, can } from './auth.jsx'
 import { useData, Modal, ymd } from './live.jsx'
 import { sendNoticePush } from './push.js'
 
@@ -150,13 +150,13 @@ function NoticeView({ notice, onClose, onEdit }) {
   return (
     <Modal title="공지" onClose={onClose} onSubmit={(e) => { e.preventDefault(); onClose() }}
       footer={<>
-        {profile.role === 'admin' && <button type="button" className="btn" onClick={onEdit}>수정</button>}
+        {can(profile, 'notice') && <button type="button" className="btn" onClick={onEdit}>수정</button>}
         <button type="submit" className="btn btn-primary">닫기</button>
       </>}>
       <h3 className="notice-title">{notice.title}</h3>
       <p className="muted small">{audienceName(notice.audience)} · {dateLabel(notice.created_at)}{notice.until && ` · ${Number(notice.until.slice(5, 7))}월 ${Number(notice.until.slice(8))}일까지`}</p>
       {notice.body ? <p className="notice-body">{notice.body}</p> : <p className="muted">내용 없이 제목만 있는 공지입니다.</p>}
-      {profile.role === 'admin' && <ShareButtons notice={notice} />}
+      {can(profile, 'notice') && <ShareButtons notice={notice} />}
     </Modal>
   )
 }
@@ -211,7 +211,7 @@ export function NoticeStrip({ notices }) {
 export function NoticesPage({ notices }) {
   const { profile } = useAuth()
   const { write, view } = useNoticeActions(notices)
-  const isAdmin = profile.role === 'admin'
+  const isAdmin = can(profile, 'notice')
   const [showExpired, setShowExpired] = useState(false)
   const rows = (notices.list ?? []).filter((n) => showExpired || !isExpired(n))
 
@@ -219,7 +219,7 @@ export function NoticesPage({ notices }) {
     <>
       <header className="title">
         <h1 className="display page-title">NOTICE</h1>
-        <span className="muted">공지 전체 보기{isAdmin ? ' · 관리자는 모든 범위의 공지가 보입니다' : ''}</span>
+        <span className="muted">공지 전체 보기{isAdmin ? ' · 공지 작성 권한이 있으면 모든 범위의 공지가 보입니다' : ''}</span>
       </header>
       <section className="block" aria-labelledby="notices-h">
         <div className="block-head">

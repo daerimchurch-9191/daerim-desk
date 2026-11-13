@@ -1,6 +1,6 @@
 // 주보 광고: 사역자 누구나 주(주일 날짜)별로 올리고, 담당자가 한 주치를 한 번에 복사해 주보에 붙인다.
 import { useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean } from './auth.jsx'
+import { supabase, useAuth, toKorean, can } from './auth.jsx'
 import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
 
 // 기본은 다가오는 주일 (오늘이 주일이면 오늘)
@@ -8,9 +8,9 @@ const nextSunday = () => { const t = new Date(); return t.getDay() === 0 ? start
 const sunLabel = (d) => `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 주일`
 
 function AdModal({ initial, weekOf, onClose, onSaved }) {
-  const { departments, notify } = useData()
+  const { notify } = useData()
   const editing = Boolean(initial?.id)
-  const [f, setF] = useState({ week_of: initial?.week_of ?? ymd(weekOf), dept: initial?.dept ?? '', title: initial?.title ?? '', body: initial?.body ?? '' })
+  const [f, setF] = useState({ week_of: initial?.week_of ?? ymd(weekOf), title: initial?.title ?? '', body: initial?.body ?? '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setError('') }
@@ -23,7 +23,7 @@ function AdModal({ initial, weekOf, onClose, onSaved }) {
     e.preventDefault()
     if (!f.title.trim()) return setError('광고 제목을 적어 주세요.')
     setBusy(true)
-    const row = { week_of: f.week_of, dept: f.dept || null, title: f.title.trim(), body: f.body.trim() || null }
+    const row = { week_of: f.week_of, title: f.title.trim(), body: f.body.trim() || null }
     const { error } = editing
       ? await supabase.from('bulletin_ads').update(row).eq('id', initial.id)
       : await supabase.from('bulletin_ads').insert(row)
@@ -46,21 +46,13 @@ function AdModal({ initial, weekOf, onClose, onSaved }) {
         <button type="button" className="btn" onClick={onClose}>취소</button>
         <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
       </>}>
-      <div className="field-row">
-        <label className="field">실릴 주보
-          <select value={f.week_of} onChange={set('week_of')}>
-            {weeks.map((w) => <option key={ymd(w)} value={ymd(w)}>{w.getMonth() + 1}/{w.getDate()} 주일</option>)}
-          </select>
-        </label>
-        <label className="field"><span>부서 <small>(선택)</small></span>
-          <select value={f.dept} onChange={set('dept')}>
-            <option value="">고르지 않음</option>
-            {departments.filter((d) => d.id !== 'all').map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
-          </select>
-        </label>
-      </div>
-      <label className="field">제목<input value={f.title} onChange={set('title')} placeholder="예: 유년부 겨울성경학교 교사 모집" /></label>
-      <label className="field"><span>내용 <small>(선택)</small></span><textarea rows={5} value={f.body} onChange={set('body')} placeholder="날짜, 장소, 신청 방법 등" /></label>
+      <label className="field">실릴 주보
+        <select value={f.week_of} onChange={set('week_of')}>
+          {weeks.map((w) => <option key={ymd(w)} value={ymd(w)}>{w.getMonth() + 1}월 {w.getDate()}일 주일</option>)}
+        </select>
+      </label>
+      <label className="field">제목<input value={f.title} onChange={set('title')} placeholder="예: 겨울성경학교 교사 모집" /></label>
+      <label className="field"><span>내용 <small>(선택)</small></span><textarea rows={5} value={f.body} onChange={set('body')} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
   )
@@ -68,7 +60,7 @@ function AdModal({ initial, weekOf, onClose, onSaved }) {
 
 export const adsText = (week0, list) => [
   `[주보 광고] ${week0.getMonth() + 1}월 ${week0.getDate()}일 주일`,
-  ...list.map((a, i) => `${i + 1}. ${a.dept ? `[${a.dept}] ` : ''}${a.title}${a.body ? `\n${a.body}` : ''}`),
+  ...list.map((a, i) => `${i + 1}. ${a.title}${a.body ? `\n${a.body}` : ''}`),
 ].join('\n\n')
 
 export function AdsPage() {
@@ -86,7 +78,7 @@ export function AdsPage() {
   }, [week0.getTime(), tick, version])
 
   const nameOf = (id) => { const s = staff.find((p) => p.id === id); return s ? `${s.name} ${s.title}` : '' }
-  const canEdit = (a) => a.created_by === profile.id || profile.role === 'admin'
+  const canEdit = (a) => a.created_by === profile.id || can(profile, 'ads')
   const write = (initial) => openModal({ render: (close) => <AdModal initial={initial} weekOf={week0} onClose={close} onSaved={reload} /> })
   async function copyAll() {
     try { await navigator.clipboard.writeText(adsText(week0, rows)); notify(`${rows.length}개 광고를 복사했습니다. 주보 파일에 붙여 넣으세요.`) }
@@ -116,7 +108,7 @@ export function AdsPage() {
             <article key={a.id} className="ad-row">
               <span className="ad-no">{i + 1}</span>
               <div className="grow">
-                <strong>{a.dept && <span className="chip">{a.dept}</span>} {a.title}</strong>
+                <strong>{a.title}</strong>
                 {a.body && <p className="pre">{a.body}</p>}
                 <small className="muted">{nameOf(a.created_by)}</small>
               </div>
@@ -125,7 +117,7 @@ export function AdsPage() {
           ))}
           {rows?.length > 0 && <button type="button" className="btn btn-dark btn-block" onClick={copyAll}>이 주 광고 전체 복사</button>}
         </div>
-        <p className="note">사역자 누구나 올릴 수 있고, 올린 사람과 관리자가 고칠 수 있습니다. 복사하면 번호를 붙여 "[부서] 제목 / 내용" 순서로 정리됩니다.</p>
+        <p className="note">사역자 누구나 올릴 수 있고, 올린 사람과 광고 정리 권한이 있는 사람이 고칠 수 있습니다. 복사하면 번호를 붙여 "제목 / 내용" 순서로 정리됩니다.</p>
       </section>
     </>
   )

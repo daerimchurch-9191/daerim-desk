@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from './auth.jsx'
+import { useAuth, visitRooms } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { AdminPage, ChangePasswordModal } from './AdminPage.jsx'
 import { PushSettingsModal } from './PushSettings.jsx'
 import { VisitsPage } from './visits.jsx'
+import { PermissionsPage } from './perms.jsx'
 import { AdsPage } from './ads.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
-import { Todos, Folders } from './personal.jsx'
+import { Todos } from './personal.jsx'
 import { links } from './data.js'
 import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
 
@@ -38,7 +39,7 @@ function Icon({ name, size = 20, width = 1.7 }) {
 
 function Sidebar({ open, onClose, page, notices }) {
   const { profile, signOut } = useAuth()
-  const { openModal } = useData()
+  const { openModal, departments } = useData()
   const [gearOpen, setGearOpen] = useState(false)
   useEffect(() => {
     if (!gearOpen) return
@@ -69,6 +70,7 @@ function Sidebar({ open, onClose, page, notices }) {
         {gearOpen && (
           <div className="gear-menu">
             {profile.role === 'admin' && <a href="#admin" onClick={() => { setGearOpen(false); onClose() }}>회원 관리</a>}
+            {profile.role === 'admin' && <a href="#perms" onClick={() => { setGearOpen(false); onClose() }}>권한 관리</a>}
             <button type="button" onClick={() => { setGearOpen(false); onClose(); openModal({ render: (close) => <PushSettingsModal onClose={close} /> }) }}>앱·알림 설정</button>
             <button type="button" onClick={() => { setGearOpen(false); onClose(); openModal({ render: (close) => <ChangePasswordModal onClose={close} /> }) }}>비밀번호 변경</button>
             <button type="button" onClick={signOut}>로그아웃</button>
@@ -84,9 +86,7 @@ function Sidebar({ open, onClose, page, notices }) {
         <a href="#calendar" onClick={onClose} className={`nav-item${page === 'calendar' ? ' is-current' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined}>교회 캘린더</a>
         <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
         <a href="#ads" onClick={onClose} className={`nav-item${page === 'ads' ? ' is-current' : ''}`} aria-current={page === 'ads' ? 'page' : undefined}>주보 광고</a>
-        {profile.visit_role && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방보고</a>}
-        <a href="#" className="nav-item">부서 방</a>
-        <a href="#" className="nav-item">내 책상</a>
+        {visitRooms(profile, departments).length > 0 && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방방</a>}
       </div>
 
       <SideNotices notices={notices} onNavigate={onClose} />
@@ -106,7 +106,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits' }[location.hash] ?? 'home')
+  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#perms': 'perms' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -137,7 +137,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'perms' ? <PermissionsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
@@ -145,7 +145,6 @@ function Desk() {
         </header>
 
         <NoticeStrip notices={notices} />
-        <Folders />
         <div className="grid-2 top">
           <MySermons />
           <Todos />

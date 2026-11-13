@@ -1,6 +1,6 @@
 // 실제 데이터(Supabase)와 연결된 부분: 교회 일정, 차량 예약
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean } from './auth.jsx'
+import { supabase, useAuth, toKorean, can } from './auth.jsx'
 
 /* ---------- 날짜 ---------- */
 const DOW_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -63,17 +63,55 @@ const deptName = (departments, id) => departments.find((d) => d.id === id)?.name
 const deptTag = (departments, id) => `tag-${departments.find((d) => d.id === id)?.grp ?? 'all'}`
 export const GROUPS = [{ id: 'all', name: '교회 전체' }, { id: 'edu', name: '교육부' }, { id: 'parish', name: '교구' }]
 
-export function DeptSelect({ value, onChange }) {
+export function DeptSelect({ value, onChange, custom, onCustom }) {
   const { departments } = useData()
   const of = (g) => departments.filter((d) => d.grp === g)
+  // custom 을 넘기면 "직접 입력"을 고를 수 있다 (value 는 '__custom')
   return (
-    <label className="field">부서
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
+    <div className="field">
+      <label htmlFor="dept-sel">부서</label>
+      <select id="dept-sel" value={value} onChange={(e) => onChange(e.target.value)}>
         {of('all').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
         <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+        {onCustom && <option value="__custom">직접 입력…</option>}
       </select>
-    </label>
+      {onCustom && value === '__custom' && <input value={custom} onChange={(e) => onCustom(e.target.value)} placeholder="부서·모임 이름" aria-label="부서 직접 입력" autoFocus />}
+    </div>
+  )
+}
+
+// 시간 고르기: 브라우저 기본 시간칸 대신 10분 단위 목록 (휴대폰에서는 돌림판으로 열림)
+const TIMES = [...Array(24 * 6)].map((_, i) => `${pad(Math.floor(i / 6))}:${pad((i % 6) * 10)}`).filter((t) => t >= '05:00')
+export const timeLabel = (t) => { const [h, m] = t.split(':').map(Number); return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${pad(m)}` }
+export function TimeSelect({ value, onChange, optional, label, ...rest }) {
+  const list = value && !TIMES.includes(value) ? [...TIMES, value].sort() : TIMES
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} {...rest}>
+      {optional && <option value="">없음</option>}
+      {list.map((t) => <option key={t} value={t}>{timeLabel(t)}</option>)}
+    </select>
+  )
+}
+export const plusMinutes = (t, m) => { const [h, mm] = t.split(':').map(Number); const x = Math.min(h * 60 + mm + m, 23 * 60 + 50); return `${pad(Math.floor(x / 60))}:${pad(x % 60)}` }
+
+// 사람 고르기: 사역자 목록 + 직접 입력. 값은 이름 글자.
+export function PersonPick({ label, value, onChange, optional }) {
+  const { staff } = useData()
+  const names = staff.map((p) => `${p.name} ${p.title}`)
+  const [typing, setTyping] = useState(Boolean(value) && !names.includes(value))
+  const sel = typing ? '__custom' : value
+  return (
+    <div className="field">
+      <label><span>{label}{optional && <small> (선택)</small>}</span>
+        <select value={sel} onChange={(e) => { const v = e.target.value; if (v === '__custom') { setTyping(true); onChange('') } else { setTyping(false); onChange(v) } }}>
+          <option value="">{optional ? '고르지 않음' : '고르세요'}</option>
+          {names.map((n) => <option key={n} value={n}>{n}</option>)}
+          <option value="__custom">직접 입력…</option>
+        </select>
+      </label>
+      {typing && <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="이름 입력" aria-label={`${label} 직접 입력`} autoFocus />}
+    </div>
   )
 }
 
@@ -158,8 +196,14 @@ function EventModal({ initial, onClose }) {
         <label className="field">일정 이름<input value={f.title} onChange={set('title')} placeholder="예: 유년부 야외활동" autoFocus={canEdit} /></label>
         <div className="field-row three">
           <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-          <label className="field">시작<input type="time" value={f.start} onChange={set('start')} required /></label>
-          <label className="field"><span>끝 <small>(선택)</small></span><input type="time" value={f.end} onChange={set('end')} /></label>
+          <label className="field">시작<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end && f.end <= v ? '' : f.end })} /></label>
+          <label className="field"><span>끝 <small>(선택)</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>
+        </div>
+        <div className="quick-row" aria-label="끝 시간 빠르게 정하기">
+          <span className="muted small">끝 시간</span>
+          {[[30, '+30분'], [60, '+1시간'], [90, '+1시간 30분'], [120, '+2시간']].map(([m, t]) => (
+            <button key={m} type="button" className={`chip-btn${f.end === plusMinutes(f.start, m) ? ' is-on' : ''}`} onClick={() => setF({ ...f, end: plusMinutes(f.start, m) })}>{t}</button>
+          ))}
         </div>
         <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
         <label className="field"><span>장소 <small>(선택)</small></span><input value={f.location} onChange={set('location')} /></label>
@@ -174,10 +218,12 @@ function EventModal({ initial, onClose }) {
 /* ---------- 차량 신청 ---------- */
 function CarModal({ initial, onClose }) {
   const { departments, vehicles, refresh, notify } = useData()
+  const { profile } = useAuth()
+  const myName = `${profile.name} ${profile.title}`
   const editing = Boolean(initial?.id)
   const [f, setF] = useState(editing
-    ? { date: ymd(initial.span[0]), from: hm(initial.span[0]), to: hm(initial.span[1]), vehicle_id: initial.vehicle_id, dept_id: initial.dept_id ?? 'all', driver: initial.driver ?? '', purpose: initial.purpose ?? '' }
-    : { date: initial?.date ?? ymd(new Date()), from: '09:00', to: '12:00', vehicle_id: null, dept_id: 'all', driver: '', purpose: '' })
+    ? { date: ymd(initial.span[0]), from: hm(initial.span[0]), to: hm(initial.span[1]), vehicle_id: initial.vehicle_id, dept_id: initial.dept_text ? '__custom' : (initial.dept_id ?? 'all'), dept_text: initial.dept_text ?? '', driver: initial.driver ?? '', requester: initial.requester ?? '' }
+    : { date: initial?.date ?? ymd(new Date()), from: '09:00', to: '12:00', vehicle_id: null, dept_id: 'all', dept_text: '', driver: '', requester: myName })
   const [dayBookings, setDayBookings] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -198,10 +244,14 @@ function CarModal({ initial, onClose }) {
     ev.preventDefault()
     if (!valid) return setError('반납 시간이 출발보다 늦어야 합니다.')
     if (!f.vehicle_id) return setError('쓸 수 있는 차량을 골라 주세요.')
+    if (!f.requester.trim()) return setError('신청자를 골라 주세요.')
+    if (f.dept_id === '__custom' && !f.dept_text.trim()) return setError('부서 이름을 적어 주세요.')
     setBusy(true)
+    const custom = f.dept_id === '__custom'
     const row = {
-      vehicle_id: f.vehicle_id, during: range(want[0], want[1]), dept_id: f.dept_id,
-      driver: f.driver.trim() || null, purpose: f.purpose.trim() || null,
+      vehicle_id: f.vehicle_id, during: range(want[0], want[1]),
+      dept_id: custom ? null : f.dept_id, dept_text: custom ? f.dept_text.trim() : null,
+      requester: f.requester.trim(), driver: f.driver.trim() || null,
     }
     const { error } = editing
       ? await supabase.from('vehicle_bookings').update(row).eq('id', initial.id)
@@ -232,8 +282,8 @@ function CarModal({ initial, onClose }) {
       <p className="muted small">날짜와 시간을 먼저 고르면, 그 시간에 쓸 수 있는 차량만 고를 수 있습니다.</p>
       <div className="field-row three">
         <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-        <label className="field">출발<input type="time" value={f.from} onChange={set('from')} required /></label>
-        <label className="field">반납<input type="time" value={f.to} onChange={set('to')} required /></label>
+        <label className="field">출발<TimeSelect value={f.from} onChange={(v) => setF({ ...f, from: v, to: f.to <= v ? plusMinutes(v, 60) : f.to })} /></label>
+        <label className="field">반납<TimeSelect value={f.to} onChange={(v) => setF({ ...f, to: v })} /></label>
       </div>
       <fieldset className="car-pick">
         <legend>차량</legend>
@@ -245,17 +295,17 @@ function CarModal({ initial, onClose }) {
             <label key={v.id} className={`car-option${c ? ' is-taken' : ''}${f.vehicle_id === v.id ? ' is-on' : ''}`}>
               <input type="radio" name="vehicle" disabled={Boolean(c) || !valid} checked={f.vehicle_id === v.id} onChange={() => setF({ ...f, vehicle_id: v.id })} />
               <span className="grow"><b>{v.name}</b>{v.plate && <small> · {v.plate}</small>}<br />
-                <small>{c ? `이미 예약됨 · ${deptName(departments, c.dept_id) || '예약'} ${hm(a)}–${hm(b)}` : '이 시간에 쓸 수 있음'}</small>
+                <small>{c ? `이미 예약됨 · ${c.dept_text || deptName(departments, c.dept_id) || c.requester || '예약'} ${hm(a)}–${hm(b)}` : '이 시간에 쓸 수 있음'}</small>
               </span>
               <span className={`chip${c ? ' chip-plain' : ''}`}>{c ? '선택 불가' : '가능'}</span>
             </label>
           )
         })}
       </fieldset>
-      <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
+      <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} custom={f.dept_text} onCustom={(v) => setF({ ...f, dept_text: v })} />
       <div className="field-row">
-        <label className="field">운전자<input value={f.driver} onChange={set('driver')} /></label>
-        <label className="field">목적·행선지<input value={f.purpose} onChange={set('purpose')} /></label>
+        <PersonPick label="신청자" value={f.requester} onChange={(v) => setF({ ...f, requester: v })} />
+        <PersonPick label="운전자" optional value={f.driver} onChange={(v) => setF({ ...f, driver: v })} />
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
@@ -335,8 +385,9 @@ function BookingTag({ b, departments, showCar, vehicles }) {
   }
   const label = <>
     {showCar && <b>{vehicles.find((v) => v.id === b.vehicle_id)?.name}</b>}
-    <b>{deptName(departments, b.dept_id) || '예약'}</b>
+    <b>{b.dept_text || deptName(departments, b.dept_id) || '예약'}</b>
     {hm(b.span[0])} – {hm(b.span[1])}
+    {b.requester && <small>{b.requester}{b.driver && b.driver !== b.requester ? ` · 운전 ${b.driver}` : ''}</small>}
   </>
   if (!mine) return <span className={`tag ${deptTag(departments, b.dept_id)}`}>{label}</span>
   return (
@@ -411,6 +462,7 @@ export function CarsWeek() {
 /* ---------- 차량 현황 (월별) ---------- */
 export function CarsMonth() {
   const { departments, vehicles, openModal } = useData()
+  const { profile } = useAuth()
   const now = new Date()
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
   const [filter, setFilter] = useState('all')
@@ -456,11 +508,12 @@ export function CarsMonth() {
         </div>
         <p className="note">같은 차량은 시간이 겹치게 신청할 수 없습니다. 내가 신청한 예약은 "취소"로 지울 수 있습니다.</p>
       </section>
+      {can(profile, 'vehicles') && <VehicleAdmin />}
     </>
   )
 }
 
-/* ---------- 관리자: 차량 등록 ---------- */
+/* ---------- 차량 관리 권한: 차량 등록 ---------- */
 export function VehicleAdmin() {
   const { vehicles, refresh, notify } = useData()
   const [name, setName] = useState('')

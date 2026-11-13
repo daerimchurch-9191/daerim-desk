@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
-import { VehicleAdmin, useData, Modal } from './live.jsx'
+import { useData, Modal } from './live.jsx'
 
 // 관리자가 다른 사역자의 비밀번호를 새로 정해 준다 (Supabase 함수 reset-password)
 function ResetPasswordModal({ person, onClose }) {
@@ -96,7 +96,7 @@ function DeactivateModal({ person, onClose, onDone }) {
 }
 
 export function AdminPage() {
-  const { profile: me, reloadProfile } = useAuth()
+  const { profile: me } = useAuth()
   const { openModal, refresh, notify } = useData()
   const [people, setPeople] = useState(null)
   const [error, setError] = useState('')
@@ -131,22 +131,7 @@ export function AdminPage() {
       {(p.status === 'pending' || p.status === 'rejected') && <button type="button" className="btn btn-primary" onClick={() => update(p.id, { status: 'approved' })}>승인</button>}
       {p.status === 'pending' && <button type="button" className="btn" onClick={() => update(p.id, { status: 'rejected' })}>반려</button>}
       {p.status === 'approved' && p.id !== me.id && (
-        p.role === 'admin'
-          ? <button type="button" className="btn" onClick={() => update(p.id, { role: 'member' })}>관리자 해제</button>
-          : <button type="button" className="btn" onClick={() => update(p.id, { role: 'admin' })}>관리자로 지정</button>
-      )}
-      {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn" onClick={() => openModal({ render: (close) => <ResetPasswordModal person={p} onClose={close} /> })}>비밀번호 초기화</button>
-      )}
-      {p.status === 'approved' && (
-        <label className="visit-role-select">
-          <span>심방보고</span>
-          <select value={p.visit_role ?? ''} onChange={async (e) => { await update(p.id, { visit_role: e.target.value || null }); if (p.id === me.id) reloadProfile() }}>
-            <option value="">권한 없음</option>
-            <option value="writer">자기 보고만</option>
-            <option value="all">전체 열람</option>
-          </select>
-        </label>
       )}
       {p.status === 'approved' && p.id !== me.id && (
         <button type="button" className="btn btn-danger" onClick={() => openModal({ render: (close) => <DeactivateModal person={p} onClose={close} onDone={() => { load(); refresh(); notify(`${p.name} ${p.title}님 계정을 사용 중지했습니다.`) }} /> })}>사용 중지</button>
@@ -158,8 +143,9 @@ export function AdminPage() {
     <>
       <header className="title">
         <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인, 관리자 지정, 심방보고 권한, 사용 중지, 차량 등록</span>
+        <span className="muted">회원 관리 · 가입 승인, 비밀번호 초기화, 사용 중지</span>
       </header>
+      <p className="note">관리자 지정과 공지·차량·광고·심방방 권한은 <a href="#perms">권한 관리</a>에서 체크해서 줍니다.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">
         <h2 id="pending-h" className="pill">승인 대기 {pending.length}</h2>
@@ -178,7 +164,6 @@ export function AdminPage() {
           <div className="card">{inactive.map(row)}</div>
         </section>
       )}
-      <VehicleAdmin />
     </>
   )
 }

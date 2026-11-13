@@ -2,7 +2,7 @@
 // 어느 쪽에서 본문을 고쳐도 양쪽이 함께 바뀐다.
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, TimeSelect } from './live.jsx'
 
 export const SERVICES = {
   dawn: { name: '새벽기도회', time: '05:30' },
@@ -97,7 +97,7 @@ function SermonModal({ initial, onClose }) {
           <label className="field">예배 이름<input value={f.title} onChange={set('title')} placeholder={personal ? '예: 유년부 예배' : '예: 연합속회'} autoFocus /></label>
           <div className="field-row">
             <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-            <label className="field"><span>시간 <small>(선택)</small></span><input type="time" value={f.time} onChange={set('time')} /></label>
+            <label className="field"><span>시간 <small>(선택)</small></span><TimeSelect optional label="시간" value={f.time} onChange={(v) => setF({ ...f, time: v })} /></label>
           </div>
         </>
       )}
