@@ -19,6 +19,25 @@ export function useView(key) {
   return [v, (x) => { setV(x); try { sessionStorage.setItem(k, x) } catch { /* 저장 못 해도 괜찮음 */ } }]
 }
 const local = (date, time) => new Date(`${date}T${time || '00:00'}`)
+// 여러 날 일정: 이 날짜에 걸쳐 있는가 (종일 일정의 끝은 다음 날 0시, 그날은 포함하지 않는다)
+const dayOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+export const onDay = (e, d) => {
+  const s = new Date(e.starts_at), d0 = dayOf(d), d1 = addDays(d0, 1)
+  const end = e.ends_at ? new Date(e.ends_at) : s
+  return s < d1 && (end > d0 || sameDay(s, d))
+}
+// 날짜 칸에 보일 글: 첫날은 시간(또는 종일), 이어지는 날은 (2/5) 표시
+export const eventText = (e, d) => {
+  const s = new Date(e.starts_at)
+  const last = e.ends_at ? new Date(new Date(e.ends_at).getTime() - 1) : s
+  const days = Math.round((dayOf(last) - dayOf(s)) / 864e5) + 1
+  const nth = Math.round((dayOf(d) - dayOf(s)) / 864e5) + 1
+  const when = nth === 1 ? (e.all_day ? '종일' : hm(s)) : ''
+  return `${when ? when + ' ' : ''}${e.title}${days > 1 ? ` (${nth}/${days})` : ''}`
+}
+// 기간이 겹치는 일정 가져오기
+const overlapping = (q, from, to) => q.lt('starts_at', to.toISOString())
+  .or(`ends_at.gt.${from.toISOString()},and(ends_at.is.null,starts_at.gte.${from.toISOString()})`)
 const range = (a, b) => `[${a.toISOString()},${b.toISOString()})`
 const kDate = (d) => `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW_KO[d.getDay()]})`
 
@@ -151,6 +170,7 @@ function EventModal({ initial, onClose }) {
   const [f, setF] = useState({
     title: initial?.title ?? '',
     date: s ? ymd(s) : initial?.date ?? ymd(new Date()),
+    end_date: e ? ymd(initial?.all_day ? addDays(e, -1) : e) : (s ? ymd(s) : initial?.date ?? ymd(new Date())),
     start: s ? hm(s) : '10:00',
     end: e ? hm(e) : '',
     all_day: initial?.all_day ?? false,
@@ -165,12 +185,15 @@ function EventModal({ initial, onClose }) {
   async function save(ev) {
     ev.preventDefault()
     if (!f.title.trim()) return setError('일정 이름을 적어 주세요.')
-    if (!f.all_day && f.end && f.end <= f.start) return setError('끝나는 시간이 시작보다 늦어야 합니다.')
+    const multi = f.end_date > f.date
+    if (f.end_date < f.date) return setError('끝나는 날짜가 시작 날짜보다 앞설 수 없습니다.')
+    if (!f.all_day && multi && !f.end) return setError('여러 날 일정은 끝나는 시간을 골라 주세요.')
+    if (!f.all_day && !multi && f.end && f.end <= f.start) return setError('끝나는 시간이 시작보다 늦어야 합니다.')
     const row = {
       title: f.title.trim(),
       all_day: f.all_day,
       starts_at: local(f.date, f.all_day ? '00:00' : f.start).toISOString(),
-      ends_at: f.all_day ? addDays(local(f.date, '00:00'), 1).toISOString() : f.end ? local(f.date, f.end).toISOString() : null,
+      ends_at: f.all_day ? addDays(local(f.end_date, '00:00'), 1).toISOString() : f.end ? local(f.end_date, f.end).toISOString() : null,
       dept_id: f.dept_id,
       location: f.location.trim() || null,
       note: f.note.trim() || null,
@@ -203,11 +226,14 @@ function EventModal({ initial, onClose }) {
       ) : <button type="button" className="btn btn-primary" onClick={onClose}>닫기</button>}>
       <fieldset className="plain" disabled={!canEdit}>
         <label className="field">일정 이름<input value={f.title} onChange={set('title')} placeholder="예: 유년부 야외활동" autoFocus={canEdit} /></label>
-        <div className={`field-row${f.all_day ? '' : ' three'}`}>
-          <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-          {!f.all_day && <label className="field">시작<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end && f.end <= v ? '' : f.end })} /></label>}
-          {!f.all_day && <label className="field"><span>끝 <small>(선택)</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>}
+        <div className="field-row">
+          <label className="field">시작 날짜<input type="date" value={f.date} onChange={(ev) => setF({ ...f, date: ev.target.value, end_date: f.end_date < ev.target.value || f.end_date === f.date ? ev.target.value : f.end_date })} required /></label>
+          <label className="field">끝 날짜<input type="date" value={f.end_date} min={f.date} onChange={set('end_date')} required /></label>
         </div>
+        {!f.all_day && <div className="field-row">
+          <label className="field">시작 시간<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end_date === f.date && f.end && f.end <= v ? '' : f.end })} /></label>
+          <label className="field"><span>끝 시간 <small>{f.end_date > f.date ? '' : '(선택)'}</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>
+        </div>}
         <label className="check-line"><input type="checkbox" checked={f.all_day} onChange={(ev) => setF({ ...f, all_day: ev.target.checked })} /> 종일</label>
         {!f.all_day && <div className="quick-row" aria-label="끝 시간 더하기">
           <span className="muted small">끝 시간</span>
@@ -352,7 +378,7 @@ export function WeekCalendar({ inPage }) {
 
   useEffect(() => {
     setEvents(null)
-    supabase.from('events').select('*').gte('starts_at', week0.toISOString()).lt('starts_at', addDays(week0, 7).toISOString()).order('starts_at')
+    overlapping(supabase.from('events').select('*'), week0, addDays(week0, 7)).order('starts_at')
       .then(({ data }) => setEvents(data ?? []))
   }, [week0, version])
 
@@ -371,14 +397,14 @@ export function WeekCalendar({ inPage }) {
       <div className="card scroll-x">
         <div className="week">
           {days.map((d) => {
-            const list = (events ?? []).filter((e) => sameDay(new Date(e.starts_at), d))
+            const list = (events ?? []).filter((e) => onDay(e, d))
             return (
               <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
                 <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
                 {events === null && <span className="skeleton" />}
                 {list.map((e) => (
                   <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                    {e.all_day ? '종일' : hm(new Date(e.starts_at))} {e.title}
+                    {eventText(e, d)}
                     {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                   </button>
                 ))}
@@ -602,7 +628,7 @@ export function CalendarMonth() {
 
   useEffect(() => {
     setEvents(null)
-    supabase.from('events').select('*').gte('starts_at', month.toISOString()).lt('starts_at', next.toISOString()).order('starts_at')
+    overlapping(supabase.from('events').select('*'), month, next).order('starts_at')
       .then(({ data }) => setEvents(data ?? []))
   }, [month.getTime(), version])
 
@@ -651,14 +677,14 @@ export function CalendarMonth() {
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => {
               if (!d) return <div key={i} className="month-cell is-empty" />
-              const list = shown.filter((e) => sameDay(new Date(e.starts_at), d))
+              const list = shown.filter((e) => onDay(e, d))
               return (
                 <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}`}>
                   <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {events === null && <span className="skeleton" />}
                   {list.map((e) => (
                     <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                      {e.all_day ? '종일' : hm(new Date(e.starts_at))} {e.title}
+                      {eventText(e, d)}
                       {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                     </button>
                   ))}
