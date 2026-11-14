@@ -549,3 +549,5 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .sync-issues-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
 .sync-issues ul { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sync-issues li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; font-size: 13px; background: #FFF8EC; border-radius: 8px; padding: 8px 10px; }
+.check-line { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; margin: -2px 0 10px; cursor: pointer; }
+.check-line input { width: 18px; height: 18px; accent-color: var(--green, #0F6B54); }

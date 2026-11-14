@@ -1,4 +1,6 @@
-// 구글 캘린더 "대림교회 배우는 숲"의 설교 일정 ↔ 대시보드 설교표(sermons) 양방향 연동.
+// 구글 캘린더 "대림교회 배우는 숲" ↔ 대시보드 양방향 연동.
+//  - "새벽 : 이름", "수요 : 이름", "금요 : 이름" 일정 → 설교표(sermons)
+//  - 그 밖의 일정 → 교회 캘린더(events, 교회 전체). 대시보드의 "교회 전체" 일정만 캘린더로 보낸다.
 // 캘린더 계정의 Apps Script가 일정이 바뀔 때마다, 그리고 10분마다 범위 안의 일정을 보낸다:
 //   { from, to, events: [{ key, kind, date, time, who, tag }] }   (제목이 "새벽 : 이름 직분" 모양인 것만)
 // 마지막으로 맞춘 값(calendar_sync_state)과 비교해서
@@ -22,6 +24,8 @@ const loose = (s: string | null | undefined) => {
   return t.replace(new RegExp(`\\s+(${TITLES})$`), '').replace(/\s+/g, '')
 }
 type Ev = { key: string; kind: string; date: string; time: string; who: string; tag?: string | null }
+type Ch = { key: string; title: string; allDay: boolean; start: string; end: string; location?: string; note?: string; tag?: string | null }
+type Row = { id: number; title: string; starts_at: string; ends_at: string | null; all_day: boolean; dept_id: string; location: string | null; note: string | null }
 type Sermon = { id: number; service: string; title: string | null; date: string; time: string | null; preacher_id: string | null; preacher_name: string | null; passage: string | null; is_public: boolean }
 
 Deno.serve(async (req) => {
@@ -30,11 +34,11 @@ Deno.serve(async (req) => {
   const given = req.headers.get('x-sync-token') ?? ''
   if (!token || !given || !same(given, token)) return json({ error: '캘린더 연동 열쇠가 맞지 않습니다.' }, 401)
 
-  let body: { from: string; to: string; today: string; events: Ev[] }
+  let body: { from: string; to: string; today: string; events: Ev[]; church?: Ch[] }
   try { body = await req.json() } catch { return json({ error: '요청 형식이 잘못되었습니다.' }, 400) }
   const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s)
   if (!isDate(body.from) || !isDate(body.to) || !isDate(body.today)) return json({ error: '날짜 범위가 없습니다.' }, 400)
-  const events = (body.events ?? []).filter((e) => e.key && isDate(e.date) && /^\d{2}:\d{2}$/.test(e.time) && e.kind).slice(0, 3000)
+  const events = (body.events ?? []).filter((e) => e.key && isDate(e.date) && /^\d{2}:\d{2}$/.test(e.time) && KIND[e.kind]).slice(0, 3000)
 
   const [{ data: states }, { data: sermonRows }, { data: people }] = await Promise.all([
     db.from('calendar_sync_state').select('*'),
@@ -90,7 +94,8 @@ Deno.serve(async (req) => {
   }
 
   // 안전장치: 설교 일정을 하나도 못 받았으면 (다른 계정·다른 캘린더에 설치한 경우) 아무것도 만들거나 지우지 않는다
-  if (!events.length) {
+  const church = (body.church ?? []).filter((c) => c.key && c.title && !isNaN(Date.parse(c.start)) && !isNaN(Date.parse(c.end))).slice(0, 3000)
+  if (!events.length && !church.length) {
     await db.from('calendar_sync_runs').insert({ issues: ['캘린더에서 "예배 : 설교자" 일정을 하나도 찾지 못했습니다. 설교표 캘린더가 있는 계정에 설치했는지 확인하세요.'] })
     return json({ updates: [], creates: [], deletes: [], to_dashboard: 0, issues: ['no events'] })
   }
@@ -136,7 +141,7 @@ Deno.serve(async (req) => {
   }
 
   // 캘린더에서 지운 일정 → 대시보드 설교도 지운다 (범위 안의 것만)
-  for (const st of states ?? []) {
+  for (const st of events.length ? (states ?? []) : []) { // 설교 일정을 하나도 못 받았으면 지우지 않는다
     if (seen.has(st.event_key) || st.date < body.from || st.date > body.to) continue
     dropState.push(st.event_key)
     const s = st.sermon_id ? sermons.get(st.sermon_id) : null
@@ -148,14 +153,86 @@ Deno.serve(async (req) => {
   }
 
   // 대시보드에만 있는 오늘 이후 설교 → 캘린더에 새 일정
-  for (const s of sermons.values()) {
+  for (const s of events.length ? sermons.values() : []) {
     if (linked.has(s.id) || s.date < body.today || !s.is_public || !loose(whoOf(s))) continue
     creates.push({ sermon_id: s.id, ...toCal(s) })
   }
 
+  // ---------- 교회 일정 (events) ----------
+  const cUpdates: { key: string; title: string; allDay: boolean; start: string; end: string; location: string; note: string }[] = []
+  const cCreates: { event_id: number; title: string; allDay: boolean; start: string; end: string; location: string; note: string }[] = []
+  const cDeletes: string[] = []
+  let cToDash = 0
+  if (church.length) {
+    const fromIso = new Date(body.from + 'T00:00:00+09:00').toISOString()
+    const toIso = new Date(body.to + 'T23:59:59+09:00').toISOString()
+    const [{ data: cStates }, { data: rowsData }] = await Promise.all([
+      db.from('calendar_event_state').select('*'),
+      db.from('events').select('id, title, starts_at, ends_at, all_day, dept_id, location, note').gte('starts_at', fromIso).lte('starts_at', toIso),
+    ])
+    const rows = new Map(((rowsData ?? []) as Row[]).map((r) => [r.id, r]))
+    const cState = new Map((cStates ?? []).map((x) => [x.event_key, x]))
+    const cLinked = new Set<number>((cStates ?? []).map((x) => x.event_id).filter(Boolean))
+    const ms = (t: string) => String(Date.parse(t))
+    const rowEnd = (r: Row) => r.ends_at ?? new Date(Date.parse(r.starts_at) + 3600000).toISOString()
+    const chVal = (c: Ch) => `${c.title.trim()}|${c.allDay ? 1 : 0}|${ms(c.start)}|${ms(c.end)}|${(c.location ?? '').trim()}|${(c.note ?? '').trim()}`
+    const rowVal = (r: Row) => `${r.title.trim()}|${r.all_day ? 1 : 0}|${ms(r.starts_at)}|${ms(rowEnd(r))}|${(r.location ?? '').trim()}|${(r.note ?? '').trim()}`
+    const kstDate = (t: string) => new Date(Date.parse(t) + 9 * 3600000).toISOString().slice(0, 10)
+    const toG = (r: Row) => ({ title: r.title, allDay: r.all_day, start: new Date(r.starts_at).toISOString(), end: new Date(rowEnd(r)).toISOString(), location: r.location ?? '', note: r.note ?? '' })
+    const cNew: { event_key: string; event_id: number; date: string; val: string; synced_at: string }[] = []
+    const cDrop: string[] = []
+    const cKeep = (c: Ch, r: Row, val: string) => { cNew.push({ event_key: c.key, event_id: r.id, date: kstDate(c.start), val, synced_at: now }); cLinked.add(r.id) }
+    const rowFields = (c: Ch) => ({ title: c.title.trim(), starts_at: new Date(c.start).toISOString(), ends_at: new Date(c.end).toISOString(), all_day: !!c.allDay, location: c.location?.trim() || null, note: c.note?.trim() || null })
+    async function writeRow(c: Ch, r: Row | null): Promise<Row | null> {
+      const res = r
+        ? await db.from('events').update(rowFields(c)).eq('id', r.id).select().single()
+        : await db.from('events').insert({ ...rowFields(c), dept_id: 'all', created_by: null }).select().single()
+      if (res.error) { issues.push(`${kstDate(c.start)} ${c.title}: ${res.error.message}`); return null }
+      cToDash++; const n = res.data as Row; rows.set(n.id, n); return n
+    }
+    const cSeen = new Set<string>()
+    for (const c of church) {
+      cSeen.add(c.key)
+      const st = cState.get(c.key)
+      const v = chVal(c)
+      if (!st) {
+        let r = c.tag ? rows.get(Number(c.tag)) ?? null : null
+        if (!r) r = [...rows.values()].find((x) => x.dept_id === 'all' && !cLinked.has(x.id) && x.title.trim() === c.title.trim() && ms(x.starts_at) === ms(c.start)) ?? null
+        if (r && rowVal(r) === v) cKeep(c, r, v)
+        else { const n = await writeRow(c, r); if (n) cKeep(c, n, rowVal(n)) }
+        continue
+      }
+      const r = st.event_id ? rows.get(st.event_id) ?? null : null
+      if (!r) {
+        const { data: still } = await db.from('events').select('id').eq('id', st.event_id).maybeSingle()
+        if (still) continue
+        if (v === st.val) { cDeletes.push(c.key); cDrop.push(c.key) }
+        else { const n = await writeRow(c, null); if (n) cKeep(c, n, rowVal(n)) }
+        continue
+      }
+      if (r.dept_id !== 'all' && v === st.val) { cDeletes.push(c.key); cDrop.push(c.key); continue } // 부서 일정으로 바꿈 → 캘린더에서 뺀다
+      if (v !== st.val) { const n = await writeRow(c, r); if (n) cKeep(c, n, rowVal(n)) }
+      else if (rowVal(r) !== st.val) { cUpdates.push({ key: c.key, ...toG(r) }); cKeep(c, r, rowVal(r)) }
+    }
+    for (const st of cStates ?? []) {
+      if (cSeen.has(st.event_key) || st.date < body.from || st.date > body.to) continue
+      cDrop.push(st.event_key)
+      const r = st.event_id ? rows.get(st.event_id) : null
+      if (!r) continue
+      if (rowVal(r) !== st.val && r.dept_id === 'all') { cCreates.push({ event_id: r.id, ...toG(r) }); cLinked.add(r.id); continue }
+      await db.from('events').delete().eq('id', r.id); cToDash++
+    }
+    for (const r of rows.values()) {
+      if (cLinked.has(r.id) || r.dept_id !== 'all' || kstDate(r.starts_at) < body.today) continue
+      cCreates.push({ event_id: r.id, ...toG(r) })
+    }
+    if (cDrop.length) await db.from('calendar_event_state').delete().in('event_key', cDrop)
+    if (cNew.length) await db.from('calendar_event_state').upsert(cNew, { onConflict: 'event_key' })
+  }
+
   if (dropState.length) await db.from('calendar_sync_state').delete().in('event_key', dropState)
   if (newState.length) await db.from('calendar_sync_state').upsert(newState, { onConflict: 'event_key' })
-  await db.from('calendar_sync_runs').insert({ to_dashboard: toDash, to_calendar: updates.length + creates.length + deletes.length, issues })
+  await db.from('calendar_sync_runs').insert({ to_dashboard: toDash + cToDash, to_calendar: updates.length + creates.length + deletes.length + cUpdates.length + cCreates.length + cDeletes.length, issues })
   await db.from('calendar_sync_runs').delete().lt('at', new Date(Date.now() - 14 * 86400000).toISOString())
-  return json({ updates, creates, deletes, to_dashboard: toDash, issues })
+  return json({ updates, creates, deletes, church: { updates: cUpdates, creates: cCreates, deletes: cDeletes }, to_dashboard: toDash + cToDash, issues })
 })

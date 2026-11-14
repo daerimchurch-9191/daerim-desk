@@ -153,6 +153,7 @@ function EventModal({ initial, onClose }) {
     date: s ? ymd(s) : initial?.date ?? ymd(new Date()),
     start: s ? hm(s) : '10:00',
     end: e ? hm(e) : '',
+    all_day: initial?.all_day ?? false,
     dept_id: initial?.dept_id ?? 'all',
     location: initial?.location ?? '',
     note: initial?.note ?? '',
@@ -164,11 +165,12 @@ function EventModal({ initial, onClose }) {
   async function save(ev) {
     ev.preventDefault()
     if (!f.title.trim()) return setError('일정 이름을 적어 주세요.')
-    if (f.end && f.end <= f.start) return setError('끝나는 시간이 시작보다 늦어야 합니다.')
+    if (!f.all_day && f.end && f.end <= f.start) return setError('끝나는 시간이 시작보다 늦어야 합니다.')
     const row = {
       title: f.title.trim(),
-      starts_at: local(f.date, f.start).toISOString(),
-      ends_at: f.end ? local(f.date, f.end).toISOString() : null,
+      all_day: f.all_day,
+      starts_at: local(f.date, f.all_day ? '00:00' : f.start).toISOString(),
+      ends_at: f.all_day ? addDays(local(f.date, '00:00'), 1).toISOString() : f.end ? local(f.date, f.end).toISOString() : null,
       dept_id: f.dept_id,
       location: f.location.trim() || null,
       note: f.note.trim() || null,
@@ -201,19 +203,20 @@ function EventModal({ initial, onClose }) {
       ) : <button type="button" className="btn btn-primary" onClick={onClose}>닫기</button>}>
       <fieldset className="plain" disabled={!canEdit}>
         <label className="field">일정 이름<input value={f.title} onChange={set('title')} placeholder="예: 유년부 야외활동" autoFocus={canEdit} /></label>
-        <div className="field-row three">
+        <div className={`field-row${f.all_day ? '' : ' three'}`}>
           <label className="field">날짜<input type="date" value={f.date} onChange={set('date')} required /></label>
-          <label className="field">시작<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end && f.end <= v ? '' : f.end })} /></label>
-          <label className="field"><span>끝 <small>(선택)</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>
+          {!f.all_day && <label className="field">시작<TimeSelect value={f.start} onChange={(v) => setF({ ...f, start: v, end: f.end && f.end <= v ? '' : f.end })} /></label>}
+          {!f.all_day && <label className="field"><span>끝 <small>(선택)</small></span><TimeSelect optional value={f.end} onChange={(v) => setF({ ...f, end: v })} /></label>}
         </div>
-        <div className="quick-row" aria-label="끝 시간 더하기">
+        <label className="check-line"><input type="checkbox" checked={f.all_day} onChange={(ev) => setF({ ...f, all_day: ev.target.checked })} /> 종일</label>
+        {!f.all_day && <div className="quick-row" aria-label="끝 시간 더하기">
           <span className="muted small">끝 시간</span>
           {[[30, '+30분'], [60, '+1시간']].map(([m, t]) => (
             <button key={m} type="button" className="chip-btn" onClick={() => setF({ ...f, end: plusMinutes(f.end || f.start, m) })}>{t}</button>
           ))}
           {f.end && <span className="small">→ {timeLabel(f.end)} 끝</span>}
           {f.end && <button type="button" className="btn-link small" onClick={() => setF({ ...f, end: '' })}>지우기</button>}
-        </div>
+        </div>}
         <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
         <label className="field"><span>장소 <small>(선택)</small></span><input value={f.location} onChange={set('location')} /></label>
         <label className="field"><span>메모 <small>(선택)</small></span><input value={f.note} onChange={set('note')} /></label>
@@ -375,7 +378,7 @@ export function WeekCalendar({ inPage }) {
                 {events === null && <span className="skeleton" />}
                 {list.map((e) => (
                   <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                    {hm(new Date(e.starts_at))} {e.title}
+                    {e.all_day ? '종일' : hm(new Date(e.starts_at))} {e.title}
                     {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                   </button>
                 ))}
@@ -655,7 +658,7 @@ export function CalendarMonth() {
                   {events === null && <span className="skeleton" />}
                   {list.map((e) => (
                     <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                      {hm(new Date(e.starts_at))} {e.title}
+                      {e.all_day ? '종일' : hm(new Date(e.starts_at))} {e.title}
                       {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                     </button>
                   ))}

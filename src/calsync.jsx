@@ -5,8 +5,9 @@ import { supabase, toKorean } from './auth.jsx'
 import { SUPABASE_URL } from './supabase-config.js'
 import { useData } from './live.jsx'
 
-export const calendarScript = (token) => `// 대림교회 사역 데스크 ↔ 구글 캘린더 설교 일정 연동
-// 제목이 "새벽 : 이름 목사", "수요 : …", "금요 : …", "연속 : …" 모양인 일정만 맞춥니다.
+export const calendarScript = (token) => `// 대림교회 사역 데스크 ↔ 구글 캘린더 연동
+// - 제목이 "새벽 : 이름 목사", "수요 : …", "금요 : …" 인 일정 → 대시보드 설교표
+// - 그 밖의 일정 → 대시보드 교회 캘린더(교회 전체)
 // 캘린더를 고치면 바로 대시보드에, 대시보드에서 고친 것은 10분 안에 캘린더에 반영됩니다.
 // 처음 한 번: 위쪽 함수 고르는 칸에서 "설치"를 고르고 ▶실행 → 권한 허용.
 const SYNC_URL = '${SUPABASE_URL}/functions/v1/calendar-sermon-sync';
@@ -22,6 +23,7 @@ function cal_() {
 function ymd_(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function hm_(d) { return Utilities.formatDate(d, TZ, 'HH:mm'); }
 function at_(date, time) { return new Date(date + 'T' + time + ':00+09:00'); }
+function day_(iso) { return at_(ymd_(new Date(iso)), '00:00'); }
 
 function syncSermons() {
   const lock = LockService.getScriptLock();
@@ -30,23 +32,28 @@ function syncSermons() {
     const cal = cal_();
     const today = new Date();
     const from = new Date(today.getTime() - 60 * 864e5), to = new Date(today.getTime() + 365 * 864e5);
-    const map = {}, events = [];
+    const map = {}, events = [], church = [];
     cal.getEvents(from, to).forEach(function (e) {
-      if (e.isAllDayEvent()) return;
-      const m = e.getTitle().match(/^\\s*([가-힣]{1,6})\\s*:\\s*(.*)$/);
-      if (!m) return;
-      const s = e.getStartTime();
+      const s = e.isAllDayEvent() ? at_(ymd_(e.getAllDayStartDate()), '00:00') : e.getStartTime();
       const key = e.isRecurringEvent() ? e.getId() + '|' + ymd_(s) : e.getId();
       map[key] = e;
-      events.push({ key: key, kind: m[1], date: ymd_(s), time: hm_(s), who: m[2].trim(), tag: e.getTag('daerim_sermon') || null });
+      const m = e.isAllDayEvent() ? null : e.getTitle().match(/^\\s*(새벽|수요|금요)\\s*:\\s*(.*)$/);
+      if (m) {
+        events.push({ key: key, kind: m[1], date: ymd_(s), time: hm_(s), who: m[2].trim(), tag: e.getTag('daerim_sermon') || null });
+      } else {
+        const end = e.isAllDayEvent() ? at_(ymd_(e.getAllDayEndDate()), '00:00') : e.getEndTime();
+        church.push({ key: key, title: e.getTitle(), allDay: e.isAllDayEvent(), start: s.toISOString(), end: end.toISOString(),
+          location: e.getLocation() || '', note: e.getDescription() || '', tag: e.getTag('daerim_event') || null });
+      }
     });
     const res = UrlFetchApp.fetch(SYNC_URL, {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'x-sync-token': TOKEN },
-      payload: JSON.stringify({ from: ymd_(from), to: ymd_(to), today: ymd_(today), events: events }),
+      payload: JSON.stringify({ from: ymd_(from), to: ymd_(to), today: ymd_(today), events: events, church: church }),
     });
     if (res.getResponseCode() !== 200) throw new Error(res.getContentText());
     const out = JSON.parse(res.getContentText());
+    // 설교
     (out.updates || []).forEach(function (u) {
       const e = map[u.key]; if (!e) return;
       if (e.getTitle() !== u.title) e.setTitle(u.title);
@@ -63,6 +70,24 @@ function syncSermons() {
       const e = map[k]; if (!e) return;
       if (e.isRecurringEvent()) e.setTitle(e.getTitle().split(':')[0].trim() + ' : '); // 반복 일정은 이름만 비운다
       else e.deleteEvent();
+    });
+    // 교회 일정
+    const ch = out.church || {};
+    (ch.updates || []).forEach(function (u) {
+      const e = map[u.key]; if (!e) return;
+      if (e.getTitle() !== u.title) e.setTitle(u.title);
+      if (u.allDay) e.setAllDayDates(day_(u.start), day_(u.end));
+      else e.setTime(new Date(u.start), new Date(u.end));
+      if ((e.getLocation() || '') !== u.location) e.setLocation(u.location);
+      if ((e.getDescription() || '') !== u.note) e.setDescription(u.note);
+    });
+    (ch.creates || []).forEach(function (c) {
+      const opt = { location: c.location || '', description: c.note || '' };
+      const e = c.allDay ? cal.createAllDayEvent(c.title, day_(c.start), day_(c.end), opt) : cal.createEvent(c.title, new Date(c.start), new Date(c.end), opt);
+      e.setTag('daerim_event', String(c.event_id));
+    });
+    (ch.deletes || []).forEach(function (k) {
+      const e = map[k]; if (e && !e.isRecurringEvent()) e.deleteEvent(); // 반복 일정은 캘린더에서 직접 지운다
     });
   } finally {
     lock.releaseLock();
@@ -99,7 +124,7 @@ export function CalendarSyncAdmin() {
 
   return (
     <section className="block" aria-labelledby="cal-h">
-      <h2 id="cal-h" className="pill">설교표 구글 캘린더 연동</h2>
+      <h2 id="cal-h" className="pill">구글 캘린더 연동 (설교표·교회 일정)</h2>
       <div className="card backup-card">
         <p className="backup-status">
           {last === undefined ? '확인하는 중…'
@@ -121,7 +146,7 @@ export function CalendarSyncAdmin() {
             <li>편집기에 있던 내용을 모두 지우고 붙여 넣은 뒤 저장(💾)합니다.</li>
             <li>위쪽 함수 고르는 칸에서 <b>설치</b>를 고르고 <b>▶ 실행</b>을 누릅니다. 권한을 묻는 창이 뜨면 계정을 고르고 "고급 → (안전하지 않음)으로 이동 → 허용"을 누릅니다.</li>
           </ol>
-          <p className="muted small">일정 제목이 "새벽 : 이름 목사"처럼 "예배 : 설교자" 모양인 것만 맞춥니다(새벽·수요·금요, 그 밖의 말은 특별 예배로). 캘린더를 고치면 바로, 대시보드에서 고친 것은 10분 안에 캘린더에 반영됩니다. 같은 일정을 양쪽에서 동시에 고치면 캘린더 쪽이 남습니다. 새벽은 새벽 담당표 시트와도 이어져 있어 세 곳이 함께 맞춰집니다.</p>
+          <p className="muted small">제목이 "새벽 : 이름 목사", "수요 : …", "금요 : …"인 일정은 설교표로, 그 밖의 일정은 교회 캘린더(교회 전체)로 들어갑니다. 대시보드에서는 "교회 전체"로 등록한 일정만 구글 캘린더로 갑니다. 캘린더를 고치면 바로, 대시보드에서 고친 것은 10분 안에 캘린더에 반영됩니다. 같은 일정을 양쪽에서 동시에 고치면 캘린더 쪽이 남습니다. 새벽은 새벽 담당표 시트와도 이어져 있어 세 곳이 함께 맞춰집니다.</p>
         </details>
         <div className="btn-row">
           <button type="button" className="btn btn-primary" disabled={busy} onClick={copy}>연동 코드 복사</button>
