@@ -1,4 +1,4 @@
-// 관리자 메뉴 (#admin, #admin/perms, #admin/sheet, #admin/backup): 관리자만
+// 관리자 메뉴 (#admin 회원 관리, #admin/perms 권한 관리, #admin/etc 기타: 새벽 담당표 연동·자동 백업): 관리자만
 import { useEffect, useState } from 'react'
 import { useAuth } from './auth.jsx'
 import { AdminPage } from './AdminPage.jsx'
@@ -9,10 +9,14 @@ import { BackupAdmin } from './backup.jsx'
 const TABS = [
   { id: '', name: '회원 관리' },
   { id: 'perms', name: '권한 관리' },
-  { id: 'sheet', name: '새벽 담당표 연동' },
-  { id: 'backup', name: '자동 백업' },
+  { id: 'etc', name: '기타' },
 ]
-const readTab = () => { if (location.hash === '#perms') return 'perms'; const t = location.hash.replace(/^#admin\/?/, ''); return TABS.some((x) => x.id === t) ? t : '' }
+const readTab = () => {
+  if (location.hash === '#perms') return 'perms'
+  const t = location.hash.replace(/^#admin\/?/, '')
+  if (t === 'sheet' || t === 'backup') return 'etc'
+  return TABS.some((x) => x.id === t) ? t : ''
+}
 
 export function AdminHub() {
   const { profile } = useAuth()
@@ -35,7 +39,7 @@ export function AdminHub() {
           <a key={t.id} href={t.id ? `#admin/${t.id}` : '#admin'} className={`tab${tab === t.id ? ' is-on' : ''}`} aria-current={tab === t.id ? 'page' : undefined}>{t.name}</a>
         ))}
       </nav>
-      {tab === 'perms' ? <PermissionsPage /> : tab === 'sheet' ? <SheetSyncAdmin /> : tab === 'backup' ? <BackupAdmin /> : <AdminPage />}
+      {tab === 'perms' ? <PermissionsPage /> : tab === 'etc' ? <><SheetSyncAdmin /><BackupAdmin /></> : <AdminPage />}
     </>
   )
 }

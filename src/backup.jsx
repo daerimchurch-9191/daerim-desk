@@ -90,12 +90,15 @@ export function BackupAdmin() {
               : <><b>마지막 백업</b> {new Date(last.at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })} · {Math.round(last.bytes / 1024)}KB
                 {ago >= 9 && <span className="chip chip-warn">{ago}일째 백업이 없습니다</span>}</>}
         </p>
-        <ol className="steps small">
-          <li>"백업 프로그램 받기"로 <b>대시보드백업.bat</b>을 내려받습니다.</li>
-          <li>교회 컴퓨터에서 이 파일을 백업을 모아 둘 <b>나스 폴더</b>에 넣습니다. (파일 탐색기 주소창에 \\192.168.1.2 를 입력하면 나스 폴더가 열립니다)</li>
-          <li>나스 폴더에 넣은 파일을 <b>두 번 클릭</b>합니다. 바로 한 번 백업하고, 그 뒤로는 매주 토요일 낮 12시에 그 폴더로 자동 백업합니다.</li>
-        </ol>
-        <p className="muted small">백업 파일에는 심방보고를 포함한 모든 기록이 들어 있습니다. 나스 폴더는 관리자만 열 수 있게 해 주세요.  백업 파일은 지우지 않고 모두 보관합니다. 비밀번호는 백업되지 않습니다.</p>
+        <details className="howto">
+          <summary>설치 방법</summary>
+          <ol className="steps small">
+            <li>"백업 프로그램 받기"로 <b>대시보드백업.bat</b>을 내려받습니다.</li>
+            <li>교회 컴퓨터에서 이 파일을 백업을 모아 둘 <b>나스 폴더</b>에 넣습니다. (파일 탐색기 주소창에 \\192.168.1.2 를 입력하면 나스 폴더가 열립니다)</li>
+            <li>나스 폴더에 넣은 파일을 <b>두 번 클릭</b>합니다. 바로 한 번 백업하고, 그 뒤로는 매주 토요일 낮 12시에 그 폴더로 자동 백업합니다.</li>
+          </ol>
+          <p className="muted small">백업 파일에는 심방보고를 포함한 모든 기록이 들어 있습니다. 나스 폴더는 관리자만 열 수 있게 해 주세요.  백업 파일은 지우지 않고 모두 보관합니다. 비밀번호는 백업되지 않습니다.</p>
+        </details>
         <div className="btn-row">
           <button type="button" className="btn btn-primary" disabled={busy} onClick={download}>백업 프로그램 받기</button>
           <button type="button" className="btn" disabled={busy} onClick={rotate}>열쇠 바꾸기</button>

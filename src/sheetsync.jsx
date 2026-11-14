@@ -112,13 +112,16 @@ export function SheetSyncAdmin() {
               : <><b>마지막 확인</b> {new Date(last.at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}
                 {mins > 60 && <span className="chip chip-warn">1시간 넘게 연락이 없습니다</span>}</>}
         </p>
-        <ol className="steps small">
-          <li>"연동 코드 복사"를 누릅니다.</li>
-          <li>구글 시트 "새벽 기도 담당표"를 열고 메뉴 <b>확장 프로그램 → Apps Script</b>로 들어갑니다. (시트 편집 권한이 있는 계정이어야 합니다)</li>
-          <li>편집기에 있던 내용을 모두 지우고 붙여 넣은 뒤 저장(💾)합니다.</li>
-          <li>위쪽 함수 고르는 칸에서 <b>설치</b>를 고르고 <b>▶ 실행</b>을 누릅니다. 권한을 묻는 창이 뜨면 계정을 고르고 "고급 → (안전하지 않음)으로 이동 → 허용"을 누릅니다.</li>
-        </ol>
-        <p className="muted small">시트를 고치면 바로 대시보드에, 대시보드에서 고친 새벽 설교는 10분 안에 시트에 반영됩니다. 같은 날을 양쪽에서 동시에 고치면 시트 쪽이 남습니다. 새 달은 시트에 같은 모양의 탭("○○년 ○월 새벽 기도 담당표" 제목, 주일~토 칸)을 만들면 저절로 연결됩니다.</p>
+        <details className="howto">
+          <summary>설치 방법</summary>
+          <ol className="steps small">
+            <li>"연동 코드 복사"를 누릅니다.</li>
+            <li>구글 시트 "새벽 기도 담당표"를 열고 메뉴 <b>확장 프로그램 → Apps Script</b>로 들어갑니다. (시트 편집 권한이 있는 계정이어야 합니다)</li>
+            <li>편집기에 있던 내용을 모두 지우고 붙여 넣은 뒤 저장(💾)합니다.</li>
+            <li>위쪽 함수 고르는 칸에서 <b>설치</b>를 고르고 <b>▶ 실행</b>을 누릅니다. 권한을 묻는 창이 뜨면 계정을 고르고 "고급 → (안전하지 않음)으로 이동 → 허용"을 누릅니다.</li>
+          </ol>
+          <p className="muted small">시트를 고치면 바로 대시보드에, 대시보드에서 고친 새벽 설교는 10분 안에 시트에 반영됩니다. 같은 날을 양쪽에서 동시에 고치면 시트 쪽이 남습니다. 새 달은 시트에 같은 모양의 탭("○○년 ○월 새벽 기도 담당표" 제목, 주일~토 칸)을 만들면 저절로 연결됩니다.</p>
+        </details>
         <div className="btn-row">
           <button type="button" className="btn btn-primary" disabled={busy} onClick={copy}>연동 코드 복사</button>
         </div>

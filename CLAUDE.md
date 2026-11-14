@@ -24,7 +24,7 @@
 | 주보 광고(주일별 모아 한 번에 복사) | `#ads` | `src/ads.jsx` |
 | 심방보고(교구별 채팅방, 검색, 대상별 보기) | `#visits` | `src/visits.jsx` |
 | 공지(받는 범위: 전체/교구/교육부, 카톡 공유, 휴대폰 알림) | `#notices` | `src/notices.jsx`, `src/push.js` |
-| 관리자 메뉴: 회원 관리 / 권한 관리 / 새벽 담당표 연동 / 자동 백업 | `#admin`, `#admin/perms`, `#admin/sheet`, `#admin/backup` | `src/adminhub.jsx`, `src/AdminPage.jsx`, `src/perms.jsx`, `src/sheetsync.jsx`, `src/backup.jsx` |
+| 관리자 메뉴: 회원 관리 / 권한 관리 / 기타(새벽 담당표 연동·자동 백업) | `#admin`, `#admin/perms`, `#admin/etc` | `src/adminhub.jsx`, `src/AdminPage.jsx`, `src/perms.jsx`, `src/sheetsync.jsx`, `src/backup.jsx` |
 | 톱니 메뉴: 앱·알림 설정, 비밀번호 변경, 로그아웃 (+관리자: 관리자 메뉴) | — | `src/App.jsx`, `src/PushSettings.jsx` |
 
 데이터베이스 표·권한 규칙·서버 함수 설명은 `supabase/README.md`. 서버 함수 코드는 `supabase/functions/` (배포본과 같은 내용).
