@@ -89,6 +89,12 @@ Deno.serve(async (req) => {
     const n = res.data as Sermon; sermons.set(n.id, n); return n
   }
 
+  // 안전장치: 설교 일정을 하나도 못 받았으면 (다른 계정·다른 캘린더에 설치한 경우) 아무것도 만들거나 지우지 않는다
+  if (!events.length) {
+    await db.from('calendar_sync_runs').insert({ issues: ['캘린더에서 "예배 : 설교자" 일정을 하나도 찾지 못했습니다. 설교표 캘린더가 있는 계정에 설치했는지 확인하세요.'] })
+    return json({ updates: [], creates: [], deletes: [], to_dashboard: 0, issues: ['no events'] })
+  }
+
   const seen = new Set<string>()
   for (const e of events) {
     seen.add(e.key)

@@ -14,7 +14,11 @@ const TOKEN = '${token}';
 const CAL_NAME = '대림교회 배우는 숲';
 const TZ = 'Asia/Seoul';
 
-function cal_() { return CalendarApp.getCalendarsByName(CAL_NAME)[0] || CalendarApp.getDefaultCalendar(); }
+function cal_() {
+  const c = CalendarApp.getCalendarsByName(CAL_NAME)[0];
+  if (!c) throw new Error('이 구글 계정에는 "' + CAL_NAME + '" 캘린더가 없습니다. 설교표 캘린더가 있는 계정으로 설치해 주세요.');
+  return c;
+}
 function ymd_(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function hm_(d) { return Utilities.formatDate(d, TZ, 'HH:mm'); }
 function at_(date, time) { return new Date(date + 'T' + time + ':00+09:00'); }
@@ -113,7 +117,7 @@ export function CalendarSyncAdmin() {
           <summary>설치 방법</summary>
           <ol className="steps small">
             <li>"연동 코드 복사"를 누릅니다.</li>
-            <li><b>설교표 캘린더가 있는 구글 계정</b>으로 <a href="https://script.google.com/home/projects/create" target="_blank" rel="noreferrer">script.google.com 새 프로젝트</a>를 엽니다.</li>
+            <li><b>설교표 캘린더(대림교회 배우는 숲)가 있는 구글 계정</b>으로 로그인한 상태에서 (오른쪽 위 프로필 사진으로 계정 확인) <a href="https://script.google.com/home/projects/create" target="_blank" rel="noreferrer">script.google.com 새 프로젝트</a>를 엽니다.</li>
             <li>편집기에 있던 내용을 모두 지우고 붙여 넣은 뒤 저장(💾)합니다.</li>
             <li>위쪽 함수 고르는 칸에서 <b>설치</b>를 고르고 <b>▶ 실행</b>을 누릅니다. 권한을 묻는 창이 뜨면 계정을 고르고 "고급 → (안전하지 않음)으로 이동 → 허용"을 누릅니다.</li>
           </ol>
