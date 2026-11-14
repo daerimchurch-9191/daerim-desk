@@ -1,6 +1,6 @@
 // 실제 데이터(Supabase)와 연결된 부분: 교회 일정, 차량 예약
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean } from './auth.jsx'
+import { supabase, useAuth, toKorean, can } from './auth.jsx'
 
 /* ---------- 날짜 ---------- */
 const DOW_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -128,16 +128,19 @@ const deptName = (departments, id) => departments.find((d) => d.id === id)?.name
 // 색은 부서 묶음(교회 전체·교육부·교구) 기준
 const deptTag = (departments, id) => `tag-${departments.find((d) => d.id === id)?.grp ?? 'all'}`
 export const GROUPS = [{ id: 'all', name: '교회 전체' }, { id: 'edu', name: '교육부' }, { id: 'parish', name: '교구' }]
+const LEGEND = [...GROUPS, { id: 'personal', name: '개인' }]
 
-export function DeptSelect({ value, onChange, custom, onCustom }) {
+export function DeptSelect({ value, onChange, custom, onCustom, noAll, personal }) {
   const { departments } = useData()
   const of = (g) => departments.filter((d) => d.grp === g)
+  // noAll: 교회 전체를 고를 수 없음(권한 없음) / personal: "개인 (나만 보기)"를 고를 수 있음
   // custom 을 넘기면 "직접 입력"을 고를 수 있다 (value 는 '__custom')
   return (
     <div className="field">
       <label htmlFor="dept-sel">부서</label>
       <select id="dept-sel" value={value} onChange={(e) => onChange(e.target.value)}>
-        {of('all').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        {personal && <option value="personal">개인 (나만 보기)</option>}
+        {!noAll && of('all').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
         <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
         {onCustom && <option value="__custom">직접 입력…</option>}
@@ -202,9 +205,11 @@ export function Modal({ title, onClose, onSubmit, children, footer }) {
 /* ---------- 일정 등록·수정 ---------- */
 function EventModal({ initial, onClose }) {
   const { profile } = useAuth()
-  const { refresh, notify } = useData()
+  const { refresh, notify, departments } = useData()
   const editing = Boolean(initial?.id)
-  const canEdit = !editing || initial.created_by === profile.id || profile.role === 'admin'
+  const canAll = can(profile, 'event_all')
+  const myDept = departments.find((d) => d.name === profile.dept && d.grp !== 'all')?.id
+  const canEdit = !editing || profile.role === 'admin' || (initial.dept_id === 'all' ? canAll : initial.created_by === profile.id)
   const s = initial?.starts_at ? new Date(initial.starts_at) : null
   const e = initial?.ends_at ? new Date(initial.ends_at) : null
   const [f, setF] = useState({
@@ -214,7 +219,7 @@ function EventModal({ initial, onClose }) {
     start: s ? hm(s) : '10:00',
     end: e ? hm(e) : '',
     all_day: initial?.all_day ?? false,
-    dept_id: initial?.dept_id ?? 'all',
+    dept_id: initial?.dept_id ?? (canAll ? 'all' : myDept ?? 'personal'),
     location: initial?.location ?? '',
     note: initial?.note ?? '',
   })
@@ -283,11 +288,13 @@ function EventModal({ initial, onClose }) {
           {f.end && <span className="small">→ {timeLabel(f.end)} 끝</span>}
           {f.end && <button type="button" className="btn-link small" onClick={() => setF({ ...f, end: '' })}>지우기</button>}
         </div>}
-        <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} />
+        <DeptSelect value={f.dept_id} onChange={(v) => setF({ ...f, dept_id: v })} personal noAll={!canAll && f.dept_id !== 'all'} />
+        {f.dept_id === 'personal' && <p className="muted small">개인 일정은 나만 보이고 구글 캘린더에도 올라가지 않습니다.</p>}
+        {f.dept_id === 'all' && <p className="muted small">교회 전체 일정은 교회 구글 캘린더에도 함께 올라갑니다.</p>}
         <label className="field"><span>장소 <small>(선택)</small></span><input value={f.location} onChange={set('location')} /></label>
         <label className="field"><span>메모 <small>(선택)</small></span><input value={f.note} onChange={set('note')} /></label>
       </fieldset>
-      {!canEdit && <p className="muted small">등록한 사람과 관리자만 고칠 수 있습니다.</p>}
+      {!canEdit && <p className="muted small">{initial?.dept_id === 'all' ? '교회 전체 일정은 권한이 있는 사람만 고칠 수 있습니다.' : '등록한 사람과 관리자만 고칠 수 있습니다.'}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
   )
@@ -431,7 +438,7 @@ export function WeekCalendar({ inPage }) {
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
         <strong className="grow">{week0.getFullYear()}년 {kDate(days[0]).replace(/ \(.\)/, '')} – {kDate(days[6]).replace(/ \(.\)/, '')}</strong>
-        {GROUPS.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
+        {LEGEND.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
         {!inPage && <a href="#calendar" className="btn btn-link">월별로 보기</a>}
       </div>
       <div className="card scroll-x">
@@ -472,6 +479,14 @@ function useBookings(from, to) {
   return list
 }
 
+// 차량마다 다른 색 (차량 목록 순서대로)
+const CAR_COLORS = [['#DCEBFA', '#1D4E89'], ['#FCE1D6', '#8A3414'], ['#E3F1D2', '#3F5E14'], ['#F7DDEB', '#84205A'], ['#D8F0F0', '#145B5E'], ['#F3EBCB', '#6A5410'], ['#E7E2F6', '#3E2F7A']]
+export const carStyle = (vehicles, id) => {
+  const i = Math.max(0, vehicles.findIndex((v) => v.id === id))
+  const [background, color] = CAR_COLORS[i % CAR_COLORS.length]
+  return { background, color }
+}
+
 function BookingTag({ b, departments, showCar, vehicles }) {
   const { profile } = useAuth()
   const { refresh, notify, openModal } = useData()
@@ -487,9 +502,10 @@ function BookingTag({ b, departments, showCar, vehicles }) {
     {hm(b.span[0])} – {hm(b.span[1])}
     {b.requester && <small>{b.requester}{b.driver && b.driver !== b.requester ? ` · 운전 ${b.driver}` : ''}</small>}
   </>
-  if (!mine) return <span className={`tag ${deptTag(departments, b.dept_id)}`}>{label}</span>
+  const style = carStyle(vehicles, b.vehicle_id)
+  if (!mine) return <span className="tag tag-car" style={style}>{label}</span>
   return (
-    <span className={`tag ${deptTag(departments, b.dept_id)}`}>
+    <span className="tag tag-car" style={style}>
       <button type="button" className="tag-edit" title="눌러서 고치기" onClick={() => openModal({ type: 'car', initial: b })}>{label}</button>
       <button type="button" className="tag-x" aria-label="신청 취소" title="신청 취소" onClick={cancel}>취소</button>
     </span>
@@ -516,45 +532,26 @@ export function CarsWeek({ inPage }) {
       </div>
       <div className="card scroll-x">
         {vehicles.length === 0 ? (
-          <div className="empty">등록된 차량이 없습니다. 관리자가 회원 관리 화면에서 차량을 등록하면 여기에 나타납니다.</div>
+          <div className="empty">등록된 차량이 없습니다. 관리자가 차량 현황 화면에서 차량을 등록하면 여기에 나타납니다.</div>
         ) : (
-          <table className="car-cal">
-            <thead>
-              <tr>
-                <th scope="col">차량</th>
-                {days.map((d) => <th key={ymd(d)} scope="col" className={sameDay(d, today) ? 'is-today' : ''}>{DOW_EN[d.getDay()]} · {d.getDate()}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map((v) => (
-                <tr key={v.id}>
-                  <th scope="row">{v.name}</th>
-                  {days.map((d) => (
-                    <td key={ymd(d)} className={sameDay(d, today) ? 'is-today' : ''}>
-                      {(bookings ?? []).filter((b) => b.vehicle_id === v.id && sameDay(b.span[0], d)).map((b) => <BookingTag key={b.id} b={b} departments={departments} />)}
-                      <button type="button" className="add-slot" aria-label={`${kDate(d)} ${v.name} 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {vehicles.length > 0 && (
-          <ul className="car-agenda" aria-label="이번 주 차량 신청 (휴대폰 보기)">
+          <div className="week week-cars">
             {days.map((d) => {
-              const list = (bookings ?? []).filter((b) => sameDay(b.span[0], d))
+              const list = (bookings ?? []).filter((b) => sameDay(b.span[0], d)).sort((a, b) => a.span[0] - b.span[0])
               return (
-                <li key={ymd(d)} className={sameDay(d, today) ? 'is-today' : ''}>
-                  <span className="agenda-date">{d.getDate()}<small>{DOW_KO[d.getDay()]}</small></span>
-                  <div className="agenda-items">
-                    {list.length ? list.map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />) : <span className="muted small">신청 없음</span>}
-                  </div>
-                  <button type="button" className="agenda-add" aria-label={`${kDate(d)} 차량 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
-                </li>
+                <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
+                  <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
+                  {bookings === null && <span className="skeleton" />}
+                  {list.map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />)}
+                  <button type="button" className="add-slot" aria-label={`${kDate(d)} 차량 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
+                </div>
               )
             })}
-          </ul>
+          </div>
+        )}
+        {vehicles.length > 0 && (
+          <div className="car-legend" aria-label="차량 색">
+            {vehicles.map((v) => <span key={v.id} className="tag round" style={carStyle(vehicles, v.id)}>{v.name}</span>)}
+          </div>
         )}
       </div>
     </section>

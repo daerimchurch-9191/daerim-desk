@@ -55,10 +55,11 @@ const KO_ERRORS = [
 ]
 export const toKorean = (msg) => (KO_ERRORS.find(([re]) => re.test(msg))?.[1]) ?? `문제가 생겼습니다: ${msg}`
 
-// 세부 권한 (profiles.perms). 관리자는 notice 를 가진다. 주보 광고는 누구나 정리할 수 있어 권한이 없다.
+// 세부 권한 (profiles.perms). 관리자는 notice·event_all 을 가진다. 주보 광고는 누구나 정리할 수 있어 권한이 없다.
 // 심방보고는 관리자라도 따로 받아야 한다 (성도 개인정보).
 export const PERMS = [
   { key: 'notice', name: '공지 작성', hint: '공지 쓰기·고치기, 알림 보내기' },
+  { key: 'event_all', name: '교회 전체 일정', hint: '교회 전체 일정 등록·고치기 (구글 캘린더와 연동)' },
 ]
 export function can(profile, key) {
   if (!profile || profile.status !== 'approved') return false

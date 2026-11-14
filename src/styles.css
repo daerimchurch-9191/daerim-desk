@@ -117,22 +117,12 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .tag-all { background: #ddf0e8; color: #0c4f3e; }
 .tag-edu { background: #fcebcf; color: #6e3c00; }
 .tag-parish { background: #ebe3f6; color: #4b2e78; }
+.tag-personal { background: #eef0ef; color: #3a403d; box-shadow: inset 0 0 0 1px #d3d8d5; }
 
 .table-row { display: flex; align-items: center; gap: 10px; min-height: 46px; border-bottom: 1px solid var(--line-2); }
 .table-row:last-child, .table-row.no-line { border-bottom: 0; }
 .table-row b { width: 52px; flex: none; }
 
-.car-cal { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
-.car-cal th, .car-cal td { border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); padding: 6px 5px; vertical-align: top; }
-.car-cal tr > :last-child { border-right: 0; }
-.car-cal tbody tr:last-child > * { border-bottom: 0; }
-.car-cal thead th { font-weight: 700; color: var(--muted); padding: 8px 0; }
-.car-cal thead th.is-today { background: var(--accent); color: #fff; border-radius: 8px; }
-.car-cal th[scope='row'] { width: 132px; text-align: left; font-size: 14px; padding: 12px 8px; vertical-align: middle; }
-.car-cal thead th:first-child { width: 132px; text-align: left; padding-left: 8px; }
-.car-cal td { height: 64px; }
-.car-cal td.is-today { background: var(--bg); }
-.car-cal .tag { display: flex; flex-direction: column; gap: 2px; }
 
 .btn-link { display: inline-flex; align-items: center; text-decoration: none; font-weight: 700; color: var(--ink); }
 .icon-btn.light { border-color: #c9cfca; color: var(--ink); background: #fff; font-size: 22px; }
@@ -234,11 +224,8 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .tag-btn { border: 0; text-align: left; font: inherit; font-size: 13px; cursor: pointer; }
 .tag-btn:hover { filter: brightness(0.96); }
 .add-slot { margin-top: auto; min-height: 32px; border: 1px dashed transparent; border-radius: 8px; background: none; color: transparent; font-size: 18px; cursor: pointer; }
-.week-day:hover .add-slot, .car-cal td:hover .add-slot, .add-slot:focus-visible { border-color: #c9cfca; color: var(--muted); }
+.week-day:hover .add-slot, .add-slot:focus-visible { border-color: #c9cfca; color: var(--muted); }
 @media (hover: none) { .add-slot { border-color: var(--line-2); color: var(--muted); } }
-.car-cal td { position: relative; }
-.car-cal td .add-slot { width: 100%; margin-top: 4px; }
-.car-cal .tag, .month .tag { position: relative; }
 .tag-x { border: 0; background: none; padding: 0; margin-top: 2px; align-self: flex-start; font: inherit; font-size: 11px; text-decoration: underline; color: inherit; cursor: pointer; opacity: .8; }
 .skeleton { height: 30px; border-radius: 8px; background: linear-gradient(90deg, var(--line-2), var(--bg), var(--line-2)); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
@@ -327,7 +314,6 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .inline-form > .field { min-width: 140px; }
 
 /* ---------- 휴대폰 (700px 이하): 가로로 밀리는 표 대신 위에서 아래로 읽는 목록 ---------- */
-.car-agenda { display: none; }
 @media (max-width: 700px) {
   .scroll-x { overflow-x: visible; padding: 4px 14px; }
   /* 제목줄: 범례·긴 글은 숨기고 버튼은 한 줄에 */
@@ -355,21 +341,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
   .week-day:not(:has(.tag)):not(:has(.skeleton))::after { content: '일정 없음'; grid-column: 2; grid-row: 1; font-size: 13px; color: var(--muted); padding-top: 7px; }
 
   /* 홈 차량 현황: 표 대신 날짜별 목록 */
-  .car-cal { display: none; }
-  .car-agenda { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
-  .car-agenda li { display: grid; grid-template-columns: 56px minmax(0, 1fr) 36px; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
-  .car-agenda li:last-child { border-bottom: 0; }
-  .agenda-date { display: flex; gap: 4px; align-items: baseline; justify-content: center; padding: 6px 8px; border-radius: 8px; font-weight: 700; font-size: 14px; }
-  .agenda-date small { font-size: 13px; font-weight: 400; color: inherit; }
-  .car-agenda .tag, .week-day > .tag { flex-wrap: wrap; gap: 2px 8px; }
-  .car-agenda .tag { display: flex; align-items: center; }
-  .car-agenda .tag b, .month .tag b { margin-right: 6px; }
-  .car-agenda .tag-x { margin-left: auto; }
-  .car-agenda .tag-edit { flex-direction: row; flex-wrap: wrap; gap: 2px 8px; }
   .block-head > .btn-link { min-height: 40px; padding: 0 12px; font-size: 13px; }
-  .car-agenda li.is-today .agenda-date { background: var(--accent); color: #fff; }
-  .agenda-items { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; min-width: 0; }
-  .agenda-add { min-height: 34px; width: 36px; border: 1px dashed var(--line-2); border-radius: 8px; background: none; color: var(--muted); font-size: 18px; cursor: pointer; }
 
   /* 월별 화면(캘린더·설교표·차량): 달력 칸 대신 날짜별 목록 */
   .month { display: flex; flex-direction: column; min-width: 0; border: 0; }
@@ -556,3 +528,13 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
   .tag.bar .bar-short { display: none; }
   .bar-gap { display: none; }
 }
+
+/* 차량 현황(주별): 날짜 칸에 "차량 부서 시간", 차마다 색 */
+.tag.tag-car { display: block; font-size: 12px; line-height: 1.45; padding: 5px 7px; }
+.tag-car .tag-edit { display: block; width: 100%; }
+.tag-car b { font-weight: 700; margin-right: 4px; }
+.tag-car b + b { font-weight: 600; }
+.tag-car small { display: block; font-size: 11px; opacity: .85; }
+.tag-car .tag-x { display: block; }
+.car-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 4px 0; }
+@media (min-width: 701px) { .week-cars .week-day { min-height: 180px; } }
