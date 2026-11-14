@@ -16,7 +16,7 @@ export function PermissionsPage() {
   const parishes = departments.filter((d) => d.grp === 'parish')
 
   const columns = useMemo(() => [
-    { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지·광고 권한 모두 포함 (심방보고는 따로)', group: '관리' },
+    { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지 권한 포함 (심방보고는 따로)', group: '관리' },
     ...PERMS.map((p) => ({ ...p, group: '관리' })),
     { key: 'visit_all', start: true, name: '모든 교구', hint: '모든 교구 심방보고 보기·쓰기 (담임목사님)', group: '심방보고' },
     ...parishes.map((d) => ({ key: `visit:${d.id}`, name: d.name, hint: `${d.name} 심방보고 보기·쓰기`, group: '심방보고' })),

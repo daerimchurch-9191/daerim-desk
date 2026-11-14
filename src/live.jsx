@@ -35,6 +35,46 @@ export const eventText = (e, d) => {
   const when = nth === 1 ? (e.all_day ? '종일' : hm(s)) : ''
   return `${when ? when + ' ' : ''}${e.title}${days > 1 ? ` (${nth}/${days})` : ''}`
 }
+// 여러 날 일정은 이어지는 막대로: 한 줄(주) 안에서 막대마다 층(lane)을 정해 날짜 칸끼리 높이를 맞춘다.
+// rowDays: 그 줄의 날짜들(빈 칸은 null). 돌려주는 값: 날짜마다 [{ bar, e, l, r, head } | { gap }] 와 하루짜리 일정 목록
+const lastDay = (e) => { const s = new Date(e.starts_at); return dayOf(e.ends_at ? new Date(new Date(e.ends_at).getTime() - 1) : s) }
+export const isMulti = (e) => lastDay(e) > dayOf(new Date(e.starts_at))
+export function layoutRow(rowDays, events) {
+  const multi = events.filter(isMulti)
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at) || lastDay(b) - lastDay(a))
+  const lanes = [] // lanes[n] = Set(칸 번호)
+  const placed = []
+  for (const e of multi) {
+    const idx = rowDays.map((d, i) => (d && onDay(e, d) ? i : -1)).filter((i) => i >= 0)
+    if (!idx.length) continue
+    let n = lanes.findIndex((set) => idx.every((i) => !set.has(i)))
+    if (n < 0) { n = lanes.length; lanes.push(new Set()) }
+    idx.forEach((i) => lanes[n].add(i))
+    placed.push({ e, n, idx })
+  }
+  return rowDays.map((d, i) => {
+    if (!d) return { bars: [], singles: [] }
+    const here = placed.filter((p) => p.idx.includes(i))
+    const top = here.reduce((m, p) => Math.max(m, p.n), -1)
+    const bars = [...Array(top + 1)].map((_, n) => {
+      const p = here.find((x) => x.n === n)
+      if (!p) return { gap: true, key: `g${n}` }
+      return { bar: true, key: `b${p.e.id}`, e: p.e, head: i === p.idx[0],
+        l: sameDay(d, new Date(p.e.starts_at)), r: sameDay(d, lastDay(p.e)) }
+    })
+    return { bars, singles: events.filter((e) => !isMulti(e) && onDay(e, d)) }
+  })
+}
+export function BarTag({ b, d, cls, onOpen }) {
+  const e = b.e
+  const short = `${b.l && !e.all_day ? hm(new Date(e.starts_at)) + ' ' : ''}${e.title}`
+  return (
+    <button type="button" title={e.title} className={`tag ${cls} tag-btn bar${b.l ? ' bar-l' : ''}${b.r ? ' bar-r' : ''}${b.head ? ' bar-head' : ''}`} onClick={() => onOpen(e)}>
+      <span className="bar-short">{short}</span><span className="bar-full">{eventText(e, d)}</span>
+    </button>
+  )
+}
+
 // 기간이 겹치는 일정 가져오기
 const overlapping = (q, from, to) => q.lt('starts_at', to.toISOString())
   .or(`ends_at.gt.${from.toISOString()},and(ends_at.is.null,starts_at.gte.${from.toISOString()})`)
@@ -396,12 +436,14 @@ export function WeekCalendar({ inPage }) {
       </div>
       <div className="card scroll-x">
         <div className="week">
-          {days.map((d) => {
-            const list = (events ?? []).filter((e) => onDay(e, d))
+          {(() => { const lay = layoutRow(days, events ?? []); return days.map((d, di) => {
+            const { bars, singles: list } = lay[di]
             return (
               <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
                 <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
                 {events === null && <span className="skeleton" />}
+                {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
+                  : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
                 {list.map((e) => (
                   <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
                     {eventText(e, d)}
@@ -411,7 +453,7 @@ export function WeekCalendar({ inPage }) {
                 <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
               </div>
             )
-          })}
+          }) })()}
         </div>
       </div>
     </section>
@@ -675,13 +717,15 @@ export function CalendarMonth() {
         <div className="card scroll-x">
           <div className="month month-hide-empty" data-empty="이번 달 일정이 없습니다.">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
-            {cells.map((d, i) => {
+            {(() => { const lay = cells.flatMap((_, i) => (i % 7 ? [] : layoutRow(cells.slice(i, i + 7), shown))); return cells.map((d, i) => {
               if (!d) return <div key={i} className="month-cell is-empty" />
-              const list = shown.filter((e) => onDay(e, d))
+              const { bars, singles: list } = lay[i]
               return (
                 <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}`}>
                   <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {events === null && <span className="skeleton" />}
+                  {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
+                    : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
                   {list.map((e) => (
                     <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
                       {eventText(e, d)}
@@ -691,7 +735,7 @@ export function CalendarMonth() {
                   <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
                 </div>
               )
-            })}
+            }) })()}
           </div>
         </div>
         <p className="note">

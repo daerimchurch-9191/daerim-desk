@@ -551,3 +551,22 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .sync-issues li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; font-size: 13px; background: #FFF8EC; border-radius: 8px; padding: 8px 10px; }
 .check-line { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; margin: -2px 0 10px; cursor: pointer; }
 .check-line input { width: 18px; height: 18px; accent-color: var(--green, #0F6B54); }
+
+/* 여러 날 일정: 날짜 칸을 가로질러 이어지는 막대 (컴퓨터) */
+.tag.bar, .bar-gap { height: 26px; flex: none; }
+.tag.bar { position: relative; z-index: 1; display: flex; flex-direction: row; align-items: center; white-space: nowrap; overflow: visible;
+  padding: 0 8px; border-radius: 0; margin-left: -6px; margin-right: -7px; font-size: 12px; }
+.week .tag.bar { margin-left: -5px; margin-right: -6px; }
+.tag.bar.bar-l { margin-left: 0; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+.tag.bar.bar-r { margin-right: 0; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+.tag.bar.bar-head { z-index: 2; }
+.tag.bar .bar-full { display: none; }
+.tag.bar:not(.bar-head) .bar-short { visibility: hidden; }
+.tag.bar.bar-head:not(.bar-r) .bar-short { overflow: visible; }
+.tag.bar:hover { filter: brightness(0.96); }
+@media (max-width: 700px) {
+  .tag.bar, .week .tag.bar { height: auto; margin: 0; border-radius: 8px; padding: 6px 8px; font-size: 13px; white-space: normal; z-index: auto; }
+  .tag.bar .bar-full { display: inline; }
+  .tag.bar .bar-short { display: none; }
+  .bar-gap { display: none; }
+}

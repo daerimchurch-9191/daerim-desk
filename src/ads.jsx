@@ -78,7 +78,7 @@ export function AdsPage() {
   }, [week0.getTime(), tick, version])
 
   const nameOf = (id) => { const s = staff.find((p) => p.id === id); return s ? `${s.name} ${s.title}` : '' }
-  const canEdit = (a) => a.created_by === profile.id || can(profile, 'ads')
+  const canEdit = () => true // 주보 광고는 누구나 고치고 정리할 수 있다
   const write = (initial) => openModal({ render: (close) => <AdModal initial={initial} weekOf={week0} onClose={close} onSaved={reload} /> })
   async function copyAll() {
     try { await navigator.clipboard.writeText(adsText(week0, rows)); notify(`${rows.length}개 광고를 복사했습니다. 주보 파일에 붙여 넣으세요.`) }
@@ -117,7 +117,7 @@ export function AdsPage() {
           ))}
           {rows?.length > 0 && <button type="button" className="btn btn-dark btn-block" onClick={copyAll}>이 주 광고 전체 복사</button>}
         </div>
-        <p className="note">사역자 누구나 올릴 수 있고, 올린 사람과 광고 정리 권한이 있는 사람이 고칠 수 있습니다. 복사하면 번호를 붙여 "제목 / 내용" 순서로 정리됩니다.</p>
+        <p className="note">사역자 누구나 올릴 수 있고, 누구나 고치고 정리할 수 있습니다. 복사하면 번호를 붙여 "제목 / 내용" 순서로 정리됩니다.</p>
       </section>
     </>
   )
