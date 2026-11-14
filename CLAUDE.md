@@ -24,7 +24,7 @@
 | 주보 광고(주일별 모아 한 번에 복사) | `#ads` | `src/ads.jsx` |
 | 심방보고(교구별 채팅방, 검색, 대상별 보기) | `#visits` | `src/visits.jsx` |
 | 공지(받는 범위: 전체/교구/교육부, 카톡 공유, 휴대폰 알림) | `#notices` | `src/notices.jsx`, `src/push.js` |
-| 관리자 메뉴: 회원 관리 / 권한 관리 / 기타(노션 차량 연동 상태·새벽 담당표 연동·자동 백업) | `#admin`, `#admin/perms`, `#admin/etc` | `src/adminhub.jsx`, `src/AdminPage.jsx`, `src/perms.jsx`, `src/notionsync.jsx`, `src/sheetsync.jsx`, `src/backup.jsx` |
+| 관리자 메뉴: 회원 관리 / 권한 관리 / 기타(노션 차량 연동·설교표 캘린더 연동·새벽 담당표 연동·자동 백업) | `#admin`, `#admin/perms`, `#admin/etc` | `src/adminhub.jsx`, `src/AdminPage.jsx`, `src/perms.jsx`, `src/notionsync.jsx`, `src/calsync.jsx`, `src/sheetsync.jsx`, `src/backup.jsx` |
 | 톱니 메뉴: 앱·알림 설정, 비밀번호 변경, 로그아웃 (+관리자: 관리자 메뉴) | — | `src/App.jsx`, `src/PushSettings.jsx` |
 
 데이터베이스 표·권한 규칙·서버 함수 설명은 `supabase/README.md`. 서버 함수 코드는 `supabase/functions/` (배포본과 같은 내용).
@@ -41,6 +41,7 @@
 - 심방보고는 교구별 "방"에 채팅처럼 쓴다. 대상(가정·성도) 칸 또는 본문의 "가정: ○○" 줄로 묶어 본다. 고치기·지우기는 자기 글만.
 - 공지 알림은 공지 등록 시 체크박스로 보낸다(웹 푸시). 아이폰은 홈 화면 앱에서만 받는다.
 - **새벽 설교는 구글 시트 "새벽 기도 담당표"와 양방향 연동**한다(사용자 결정: 당분간 둘 다 쓴다). 시트 수정은 바로, 대시보드 수정은 10분 안에 시트로. 동시에 고치면 시트가 이긴다. 자세한 것은 `supabase/README.md`.
+- **설교표는 구글 캘린더 "대림교회 배우는 숲"(교회 구글 계정, sua410 아님)과 양방향 연동**한다(사용자 결정). 일정 제목 "새벽 : 이름 목사" 모양만(새벽/수요/금요, 그 밖의 말은 특별 예배 제목). 캘린더 계정의 Apps Script(script.google.com 독립 프로젝트)가 일정 변경 때와 10분마다 `calendar-sermon-sync`를 부른다. 동시에 고치면 캘린더가 이긴다. 비교할 때 이름 뒤 직분(목사 등)과 띄어쓰기는 무시한다. 새벽은 시트·대시보드·캘린더 세 곳이 대시보드를 가운데 두고 맞춰진다.
 - **차량 예약은 교회 노션 "차량신청" 데이터베이스와 양방향 연동**한다(사용자 결정: 둘 다 쓴다). 노션 → 대시보드는 5분마다(pg_cron `notion-car-sync`), 대시보드 → 노션은 바뀌는 즉시(트리거). 동시에 고치면 노션이 이긴다. 어제 이후 일정만 맞춘다. 노션 차량 이름은 `vehicles.notion_name`(없으면 차량 이름)으로 짝짓는다. 노션 토큰은 서버 함수 비밀 값 `NOTION_TOKEN`(사용자가 Supabase 화면에서 직접 넣음). 시간이 겹쳐 못 가져온 신청은 관리자 메뉴 → 기타에 보인다.
 - 일정 끝 시간: "+30분", "+1시간" 버튼을 누를 때마다 더해진다. 시간 고르기는 10분 단위 목록(`TimeSelect`), 브라우저 기본 시간칸은 쓰지 않는다.
 - 홈 블록 제목(Weekly Calendar, 내 설교, 예배 설교표, 차량 현황)을 누르면 세부 페이지로 간다. 세부 페이지(캘린더·설교표·차량)는 제목 아래 "월별/주별"로 바꿔 본다(탭 안에서 기억).
@@ -70,12 +71,12 @@
 
 - `npm install`, `npm run build` (Vite, base `./`). push하면 `.github/workflows/deploy.yml`이 Pages에 배포.
 - `.github/workflows/keep-alive.yml`이 3일마다 Supabase를 깨운다(무료 요금제 일시정지 방지).
-- 서버 함수: `reset-password`(관리자 비밀번호 초기화), `notify-notice`(공지 알림·기기 등록·시험 알림), `backup-export`(백업, 열쇠로 확인), `dawn-sheet-sync`(새벽 담당표 시트 연동, 열쇠로 확인), `notion-car-sync`(노션 차량신청 연동, 열쇠로 확인).
+- 서버 함수: `reset-password`(관리자 비밀번호 초기화), `notify-notice`(공지 알림·기기 등록·시험 알림), `backup-export`(백업, 열쇠로 확인), `dawn-sheet-sync`(새벽 담당표 시트 연동, 열쇠로 확인), `notion-car-sync`(노션 차량신청 연동, 열쇠로 확인), `calendar-sermon-sync`(설교표 캘린더 연동, 열쇠로 확인).
 - `public/sw.js`: 홈 화면 앱·알림용. 페이지는 항상 새로 받는다(배포 직후 하얀 화면 방지).
 
 ## 남은 일
 
-- 구글 캘린더에 있던 설교표 옮기기: 설교표 캘린더가 연결된 개인 구글 계정에 없었다. 캘린더 공유나 내보낸 파일, 일정 적힌 예시를 받아야 한다. 이후 대시보드 → 구글 캘린더 구독 주소(보기용)도 제안했다.
+- 설교표 캘린더 Apps Script 설치 확인 (관리자 메뉴 → 기타의 "마지막 확인").
 - 나스 자동 백업 첫 실행 확인 (회원 관리의 "마지막 백업" 표시).
 - 새벽 담당표 시트에 Apps Script 설치 확인 (회원 관리의 "마지막 확인" 표시). 실제 시트와 함께 시험한 적은 아직 없다.
 - 사용자 확인이 필요했던 것: 비밀번호 초기화 실제 동작, 아이폰 카톡 공유.
