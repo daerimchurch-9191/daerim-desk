@@ -17,8 +17,13 @@ const TZ = 'Asia/Seoul';
 
 function cal_() {
   const c = CalendarApp.getCalendarsByName(CAL_NAME)[0];
-  if (!c) throw new Error('이 구글 계정에는 "' + CAL_NAME + '" 캘린더가 없습니다. 설교표 캘린더가 있는 계정으로 설치해 주세요.');
-  return c;
+  if (c) return c;
+  // 기본 캘린더는 이름이 계정 이름으로만 보일 때가 있다 → 설교 일정이 있으면 그것을 쓴다
+  const d = CalendarApp.getDefaultCalendar(), now = new Date();
+  const has = d.getEvents(new Date(now.getTime() - 60 * 864e5), new Date(now.getTime() + 60 * 864e5))
+    .some(function (e) { return /^\\s*(새벽|수요|금요)\\s*:/.test(e.getTitle()); });
+  if (has) return d;
+  throw new Error('이 구글 계정에서 설교 일정("새벽 : …")이 있는 캘린더를 찾지 못했습니다. 설교표 캘린더가 있는 계정으로 설치해 주세요.');
 }
 function ymd_(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function hm_(d) { return Utilities.formatDate(d, TZ, 'HH:mm'); }
