@@ -5,6 +5,7 @@ import { AdminPage } from './AdminPage.jsx'
 import { PermissionsPage } from './perms.jsx'
 import { SheetSyncAdmin } from './sheetsync.jsx'
 import { BackupAdmin } from './backup.jsx'
+import { NotionSyncAdmin } from './notionsync.jsx'
 
 const TABS = [
   { id: '', name: '회원 관리' },
@@ -39,7 +40,7 @@ export function AdminHub() {
           <a key={t.id} href={t.id ? `#admin/${t.id}` : '#admin'} className={`tab${tab === t.id ? ' is-on' : ''}`} aria-current={tab === t.id ? 'page' : undefined}>{t.name}</a>
         ))}
       </nav>
-      {tab === 'perms' ? <PermissionsPage /> : tab === 'etc' ? <><SheetSyncAdmin /><BackupAdmin /></> : <AdminPage />}
+      {tab === 'perms' ? <PermissionsPage /> : tab === 'etc' ? <><NotionSyncAdmin /><SheetSyncAdmin /><BackupAdmin /></> : <AdminPage />}
     </>
   )
 }

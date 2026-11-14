@@ -61,3 +61,15 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 - 스크립트가 시트 수정 때마다 + 10분마다 시트 전체를 보낸다. 함수는 `sheet_sync_state`(마지막으로 맞춘 값)와 비교해 시트가 바뀐 날은 대시보드(sermons, service='dawn')에, 대시보드만 바뀐 날은 시트에 써 넣을 값을 돌려준다. 양쪽이 같은 날을 동시에 바꾸면 시트가 이긴다.
 - 담당자 이름이 승인된 사역자 이름과 같으면 preacher_id로, 아니면(예: "담임목사") preacher_name 글자로 저장한다.
 - 열쇠는 금고의 `sheet_token`, `get_sheet_token()`은 관리자만. 실행 기록은 `sheet_sync_runs`(14일 보관).
+
+
+## 노션 차량신청 연동 (notion-car-sync)
+
+- 노션 데이터베이스 `34bbedb1067680d49fc6e266d8de6dcd` (속성: 신청자명·차량종류·날짜 및 시간·운전자명·신청 부서 및 사유) ↔ `vehicle_bookings`.
+- 호출: pg_cron `notion-car-sync`(5분마다) + 트리거 `vehicle_bookings_kick_notion`(대시보드에서 바뀔 때, service_role 변경은 제외). 둘 다 `x-sync-token` = 금고 `notion_sync_token`.
+- 노션 토큰: 서버 함수 비밀 값 `NOTION_TOKEN`.
+- 열: `vehicles.notion_name`, `vehicle_bookings.notion_page_id / notion_edited_at / notion_synced_at / updated_at`.
+- 표: `notion_booking_deletions`(대시보드에서 지운 예약 → 노션에서 보관), `notion_sync_meta`(자물쇠·마지막 실행·오류, 관리자 조회), `notion_sync_issues`(못 가져온 신청, 관리자 조회·삭제).
+- 규칙: 어제 이후 일정만. 노션만 바뀜 → 대시보드, 대시보드만 바뀜 → 노션, 둘 다 → 노션. 노션 신청 하나에 차량 여러 대 → 차량마다 예약 하나(같은 page id). 날짜만 있으면 하루 종일, 끝 시간이 없으면 1시간.
+- 연동 전 예약 백업: `vehicle_bookings_backup_20261114` (확인 후 지워도 됨).
+- 한계: 노션 수정 시각이 분 단위라 같은 분 안에 양쪽에서 고치면 하나가 늦게 반영될 수 있다.
