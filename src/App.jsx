@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth, visitRooms } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
-import { AdminPage, ChangePasswordModal } from './AdminPage.jsx'
+import { ChangePasswordModal } from './AdminPage.jsx'
 import { PushSettingsModal } from './PushSettings.jsx'
 import { VisitsPage } from './visits.jsx'
-import { PermissionsPage } from './perms.jsx'
+import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
 import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
@@ -69,8 +69,7 @@ function Sidebar({ open, onClose, page, notices }) {
         </button>
         {gearOpen && (
           <div className="gear-menu">
-            {profile.role === 'admin' && <a href="#admin" onClick={() => { setGearOpen(false); onClose() }}>회원 관리</a>}
-            {profile.role === 'admin' && <a href="#perms" onClick={() => { setGearOpen(false); onClose() }}>권한 관리</a>}
+            {profile.role === 'admin' && <a href="#admin" className="gear-admin" onClick={() => { setGearOpen(false); onClose() }}>관리자 메뉴</a>}
             <button type="button" onClick={() => { setGearOpen(false); onClose(); openModal({ render: (close) => <PushSettingsModal onClose={close} /> }) }}>앱·알림 설정</button>
             <button type="button" onClick={() => { setGearOpen(false); onClose(); openModal({ render: (close) => <ChangePasswordModal onClose={close} /> }) }}>비밀번호 변경</button>
             <button type="button" onClick={signOut}>로그아웃</button>
@@ -106,7 +105,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => ({ '#cars': 'cars', '#admin': 'admin', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#perms': 'perms' }[location.hash] ?? 'home')
+  const read = () => location.hash.startsWith('#admin') || location.hash === '#perms' ? 'admin' : ({ '#cars': 'cars', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#perms': 'perms' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -137,7 +136,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'perms' ? <PermissionsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {page === 'admin' ? <AdminHub /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <header className="title">
           <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>

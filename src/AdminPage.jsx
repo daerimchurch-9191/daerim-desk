@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
 import { useData, Modal } from './live.jsx'
-import { BackupAdmin } from './backup.jsx'
-import { SheetSyncAdmin } from './sheetsync.jsx'
 
 // 관리자가 다른 사역자의 비밀번호를 새로 정해 준다 (Supabase 함수 reset-password)
 function ResetPasswordModal({ person, onClose }) {
@@ -188,11 +186,7 @@ export function AdminPage() {
 
   return (
     <>
-      <header className="title">
-        <h1 className="display page-title">MEMBERS</h1>
-        <span className="muted">회원 관리 · 가입 승인, 정보 수정, 비밀번호 초기화, 사용 중지</span>
-      </header>
-      <p className="note">관리자 지정과 공지·광고·심방보고 권한은 <a href="#perms">권한 관리</a>에서 체크해서 줍니다.</p>
+      <p className="note">관리자 지정과 공지·광고·심방보고 권한은 <a href="#admin/perms">권한 관리</a>에서 체크해서 줍니다.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="block" aria-labelledby="pending-h">
         <h2 id="pending-h" className="pill">승인 대기 {pending.length}</h2>
@@ -211,8 +205,6 @@ export function AdminPage() {
           <div className="card">{inactive.map(row)}</div>
         </section>
       )}
-      <SheetSyncAdmin />
-      <BackupAdmin />
     </>
   )
 }

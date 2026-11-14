@@ -68,10 +68,6 @@ export function PermissionsPage() {
 
   return (
     <>
-      <header className="title">
-        <h1 className="display page-title">PERMISSIONS</h1>
-        <span className="muted">권한 관리</span>
-      </header>
       <section className="block" aria-labelledby="perm-h">
         <div className="block-head">
           <h2 id="perm-h" className="pill">사역자 {people?.length ?? 0}</h2>

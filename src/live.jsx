@@ -11,6 +11,13 @@ export const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
 export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 export const startOfWeek = (d = new Date()) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -x.getDay()) }
 const sameDay = (a, b) => ymd(a) === ymd(b)
+const md = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+// 세부 페이지의 월별/주별 선택을 기억한다 (탭을 닫으면 처음엔 월별)
+export function useView(key) {
+  const k = `view:${key}`
+  const [v, setV] = useState(() => { try { return sessionStorage.getItem(k) || 'month' } catch { return 'month' } })
+  return [v, (x) => { setV(x); try { sessionStorage.setItem(k, x) } catch { /* 저장 못 해도 괜찮음 */ } }]
+}
 const local = (date, time) => new Date(`${date}T${time || '00:00'}`)
 const range = (a, b) => `[${a.toISOString()},${b.toISOString()})`
 const kDate = (d) => `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW_KO[d.getDay()]})`
@@ -315,7 +322,25 @@ function CarModal({ initial, onClose }) {
 }
 
 /* ---------- 홈: 주간 캘린더 ---------- */
-export function WeekCalendar() {
+// 홈 블록 제목: 세부 페이지가 있으면 누르면 그리로 간다
+export function PillLink({ id, href, inPage, children }) {
+  return inPage
+    ? <h2 id={id} className="sr-only">{children}</h2>
+    : <h2 id={id} className="pill pill-link"><a href={href}>{children}<span aria-hidden="true"> ›</span></a></h2>
+}
+
+// 세부 페이지 제목 옆 월별 / 주별 바꾸기
+export function ViewSwitch({ value, onChange }) {
+  return (
+    <div className="seg" role="group" aria-label="보기 방식">
+      {[['month', '월별'], ['week', '주별']].map(([v, t]) => (
+        <button key={v} type="button" className={value === v ? 'is-on' : ''} aria-pressed={value === v} onClick={() => onChange(v)}>{t}</button>
+      ))}
+    </div>
+  )
+}
+
+export function WeekCalendar({ inPage }) {
   const { departments, version, openModal } = useData()
   const [week0, setWeek0] = useState(startOfWeek())
   const [events, setEvents] = useState(null)
@@ -331,14 +356,14 @@ export function WeekCalendar() {
   return (
     <section className="block" aria-labelledby="week-h">
       <div className="block-head">
-        <h2 id="week-h" className="pill">Weekly Calendar</h2>
+        <PillLink id="week-h" href="#calendar" inPage={inPage}>{inPage ? '주별' : 'Weekly Calendar'}</PillLink>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
         <strong className="grow">{week0.getFullYear()}년 {kDate(days[0]).replace(/ \(.\)/, '')} – {kDate(days[6]).replace(/ \(.\)/, '')}</strong>
         {GROUPS.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
-        <a href="#calendar" className="btn btn-link">월별로 보기</a>
+        {!inPage && <a href="#calendar" className="btn btn-link">월별로 보기</a>}
       </div>
       <div className="card scroll-x">
         <div className="week">
@@ -401,18 +426,22 @@ function BookingTag({ b, departments, showCar, vehicles }) {
 }
 
 /* ---------- 홈: 차량 현황 (주간) ---------- */
-export function CarsWeek() {
+export function CarsWeek({ inPage }) {
   const { departments, vehicles, openModal } = useData()
-  const week0 = startOfWeek()
+  const [week0, setWeek0] = useState(startOfWeek())
   const days = [...Array(7)].map((_, i) => addDays(week0, i))
   const bookings = useBookings(week0, addDays(week0, 7))
   const today = new Date()
   return (
     <section className="block" aria-labelledby="car-h">
       <div className="block-head">
-        <h2 id="car-h" className="pill">차량 현황</h2>
-        <strong className="grow">이번 주</strong>
-        <a href="#cars" className="btn btn-link">월별로 보기</a>
+        <PillLink id="car-h" href="#cars" inPage={inPage}>{inPage ? '주별' : '차량 현황'}</PillLink>
+        <div className="month-nav">
+          <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
+          <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
+        </div>
+        <strong className="grow">{sameDay(week0, startOfWeek()) ? '이번 주' : `${md(days[0])} – ${md(days[6])}`}</strong>
+        {!inPage && <a href="#cars" className="btn btn-link">월별로 보기</a>}
       </div>
       <div className="card scroll-x">
         {vehicles.length === 0 ? (
@@ -475,14 +504,16 @@ export function CarsMonth() {
   for (let d = new Date(month); d < next; d = addDays(d, 1)) cells.push(d)
   while (cells.length % 7) cells.push(null)
   const shown = (bookings ?? []).filter((b) => filter === 'all' || b.vehicle_id === filter)
+  const [view, setView] = useView('cars')
 
   return (
     <>
       <header className="title">
         <h1 className="display page-title">VEHICLE</h1>
-        <span className="muted">차량 현황 · 월별</span>
+        <span className="muted">차량 현황</span>
+        <ViewSwitch value={view} onChange={setView} />
       </header>
-      <section className="block" aria-labelledby="month-h">
+      {view === 'week' ? <CarsWeek inPage /> : <section className="block" aria-labelledby="month-h">
         <div className="block-head">
           <h2 id="month-h" className="pill">{month.getFullYear()}년 {month.getMonth() + 1}월</h2>
           <div className="month-nav">
@@ -509,7 +540,7 @@ export function CarsMonth() {
           </div>
         </div>
         <p className="note">같은 차량은 시간이 겹치게 신청할 수 없습니다. 내가 신청한 예약은 "취소"로 지울 수 있습니다.</p>
-      </section>
+      </section>}
       {profile.role === 'admin' && <VehicleAdmin />}
     </>
   )
@@ -580,14 +611,16 @@ export function CalendarMonth() {
   while (cells.length % 7) cells.push(null)
   const groupTabs = [{ id: 'every', name: '모두' }, ...GROUPS]
   const deptsOf = (g) => departments.filter((d) => d.grp === g)
+  const [view, setView] = useView('calendar')
 
   return (
     <>
       <header className="title">
         <h1 className="display page-title">CALENDAR</h1>
-        <span className="muted">교회 캘린더 · 월별 · 부서마다 등록한 일정을 한눈에</span>
+        <span className="muted">교회 캘린더 · 부서마다 등록한 일정을 한눈에</span>
+        <ViewSwitch value={view} onChange={setView} />
       </header>
-      <section className="block" aria-labelledby="cal-h">
+      {view === 'week' ? <WeekCalendar inPage /> : <section className="block" aria-labelledby="cal-h">
         <div className="block-head">
           <h2 id="cal-h" className="pill">{month.getFullYear()}년 {month.getMonth() + 1}월</h2>
           <div className="month-nav">
@@ -635,7 +668,7 @@ export function CalendarMonth() {
         <p className="note">
           {dept ? `${deptName(departments, dept)} 일정만 보고 있습니다.` : `이번 달 일정 ${shown.length}개.`} 날짜 칸의 + 로 그날 일정을 등록하고, 일정을 누르면 내용을 보거나 고칠 수 있습니다.
         </p>
-      </section>
+      </section>}
     </>
   )
 }

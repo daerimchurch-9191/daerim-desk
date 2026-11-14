@@ -527,3 +527,18 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .backup-card { display: flex; flex-direction: column; gap: 12px; }
 .backup-status { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
 .backup-card .btn-row .btn { flex: none; }
+
+/* 홈 블록 제목 → 세부 페이지 */
+.pill-link { padding: 0; }
+.pill-link a { display: block; padding: 8px 14px; color: inherit; text-decoration: none; border-radius: inherit; }
+.pill-link a:hover { background: var(--accent); }
+.pill-link a span { opacity: .7; }
+/* 세부 페이지 월별/주별 */
+.title .seg { align-self: flex-start; margin-top: 12px; }
+.seg { display: inline-flex; padding: 3px; background: #E7EAE8; border-radius: 12px; gap: 2px; }
+.seg button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--muted); padding: 7px 16px; border-radius: 9px; cursor: pointer; min-height: 36px; }
+.seg button.is-on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+/* 관리자 메뉴 */
+.admin-tabs { margin-bottom: 20px; }
+.admin-tabs a.tab { text-decoration: none; display: inline-flex; align-items: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

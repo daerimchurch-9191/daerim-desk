@@ -24,9 +24,8 @@
 | 주보 광고(주일별 모아 한 번에 복사) | `#ads` | `src/ads.jsx` |
 | 심방보고(교구별 채팅방, 검색, 대상별 보기) | `#visits` | `src/visits.jsx` |
 | 공지(받는 범위: 전체/교구/교육부, 카톡 공유, 휴대폰 알림) | `#notices` | `src/notices.jsx`, `src/push.js` |
-| 회원 관리(승인, 정보 수정, 비밀번호 초기화, 사용 중지, 자동 백업) | `#admin` | `src/AdminPage.jsx`, `src/backup.jsx` |
-| 권한 관리(체크 후 저장) | `#perms` | `src/perms.jsx` |
-| 톱니 메뉴: 앱·알림 설정, 비밀번호 변경, 로그아웃 (+관리자: 회원 관리, 권한 관리) | — | `src/App.jsx`, `src/PushSettings.jsx` |
+| 관리자 메뉴: 회원 관리 / 권한 관리 / 새벽 담당표 연동 / 자동 백업 | `#admin`, `#admin/perms`, `#admin/sheet`, `#admin/backup` | `src/adminhub.jsx`, `src/AdminPage.jsx`, `src/perms.jsx`, `src/sheetsync.jsx`, `src/backup.jsx` |
+| 톱니 메뉴: 앱·알림 설정, 비밀번호 변경, 로그아웃 (+관리자: 관리자 메뉴) | — | `src/App.jsx`, `src/PushSettings.jsx` |
 
 데이터베이스 표·권한 규칙·서버 함수 설명은 `supabase/README.md`. 서버 함수 코드는 `supabase/functions/` (배포본과 같은 내용).
 데이터베이스 변경 이력(migration)은 저장소가 아니라 Supabase에 있다: `select version, name from supabase_migrations.schema_migrations`.
@@ -43,6 +42,8 @@
 - 공지 알림은 공지 등록 시 체크박스로 보낸다(웹 푸시). 아이폰은 홈 화면 앱에서만 받는다.
 - **새벽 설교는 구글 시트 "새벽 기도 담당표"와 양방향 연동**한다(사용자 결정: 당분간 둘 다 쓴다). 시트 수정은 바로, 대시보드 수정은 10분 안에 시트로. 동시에 고치면 시트가 이긴다. 자세한 것은 `supabase/README.md`.
 - 일정 끝 시간: "+30분", "+1시간" 버튼을 누를 때마다 더해진다. 시간 고르기는 10분 단위 목록(`TimeSelect`), 브라우저 기본 시간칸은 쓰지 않는다.
+- 홈 블록 제목(Weekly Calendar, 내 설교, 예배 설교표, 차량 현황)을 누르면 세부 페이지로 간다. 세부 페이지(캘린더·설교표·차량)는 제목 아래 "월별/주별"로 바꿔 본다(탭 안에서 기억).
+- 관리자 기능은 톱니 → "관리자 메뉴" 한 곳에 모은다.
 - 폴더 기능, 부서 방, 내 책상은 화면에서 뺐다 (`folders` 표와 `personal.jsx`의 Folders 코드는 남아 있음).
 - 디모데(교인 관리)는 링크만 건다. 성도 연락처·주소·주민번호는 대시보드에 넣지 않는다.
 - 디자인: 검정(#151716)과 초록(#0F6B54) 중심, 흰 카드. 화면 요소 이름은 모달·토스트·세그먼트·스켈레톤 같은 UI 용어로 부른다.

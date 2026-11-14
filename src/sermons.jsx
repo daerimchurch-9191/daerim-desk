@@ -2,7 +2,7 @@
 // 어느 쪽에서 본문을 고쳐도 양쪽이 함께 바뀐다.
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, TimeSelect } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, TimeSelect, PillLink, ViewSwitch, useView } from './live.jsx'
 
 export const SERVICES = {
   dawn: { name: '새벽기도회', time: '05:30' },
@@ -127,7 +127,7 @@ const useOpenSermon = () => {
 }
 
 /* ---------- 예배 설교표 ---------- */
-export function SermonTable() {
+export function SermonTable({ inPage }) {
   const { profile } = useAuth()
   const { version } = useData()
   const [week0, setWeek0] = useState(startOfWeek())
@@ -164,7 +164,7 @@ export function SermonTable() {
   return (
     <section className="block" id="sermon-table" aria-labelledby="table-h">
       <div className="block-head">
-        <h2 id="table-h" className="pill">예배 설교표</h2>
+        <PillLink id="table-h" href="#sermons" inPage={inPage}>{inPage ? '주별' : '예배 설교표'}</PillLink>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
@@ -226,7 +226,7 @@ export function MySermons() {
 
   return (
     <section className="block" aria-labelledby="sermon-h">
-      <h2 id="sermon-h" className="pill">내 설교</h2>
+      <PillLink id="sermon-h" href="#sermons">내 설교</PillLink>
       <div className="card">
         <div className="card-head">
           <span className="muted">다가오는 설교 · 2주 안</span>
@@ -290,6 +290,7 @@ export function SermonsMonth() {
   const wants = (service) => show === 'all' || show === 'mine' || show === service || (show === 'wedfri' && (service === 'wed' || service === 'fri'))
   const mineOnly = show === 'mine'
   const filled = (rows ?? []).filter((s) => !isEmpty(s)).length
+  const [view, setView] = useView('sermons')
 
   // 날짜 하루에 들어갈 칸: 새벽(매일), 수요(수), 금요(금)는 비어 있어도 자리를 보여주고, 특별 예배는 있는 것만
   function slotsOf(d) {
@@ -310,9 +311,10 @@ export function SermonsMonth() {
     <>
       <header className="title">
         <h1 className="display page-title">SERMONS</h1>
-        <span className="muted">예배 설교표 · 월별</span>
+        <span className="muted">예배 설교표</span>
+        <ViewSwitch value={view} onChange={setView} />
       </header>
-      <section className="block" aria-labelledby="smonth-h">
+      {view === 'week' ? <SermonTable inPage /> : <section className="block" aria-labelledby="smonth-h">
         <div className="block-head">
           <h2 id="smonth-h" className="pill">{month.getFullYear()}년 {month.getMonth() + 1}월</h2>
           <div className="month-nav">
@@ -348,7 +350,7 @@ export function SermonsMonth() {
           </div>
         </div>
         <p className="note">이번 달 입력된 설교 {filled}편. 칸을 누르면 설교자와 본문을 입력하거나 고칠 수 있습니다. 진한 초록 칸은 내 설교입니다.</p>
-      </section>
+      </section>}
     </>
   )
 }
