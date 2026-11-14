@@ -1,6 +1,6 @@
 // 실제 데이터(Supabase)와 연결된 부분: 교회 일정, 차량 예약
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean, can } from './auth.jsx'
+import { supabase, useAuth, toKorean } from './auth.jsx'
 
 /* ---------- 날짜 ---------- */
 const DOW_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

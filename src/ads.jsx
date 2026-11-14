@@ -1,6 +1,6 @@
 // 주보 광고: 사역자 누구나 주(주일 날짜)별로 올리고, 담당자가 한 주치를 한 번에 복사해 주보에 붙인다.
 import { useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean, can } from './auth.jsx'
+import { supabase, useAuth, toKorean } from './auth.jsx'
 import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
 
 // 기본은 다가오는 주일 (오늘이 주일이면 오늘)

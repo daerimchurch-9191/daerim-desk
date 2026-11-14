@@ -13,7 +13,6 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | todos | 내 할 일 (repeat_dow 만 있으면 매주, repeat_week 까지 있으면 매월 n째·마지막 주 반복) | 본인만 | 본인만 |
 | notices | 공지 (audience: all·parish·edu, until 지나면 화면에서 숨김) | 전체 공지는 모두, 교구·교육부 공지는 그 소속(profiles.dept → departments.grp)과 관리자 | 관리자 |
 | notice_reads | 읽은 공지 (새 글 개수용) | 본인만 | 본인만 |
-| folders | 내 폴더 (kind: web 은 새 탭으로 열기, path 는 컴퓨터·나스 경로 복사) | 본인만 | 본인만 |
 
 승인 대기(pending) 상태인 사람은 자기 정보 외에는 아무것도 볼 수 없다.
 사용 중지(inactive) 상태도 마찬가지다. 교회를 떠난 사역자는 관리자가 회원 관리에서 사용 중지하며, 계정과 그분이 남긴 기록은 지우지 않는다.

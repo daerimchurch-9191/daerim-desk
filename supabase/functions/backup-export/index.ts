@@ -1,11 +1,12 @@
-// 자동 백업: 교회 컴퓨터(또는 나스)가 매일 불러서 모든 표를 JSON 한 파일로 받아 간다.
+// 자동 백업: 교회 컴퓨터가 매주(토 12시) 불러서 모든 표를 JSON 한 파일로 받아 간다.
 // 요청 머리에 x-backup-token(관리자 화면의 "백업 열쇠")이 맞아야 한다. 열쇠는 금고(vault)에 있다.
 // 비밀번호는 백업에 들어가지 않는다 (복원하면 사역자들은 비밀번호를 다시 정해야 한다).
 // Supabase 에 배포된 함수(backup-export)와 같은 내용이다.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const TABLES = ['departments', 'profiles', 'events', 'sermons', 'vehicles', 'vehicle_bookings', 'todos',
-  'notices', 'notice_reads', 'bulletin_ads', 'visit_messages', 'folders', 'backup_runs']
+  'notices', 'notice_reads', 'bulletin_ads', 'visit_messages', 'backup_runs',
+  'sheet_sync_state', 'calendar_sync_state', 'calendar_event_state']
 
 const same = (a: string, b: string) => {
   if (a.length !== b.length) return false
