@@ -54,3 +54,10 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 - 백업 = 모든 표 + 로그인 계정 목록(비밀번호 제외)을 JSON 한 파일로. 백업 파일은 지우지 않고 모두 보관한다. 실행할 때마다 `backup_runs`에 기록 → 관리자 화면에 "마지막 백업" 표시.
 - 열쇠는 금고(vault)의 `backup_token`. `get_backup_token()`·`rotate_backup_token()`은 관리자만. 열쇠를 바꾸면 예전 .bat은 작동하지 않는다.
 - 함수는 로그인 없이 열쇠로만 확인한다 (verify_jwt 끔).
+
+## 새벽 담당표 구글 시트 연동 (dawn-sheet-sync)
+
+- 시트 "새벽 기도 담당표"(달 탭마다 "○○년 ○월" 제목, 주일~토 칸, 한 주 = 날짜/본문/담당자 3줄) 안에 Apps Script를 넣어 쓴다. 코드는 회원 관리 → "새벽 담당표 시트 연동" → "연동 코드 복사" (열쇠 포함, `src/sheetsync.jsx`).
+- 스크립트가 시트 수정 때마다 + 10분마다 시트 전체를 보낸다. 함수는 `sheet_sync_state`(마지막으로 맞춘 값)와 비교해 시트가 바뀐 날은 대시보드(sermons, service='dawn')에, 대시보드만 바뀐 날은 시트에 써 넣을 값을 돌려준다. 양쪽이 같은 날을 동시에 바꾸면 시트가 이긴다.
+- 담당자 이름이 승인된 사역자 이름과 같으면 preacher_id로, 아니면(예: "담임목사") preacher_name 글자로 저장한다.
+- 열쇠는 금고의 `sheet_token`, `get_sheet_token()`은 관리자만. 실행 기록은 `sheet_sync_runs`(14일 보관).
