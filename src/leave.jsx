@@ -327,7 +327,7 @@ function LeaveCalendar({ reqs, people, onChange }) {
         <span className="tag tag-leave round">승인</span><span className="tag tag-leave is-pending round">승인 대기</span>
       </div>
       <div className="card scroll-x">
-        <div className="month month-hide-empty" data-empty="이번 달 연차가 없습니다.">
+        <div className="month month-grid-always">
           {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
           {cells.map((d, i) => {
             if (!d) return <div key={i} className="month-cell is-empty" />
