@@ -6,7 +6,7 @@ import { PushSettingsModal } from './PushSettings.jsx'
 import { VisitsPage } from './visits.jsx'
 import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
-import { DataProvider, useData, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
+import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
 import { links } from './data.js'
@@ -62,7 +62,7 @@ function Sidebar({ open, onClose, page, notices }) {
         <span className="avatar"><Icon name="user" /></span>
         <div className="profile-text">
           <strong>{profile.name} {profile.title}님</strong>
-          <span>{profile.dept || '소속 없음'}{profile.role === 'admin' ? ' · 관리자' : ''}</span>
+          <span>{deptNames(profile.dept_ids, departments) || '소속 없음'}{profile.role === 'admin' ? ' · 관리자' : ''}</span>
         </div>
         <button type="button" className="icon-btn" aria-label="설정" aria-expanded={gearOpen} onClick={() => setGearOpen(!gearOpen)}>
           <Icon name="gear" size={22} />

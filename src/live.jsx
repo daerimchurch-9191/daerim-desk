@@ -130,6 +130,27 @@ const deptTag = (departments, id) => `tag-${departments.find((d) => d.id === id)
 export const GROUPS = [{ id: 'all', name: '교회 전체' }, { id: 'edu', name: '교육부' }, { id: 'parish', name: '교구' }]
 const LEGEND = [...GROUPS, { id: 'personal', name: '개인' }]
 
+// 부서 이름들 (여러 부서)
+export const deptNames = (ids, departments) => (ids ?? []).map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean).join(' · ')
+
+// 소속 부서 여러 개 고르기 (가입·정보 수정)
+export function DeptChecks({ departments, value, onChange }) {
+  const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
+  const group = (g, label) => (
+    <div className="dept-checks-group">
+      <span className="muted small">{label}</span>
+      <div className="dept-checks">
+        {departments.filter((d) => d.grp === g).map((d) => (
+          <label key={d.id} className={`dept-chip${value.includes(d.id) ? ' is-on' : ''}`}>
+            <input type="checkbox" checked={value.includes(d.id)} onChange={() => toggle(d.id)} />{d.name}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+  return <fieldset className="field dept-fieldset"><legend>소속 부서 <small>(여러 개 고를 수 있음)</small></legend>{group('edu', '교육부')}{group('parish', '교구')}</fieldset>
+}
+
 export function DeptSelect({ value, onChange, custom, onCustom, noAll, personal }) {
   const { departments } = useData()
   const of = (g) => departments.filter((d) => d.grp === g)
@@ -208,7 +229,7 @@ function EventModal({ initial, onClose }) {
   const { refresh, notify, departments } = useData()
   const editing = Boolean(initial?.id)
   const canAll = can(profile, 'event_all')
-  const myDept = departments.find((d) => d.name === profile.dept && d.grp !== 'all')?.id
+  const myDept = profile.dept_ids?.[0]
   const canEdit = !editing || profile.role === 'admin' || (initial.dept_id === 'all' ? canAll : initial.created_by === profile.id)
   const s = initial?.starts_at ? new Date(initial.starts_at) : null
   const e = initial?.ends_at ? new Date(initial.ends_at) : null

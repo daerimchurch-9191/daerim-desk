@@ -13,6 +13,9 @@ export const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{2,19}$/
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
 
+// 부서 여러 개: profile_depts(dept_id) 를 dept_ids 배열로 바꿔 둔다
+export const withDepts = (p) => (p ? { ...p, dept_ids: (p.profile_depts ?? []).map((x) => x.dept_id) } : p)
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined) // undefined = 확인 중
   const [profile, setProfile] = useState(null)
@@ -25,8 +28,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(uid) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
-    setProfile(data)
+    const { data } = await supabase.from('profiles').select('*, profile_depts(dept_id)').eq('id', uid).maybeSingle()
+    setProfile(withDepts(data))
     setProfileReady(true)
   }
 

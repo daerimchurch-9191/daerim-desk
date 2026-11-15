@@ -52,14 +52,17 @@ Deno.serve(async (req) => {
     if (me.role !== 'admin' && !(me.perms ?? []).includes('notice')) return reply({ error: '공지 작성 권한이 있어야 알림을 보낼 수 있습니다.' }, 403)
     const { data: n } = await admin.from('notices').select('id, title, body, audience, created_by').eq('id', body.notice_id ?? -1).maybeSingle()
     if (!n) return reply({ error: '공지를 찾을 수 없습니다.' }, 404)
-    const [{ data: people }, { data: depts }] = await Promise.all([
-      admin.from('profiles').select('id, dept, role').eq('status', 'approved'),
-      admin.from('departments').select('name, grp'),
+    const [{ data: people }, { data: depts }, { data: links }] = await Promise.all([
+      admin.from('profiles').select('id, role').eq('status', 'approved'),
+      admin.from('departments').select('id, grp'),
+      admin.from('profile_depts').select('profile_id, dept_id'),
     ])
-    const grp = new Map((depts ?? []).map((d) => [d.name, d.grp]))
+    // 여러 부서를 맡은 사람은 그중 하나라도 받는 범위에 들면 받는다
+    const grp = new Map((depts ?? []).map((d) => [d.id, d.grp]))
+    const inAudience = (id: string) => (links ?? []).some((l) => l.profile_id === id && grp.get(l.dept_id) === n.audience)
     userIds = (people ?? [])
       .filter((p) => p.id !== n.created_by)
-      .filter((p) => n.audience === 'all' || p.role === 'admin' || grp.get(p.dept) === n.audience)
+      .filter((p) => n.audience === 'all' || p.role === 'admin' || inAudience(p.id))
       .map((p) => p.id)
     const text = (n.body ?? '').replace(/\s+/g, ' ').trim()
     payload = { title: `[공지] ${n.title}`, body: text.length > 120 ? text.slice(0, 120) + '…' : text, url: './#notices', tag: `notice-${n.id}` }

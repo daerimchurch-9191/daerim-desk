@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, idToEmail, ID_PATTERN, toKorean, useAuth } from './auth.jsx'
+import { DeptChecks } from './live.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -18,7 +19,7 @@ function Shell({ children }) {
 
 export function LoginPage() {
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ id: '', pw: '', pw2: '', name: '', title: '전도사', dept: '' })
+  const [form, setForm] = useState({ id: '', pw: '', pw2: '', name: '', title: '전도사', dept_ids: [] })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [depts, setDepts] = useState([])
@@ -43,7 +44,7 @@ export function LoginPage() {
       : await supabase.auth.signUp({
           email: idToEmail(id),
           password: form.pw,
-          options: { data: { login_id: id, name: form.name.trim(), title: form.title.trim() || '전도사', dept: form.dept.trim() || null } },
+          options: { data: { login_id: id, name: form.name.trim(), title: form.title.trim() || '전도사', dept_ids: form.dept_ids } },
         })
     setBusy(false)
     if (res.error) setError(toKorean(res.error.message))
@@ -61,16 +62,8 @@ export function LoginPage() {
         {isSignup && (
           <>
             <label className="field">이름<input value={form.name} onChange={set('name')} placeholder="예: 박수아" /></label>
-            <div className="field-row">
-              <label className="field">직분<input value={form.title} onChange={set('title')} /></label>
-              <label className="field">소속 부서
-                <select value={form.dept} onChange={set('dept')}>
-                  <option value="">고르기</option>
-                  <optgroup label="교육부">{depts.filter((d) => d.grp === 'edu').map((d) => <option key={d.id}>{d.name}</option>)}</optgroup>
-                  <optgroup label="교구">{depts.filter((d) => d.grp === 'parish').map((d) => <option key={d.id}>{d.name}</option>)}</optgroup>
-                </select>
-              </label>
-            </div>
+            <label className="field">직분<input value={form.title} onChange={set('title')} /></label>
+            <DeptChecks departments={depts} value={form.dept_ids} onChange={(v) => setForm({ ...form, dept_ids: v })} />
           </>
         )}
         <label className="field">비밀번호

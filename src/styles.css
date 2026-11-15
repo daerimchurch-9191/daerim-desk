@@ -178,7 +178,7 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .auth-side .logo { align-self: flex-start; width: 210px; height: 80px; }
 .auth-title { font-size: 72px; margin-top: 24px; }
 .auth-sub { color: var(--side-muted); }
-.auth-main { flex: 2 1 420px; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+.auth-main { flex: 2 1 420px; min-width: 0; max-width: 100%; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
 .auth-card { width: 420px; max-width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 16px; }
 .field-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
 .field input { width: 100%; min-width: 0; }
@@ -193,6 +193,7 @@ small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .member-row:last-child { border-bottom: 0; }
 @media (max-width: 860px) {
   .auth-side { padding: 28px 20px; flex-basis: 100%; }
+  .auth-main { flex-basis: 100%; }
   .auth-title { font-size: 44px; margin-top: 8px; }
 }
 
@@ -538,3 +539,13 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .tag-car .tag-x { display: block; }
 .car-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 4px 0; }
 @media (min-width: 701px) { .week-cars .week-day { min-height: 180px; } }
+
+/* 소속 부서 여러 개 고르기 */
+.dept-fieldset { border: 0; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.dept-fieldset legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; padding: 0; }
+.dept-checks-group { display: flex; flex-direction: column; gap: 4px; }
+.dept-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.dept-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line, #d9dcda); font-size: 14px; cursor: pointer; background: #fff; user-select: none; }
+.dept-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dept-chip.is-on { background: var(--green, #0F6B54); border-color: var(--green, #0F6B54); color: #fff; }
+.dept-chip:has(input:focus-visible) { outline: 2px solid var(--green, #0F6B54); outline-offset: 2px; }

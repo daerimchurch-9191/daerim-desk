@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase, useAuth, toKorean } from './auth.jsx'
-import { useData, Modal } from './live.jsx'
+import { supabase, useAuth, toKorean, withDepts } from './auth.jsx'
+import { useData, Modal, DeptChecks, deptNames } from './live.jsx'
 
 // 관리자가 다른 사역자의 비밀번호를 새로 정해 준다 (Supabase 함수 reset-password)
 function ResetPasswordModal({ person, onClose }) {
@@ -74,16 +74,16 @@ const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반
 // 사역자 정보 고치기: 이름·직분·부서 (부서는 공지 받는 범위를 정하므로 관리자만)
 function EditMemberModal({ person, onClose, onDone }) {
   const { departments } = useData()
-  const [f, setF] = useState({ name: person.name ?? '', title: person.title ?? '', dept: person.dept ?? '' })
+  const [f, setF] = useState({ name: person.name ?? '', title: person.title ?? '', dept_ids: person.dept_ids ?? [] })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setError('') }
-  const of = (g) => departments.filter((d) => d.grp === g)
   async function save(e) {
     e.preventDefault()
     if (!f.name.trim()) return setError('이름을 적어 주세요.')
     setBusy(true)
-    const { error } = await supabase.from('profiles').update({ name: f.name.trim(), title: f.title.trim() || null, dept: f.dept || null }).eq('id', person.id)
+    const r1 = await supabase.rpc('set_member_depts', { member: person.id, depts: f.dept_ids })
+    const { error } = r1.error ? r1 : await supabase.from('profiles').update({ name: f.name.trim(), title: f.title.trim() || null }).eq('id', person.id)
     setBusy(false)
     if (error) return setError(toKorean(error.message))
     onDone(); onClose()
@@ -99,14 +99,8 @@ function EditMemberModal({ person, onClose, onDone }) {
         <label className="field">이름<input value={f.name} onChange={set('name')} /></label>
         <label className="field">직분<input value={f.title} onChange={set('title')} /></label>
       </div>
-      <label className="field">소속 부서
-        <select value={f.dept} onChange={set('dept')}>
-          <option value="">소속 없음</option>
-          <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</optgroup>
-          <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</optgroup>
-        </select>
-      </label>
-      <p className="muted small">부서를 바꾸면 받는 공지 범위(교구·교육부)도 함께 바뀝니다. 심방보고 방은 권한 관리에서 따로 바꿔 주세요.</p>
+      <DeptChecks departments={departments} value={f.dept_ids} onChange={(v) => { setF({ ...f, dept_ids: v }); setError('') }} />
+      <p className="muted small">부서를 바꾸면 받는 공지 범위(교구·교육부)도 함께 바뀝니다. 여러 부서를 맡으면 모두 체크하세요. 심방보고 방은 권한 관리에서 따로 바꿔 주세요.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
   )
@@ -139,14 +133,14 @@ function DeactivateModal({ person, onClose, onDone }) {
 export function AdminPage() {
   const { profile: me, reloadProfile } = useAuth()
   const f = (p) => `${p.name} ${p.title ?? ''}님`
-  const { openModal, refresh, notify } = useData()
+  const { openModal, refresh, notify, departments } = useData()
   const [people, setPeople] = useState(null)
   const [error, setError] = useState('')
 
   async function load() {
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at')
+    const { data, error } = await supabase.from('profiles').select('*, profile_depts(dept_id)').order('created_at')
     if (error) setError(toKorean(error.message))
-    setPeople(data ?? [])
+    setPeople((data ?? []).map(withDepts))
   }
   useEffect(() => { load() }, [])
 
@@ -166,7 +160,7 @@ export function AdminPage() {
     <div key={p.id} className="member-row">
       <div className="grow">
         <strong>{p.name} {p.title}</strong>
-        <span className="muted small"> · {p.login_id}{p.dept ? ` · ${p.dept}` : ''}</span>
+        <span className="muted small"> · {p.login_id}{p.dept_ids.length ? ` · ${deptNames(p.dept_ids, departments)}` : ''}</span>
       </div>
       <span className={`chip${p.status === 'approved' ? '' : ' chip-plain'}`}>{STATUS[p.status]}{p.role === 'admin' ? ' · 관리자' : ''}</span>
       {p.status === 'inactive' && <button type="button" className="btn btn-primary" onClick={async () => { await update(p.id, { status: 'approved' }); refresh(); notify(`${p.name} ${p.title}님 계정을 다시 쓸 수 있게 했습니다.`) }}>다시 사용</button>}

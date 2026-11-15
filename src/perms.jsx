@@ -2,7 +2,7 @@
 // 실제로 막는 것은 데이터베이스 권한 규칙이다(has_perm, is_admin). 이 화면은 체크 표시를 저장할 뿐이다.
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, useAuth, toKorean, PERMS } from './auth.jsx'
-import { useData } from './live.jsx'
+import { useData, deptNames } from './live.jsx'
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x))
 
@@ -23,7 +23,7 @@ export function PermissionsPage() {
   ], [parishes.length])
 
   async function load() {
-    const { data, error } = await supabase.from('profiles').select('id, name, title, dept, role, perms, status').eq('status', 'approved').order('name')
+    const { data, error } = await supabase.from('profiles').select('id, name, title, role, perms, status, profile_depts(dept_id)').eq('status', 'approved').order('name')
     if (error) return setError(toKorean(error.message))
     setPeople(data)
     setDraft(Object.fromEntries(data.map((p) => [p.id, { admin: p.role === 'admin', perms: p.perms ?? [] }])))
@@ -45,11 +45,9 @@ export function PermissionsPage() {
 
   async function save() {
     setBusy(true); setError('')
-    for (const p of changed) {
-      const d = draft[p.id]
-      const { error } = await supabase.from('profiles').update({ role: d.admin ? 'admin' : 'member', perms: d.perms }).eq('id', p.id)
-      if (error) { setBusy(false); setError(`${p.name} ${p.title}님 권한을 저장하지 못했습니다. ${toKorean(error.message)}`); return load() }
-    }
+    // 여러 사람의 권한을 한 번에 저장한다 (중간에 실패하면 모두 저장되지 않음)
+    const { error } = await supabase.rpc('save_perms', { changes: changed.map((p) => ({ id: p.id, admin: draft[p.id].admin, perms: draft[p.id].perms })) })
+    if (error) { setBusy(false); setError(`권한을 저장하지 못했습니다. 아무것도 바뀌지 않았습니다. ${toKorean(error.message)}`); return load() }
     setBusy(false)
     notify(`${changed.length}명의 권한을 저장했습니다.`)
     if (changed.some((p) => p.id === me.id)) reloadProfile()
@@ -92,7 +90,7 @@ export function PermissionsPage() {
                   const dirty = changed.includes(p)
                   return (
                     <tr key={p.id} className={dirty ? 'is-dirty' : ''}>
-                      <th scope="row" className="perm-name"><strong>{p.name} {p.title}</strong><small className="muted">{p.dept || '소속 없음'}</small></th>
+                      <th scope="row" className="perm-name"><strong>{p.name} {p.title}</strong><small className="muted">{deptNames((p.profile_depts ?? []).map((x) => x.dept_id), departments) || '소속 없음'}</small></th>
                       {columns.map((c) => {
                         const on = has(p.id, c.key)
                         const implied = c.key !== 'admin' && !c.key.startsWith('visit') && draft[p.id]?.admin
