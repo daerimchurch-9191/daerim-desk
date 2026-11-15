@@ -258,6 +258,10 @@ export function MySermons() {
 
 /* ---------- 예배 설교표 월별 ---------- */
 const SHORT = { dawn: '새벽', wed: '수요', fri: '금요' }
+// 예배마다 색 (설교표 월별 칸·범례)
+const SVC_LEGEND = [['dawn', '새벽'], ['wed', '수요'], ['fri', '금요'], ['special', '특별']]
+// "이현범 목사" → 이름과 직분을 나눠, 휴대폰 달력 칸에서는 이름만 한 줄로
+const splitTitle = (n) => { const m = n.match(/^(.*\S)\s+(목사|전도사|강도사|장로|권사|집사|사모|선교사)(님)?$/); return m ? <>{m[1]}<i className="ttl"> {m[2]}</i></> : n }
 
 export function SermonsMonth() {
   const { profile } = useAuth()
@@ -328,6 +332,7 @@ export function SermonsMonth() {
           </div>
           <button type="button" className="btn btn-primary" onClick={() => open({ service: 'special', date: ymd(month.getMonth() === now.getMonth() ? now : month) })}>+ 특별 예배</button>
         </div>
+        <div className="svc-legend" aria-label="예배 색">{SVC_LEGEND.map(([k, v]) => <span key={k} className={`sermon-slot svc-${k} legend`}>{v}</span>)}</div>
         <div className="card scroll-x">
           <div className="month month-grid-always">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
@@ -340,8 +345,8 @@ export function SermonsMonth() {
                   const mine = s?.preacher_id === profile.id
                   return (
                     <button key={j} type="button" className={`sermon-slot svc-${service}${empty ? ' is-empty' : ''}${mine ? ' is-mine' : ''}`} onClick={() => open(initial)}>
-                      <b>{service === 'special' ? s.title : SHORT[service]}</b>
-                      {empty ? <span>비어 있음</span> : <span>{nameOf(s) || '설교자 미정'}{s.passage && <small> · {s.passage}</small>}</span>}
+                      {service === 'special' && <b>{s.title}</b>}
+                      {empty ? <span>비어 있음</span> : <span>{splitTitle(nameOf(s) || '미정')}{s.passage && <small> · {s.passage}</small>}</span>}
                     </button>
                   )
                 })}
@@ -349,7 +354,7 @@ export function SermonsMonth() {
             ))}
           </div>
         </div>
-        <p className="note">이번 달 입력된 설교 {filled}편. 칸을 누르면 설교자와 본문을 입력하거나 고칠 수 있습니다. 진한 초록 칸은 내 설교입니다.</p>
+        <p className="note">이번 달 입력된 설교 {filled}편. 칸을 누르면 설교자와 본문을 입력하거나 고칠 수 있습니다. 굵은 테두리 칸은 내 설교입니다.</p>
       </section>}
     </>
   )
