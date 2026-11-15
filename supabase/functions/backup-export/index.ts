@@ -6,6 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const TABLES = ['departments', 'profiles', 'profile_depts', 'events', 'sermons', 'vehicles', 'vehicle_bookings', 'todos',
   'notices', 'notice_reads', 'bulletin_ads', 'visit_messages', 'backup_runs',
+  'leave_balances', 'leave_requests', 'notification_prefs',
   'sheet_sync_state', 'calendar_sync_state', 'calendar_event_state']
 
 const same = (a: string, b: string) => {

@@ -10,7 +10,7 @@ export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.g
 export const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
 export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 export const startOfWeek = (d = new Date()) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -x.getDay()) }
-const sameDay = (a, b) => ymd(a) === ymd(b)
+export const sameDay = (a, b) => ymd(a) === ymd(b)
 const md = (d) => `${d.getMonth() + 1}/${d.getDate()}`
 // 세부 페이지의 월별/주별 선택을 기억한다 (탭을 닫으면 처음엔 월별)
 export function useView(key) {

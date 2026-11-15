@@ -87,3 +87,16 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 - 조회: 승인된 사역자. 단 `dept_id = 'personal'`(개인 일정)은 등록한 사람만.
 - 교회 전체(`all`) 일정은 관리자 또는 `event_all` 권한만 등록·수정·삭제. 권한자는 남이 올린(구글 캘린더에서 온) 교회 전체 일정도 고칠 수 있다.
 - 그 밖의 부서 일정은 등록한 사람과 관리자.
+
+## 연차 (leave_balances, leave_requests)
+
+- `leave_balances(profile_id, year, days)`: 해마다 부여 일수. 본인과 연차 관리자(`is_leave_admin()` = 관리자 또는 `leave_admin`)만 조회, 연차 관리자만 쓰기.
+- `leave_requests`: 신청(part: full/am/pm, days, status: pending/approved/rejected/cancelled, event_id). 본인과 연차 관리자만 조회, 본인만 신청(대기 상태로만).
+- `decide_leave(req, approve, note)`: 연차 관리자. 승인이면 신청자 개인 일정(events, dept 'personal', created_by=신청자)을 만들고 event_id에 적는다. 상태 바꾸기와 일정 만들기가 한 번에.
+- `cancel_leave(req)`: 본인은 대기 중만, 연차 관리자는 승인된 것도. 개인 일정도 지운다.
+
+## 알림 (notification_prefs, notify-event)
+
+- `notification_prefs`: 본인만 읽고 쓴다. 칸: notice, visit, ads, cars, leave, cal_all, cal_mine, cal_edu, cal_parish.
+- 트리거 `kick_notify`: visit_messages·bulletin_ads·vehicle_bookings·events 새 줄, leave_requests 새 줄과 승인/반려 → `notify-event` (pg_net, 열쇠 `notify_token`은 금고, `get_notify_token`은 service_role만).
+- `notify-notice`(공지)도 notice를 끈 사람은 뺀다.
