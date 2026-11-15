@@ -4,7 +4,7 @@
 // Supabase 에 배포된 함수(backup-export)와 같은 내용이다.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const TABLES = ['departments', 'profiles', 'events', 'sermons', 'vehicles', 'vehicle_bookings', 'todos',
+const TABLES = ['departments', 'profiles', 'profile_depts', 'events', 'sermons', 'vehicles', 'vehicle_bookings', 'todos',
   'notices', 'notice_reads', 'bulletin_ads', 'visit_messages', 'backup_runs',
   'sheet_sync_state', 'calendar_sync_state', 'calendar_event_state']
 
