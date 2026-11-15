@@ -75,6 +75,14 @@ export function BarTag({ b, d, cls, onOpen }) {
   )
 }
 
+// 날짜 칸 글: 시간 부분을 따로 감싸 둔다 (휴대폰 달력 칸에서는 시간을 숨기고 제목만)
+export function EventLabel({ e, d }) {
+  const t = eventText(e, d)
+  const s = new Date(e.starts_at)
+  const when = sameDay(s, d) ? (e.all_day ? '종일' : hm(s)) : ''
+  return when ? <><span className="ev-time">{when} </span>{t.slice(when.length + 1)}</> : t
+}
+
 // 기간이 겹치는 일정 가져오기
 const overlapping = (q, from, to) => q.lt('starts_at', to.toISOString())
   .or(`ends_at.gt.${from.toISOString()},and(ends_at.is.null,starts_at.gte.${from.toISOString()})`)
@@ -618,7 +626,7 @@ export function CarsMonth() {
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'car' })}>+ 차량 신청</button>
         </div>
         <div className="card scroll-x">
-          <div className="month month-hide-empty" data-empty="이번 달 차량 신청이 없습니다.">
+          <div className="month month-grid-always">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => (
               <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && sameDay(d, now) ? ' is-today' : ''}`}>
@@ -733,7 +741,7 @@ export function CalendarMonth() {
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'event', initial: { date: ymd(month.getMonth() === now.getMonth() ? now : month) } })}>+ 일정 등록</button>
         </div>
         <div className="card scroll-x">
-          <div className="month month-hide-empty" data-empty="이번 달 일정이 없습니다.">
+          <div className="month month-grid-always">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {(() => { const lay = cells.flatMap((_, i) => (i % 7 ? [] : layoutRow(cells.slice(i, i + 7), shown))); return cells.map((d, i) => {
               if (!d) return <div key={i} className="month-cell is-empty" />
@@ -746,7 +754,7 @@ export function CalendarMonth() {
                     : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
                   {list.map((e) => (
                     <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                      {eventText(e, d)}
+                      <EventLabel e={e} d={d} />
                       {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
                     </button>
                   ))}

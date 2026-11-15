@@ -329,7 +329,7 @@ export function SermonsMonth() {
           <button type="button" className="btn btn-primary" onClick={() => open({ service: 'special', date: ymd(month.getMonth() === now.getMonth() ? now : month) })}>+ 특별 예배</button>
         </div>
         <div className="card scroll-x">
-          <div className="month">
+          <div className="month month-grid-always">
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => (
               <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && ymd(d) === today ? ' is-today' : ''}`}>
@@ -339,9 +339,9 @@ export function SermonsMonth() {
                   const empty = isEmpty(s)
                   const mine = s?.preacher_id === profile.id
                   return (
-                    <button key={j} type="button" className={`sermon-slot${empty ? ' is-empty' : ''}${mine ? ' is-mine' : ''}`} onClick={() => open(initial)}>
+                    <button key={j} type="button" className={`sermon-slot svc-${service}${empty ? ' is-empty' : ''}${mine ? ' is-mine' : ''}`} onClick={() => open(initial)}>
                       <b>{service === 'special' ? s.title : SHORT[service]}</b>
-                      {empty ? <span>비어 있음</span> : <span>{nameOf(s) || '설교자 미정'}{s.passage && ` · ${s.passage}`}</span>}
+                      {empty ? <span>비어 있음</span> : <span>{nameOf(s) || '설교자 미정'}{s.passage && <small> · {s.passage}</small>}</span>}
                     </button>
                   )
                 })}
