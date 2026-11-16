@@ -854,3 +854,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .is-phone .title h1.page-title { font-size: 32px; }
 .is-phone .title { gap: 0; }
 .is-phone .month.month-grid-always { overflow: hidden; }
+/* 옆으로 넘기기: 움직이는 부분 (위쪽 검정 바는 그대로) */
+.swipe-page { display: flex; flex-direction: column; gap: inherit; min-width: 0; will-change: transform; }
+.is-phone .main { overflow-x: clip; }
+.is-phone .swipe-page { touch-action: pan-y; }

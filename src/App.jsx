@@ -198,28 +198,74 @@ function PhoneTabs({ page }) {
 }
 
 // 휴대폰: 화면 가운데를 옆으로 밀면 홈 → 캘린더 → 차량 → 설교표
+// 손가락을 따라 화면이 움직이고, 놓으면 밀려 나간 뒤 다음 화면이 들어온다
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 function useSwipeTabs(ref, page, enabled) {
+  // 들어오는 화면: 어느 쪽에서 들어올지 (탭을 눌러도 같은 움직임)
+  const last = useRef(page)
+  useEffect(() => {
+    const el = ref.current, from = TAB_PAGES.indexOf(last.current), to = TAB_PAGES.indexOf(page)
+    last.current = page
+    if (!el || !enabled || from < 0 || to < 0 || from === to || reduceMotion()) { if (el) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = '' } return }
+    el.style.transition = 'none'
+    el.style.transform = `translateX(${to > from ? 36 : -36}%)`
+    el.style.opacity = '0.4'
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'transform .24s cubic-bezier(.2,.8,.2,1), opacity .24s'
+      el.style.transform = ''
+      el.style.opacity = ''
+    }))
+  }, [page])
+
   useEffect(() => {
     const el = ref.current
     if (!el || !enabled || !TAB_PAGES.includes(page)) return
-    let sx = 0, sy = 0, ok = false
+    const idx = TAB_PAGES.indexOf(page)
+    let sx = 0, sy = 0, ok = false, mode = '' // '' 아직 모름 · 'x' 옆으로 · 'y' 위아래
+    const W = () => window.innerWidth
     const start = (e) => {
       const t = e.touches[0]
-      sx = t.clientX; sy = t.clientY
+      sx = t.clientX; sy = t.clientY; mode = ''
       // 화면 끝(아이폰 뒤로 가기)·옆으로 움직이는 부분·입력칸·창 안에서는 넘기지 않는다
-      ok = sx > 28 && sx < window.innerWidth - 28 && !e.target.closest('input, textarea, select, .no-swipe, .hc-seg, .tabs, .scroll-x, .month, .dialog, .overlay, .sheet-wrap, .phone-search')
+      ok = sx > 28 && sx < W() - 28 && !e.target.closest('input, textarea, select, .no-swipe, .hc-seg, .tabs, .scroll-x, .month, .dialog, .overlay, .sheet-wrap, .phone-search, .hb-pop')
+    }
+    const move = (e) => {
+      if (!ok) return
+      const t = e.touches[0]
+      const dx = t.clientX - sx, dy = t.clientY - sy
+      if (!mode) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+        mode = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y'
+      }
+      if (mode !== 'x') return
+      e.preventDefault()
+      // 맨 처음·맨 끝 화면에서는 고무줄처럼 덜 움직인다
+      const edge = (dx > 0 && idx === 0) || (dx < 0 && idx === TAB_PAGES.length - 1)
+      el.style.transition = 'none'
+      el.style.transform = `translateX(${edge ? dx * 0.25 : dx}px)`
     }
     const end = (e) => {
-      if (!ok) return
-      const t = e.changedTouches[0]
-      const dx = t.clientX - sx, dy = t.clientY - sy
-      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return
-      const i = TAB_PAGES.indexOf(page) + (dx < 0 ? 1 : -1)
-      if (i >= 0 && i < TAB_PAGES.length) location.hash = TAB_HASH[TAB_PAGES[i]]
+      if (!ok || mode !== 'x') return
+      const dx = e.changedTouches[0].clientX - sx
+      const i = idx + (dx < 0 ? 1 : -1)
+      if (Math.abs(dx) > 70 && i >= 0 && i < TAB_PAGES.length) {
+        el.style.transition = 'transform .16s ease-in, opacity .16s'
+        el.style.transform = `translateX(${dx < 0 ? -45 : 45}%)`
+        el.style.opacity = '0.3'
+        setTimeout(() => { location.hash = TAB_HASH[TAB_PAGES[i]] }, 150)
+      } else {
+        el.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'
+        el.style.transform = ''
+      }
     }
     el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
     el.addEventListener('touchend', end, { passive: true })
-    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchend', end) }
+    el.addEventListener('touchcancel', end, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end); el.removeEventListener('touchcancel', end)
+    }
   }, [page, enabled])
 }
 
@@ -235,7 +281,7 @@ function Desk() {
       <Sidebar open={menuOpen} page={page} notices={notices} onClose={() => setMenuOpen(false)} />
       {menuOpen && <div className="scrim only-mobile" onClick={() => setMenuOpen(false)} />}
 
-      <main className="main" ref={mainRef}>
+      <main className="main">
         <div className="mobile-bar only-mobile">
           <button type="button" className="icon-btn" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
             <Icon name="menu" size={22} width={2.2} />
@@ -244,6 +290,7 @@ function Desk() {
           {phone && <span className="mobile-tools"><PhoneTools notices={notices} /></span>}
         </div>
 
+        <div className="swipe-page" ref={mainRef}>
         <div className="ticker" aria-hidden="true">
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
@@ -270,6 +317,7 @@ function Desk() {
         </div>
           </>
         )}
+        </div>
       </main>
       {phone && <PhoneTabs page={page} />}
     </div>
