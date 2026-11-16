@@ -197,65 +197,86 @@ function PhoneTabs({ page }) {
   )
 }
 
-// 휴대폰: 화면 가운데를 옆으로 밀면 홈 → 캘린더 → 차량 → 설교표
-// 손가락을 따라 화면이 움직이고, 놓으면 밀려 나간 뒤 다음 화면이 들어온다
+// 휴대폰: 아이폰 홈 화면처럼 네 화면(홈·캘린더·차량·설교표)을 옆으로 나란히 두고,
+// 손가락을 따라 현재 화면과 옆 화면이 함께 움직인다. 놓으면 남은 거리만큼 부드럽게 미끄러진다.
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-function useSwipeTabs(ref, page, enabled) {
-  // 들어오는 화면: 어느 쪽에서 들어올지 (탭을 눌러도 같은 움직임)
-  const last = useRef(page)
+const PANELS = { home: () => <PhoneHome />, calendar: () => <CalendarMonth />, cars: () => <CarsMonth />, sermons: () => <SermonsMonth /> }
+const EASE = 'transform .34s cubic-bezier(.22,.8,.24,1)'
+
+function SwipeTrack({ page, enabled }) {
+  const idx = TAB_PAGES.indexOf(page)
+  const track = useRef(null)
+  const panels = useRef([])
+  // 한 번 열린 화면은 계속 붙여 둔다 (다시 넘길 때 바로 보이게). 처음에는 지금 화면과 양옆만.
+  const [mounted, setMounted] = useState(() => new Set([idx - 1, idx, idx + 1]))
+  useEffect(() => { setMounted((m) => (m.has(idx - 1) && m.has(idx) && m.has(idx + 1) ? m : new Set([...m, idx - 1, idx, idx + 1]))) }, [idx])
+
+  const place = (i, dx = 0, anim = false) => {
+    const el = track.current
+    if (!el) return
+    el.style.transition = anim && !reduceMotion() ? EASE : 'none'
+    el.style.transform = `translate3d(calc(${-i * 100}% + ${dx}px), 0, 0)`
+  }
+  // 옆 화면들은 지금 보고 있는 높이에 맞춰 둔다 (아래로 내려 본 상태에서 밀어도 옆 화면의 위쪽이 보이게)
+  const alignSides = (y) => panels.current.forEach((p, i) => { if (p && i !== idx) p.style.transform = `translateY(${y}px)` })
+  const clearSides = () => panels.current.forEach((p) => { if (p) p.style.transform = '' })
+
+  // 탭을 누르거나 주소가 바뀌면 그 화면으로 미끄러진다
+  const shown = useRef(idx)
   useEffect(() => {
-    const el = ref.current, from = TAB_PAGES.indexOf(last.current), to = TAB_PAGES.indexOf(page)
-    last.current = page
-    if (!el || !enabled || from < 0 || to < 0 || from === to || reduceMotion()) { if (el) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = '' } return }
-    el.style.transition = 'none'
-    el.style.transform = `translateX(${to > from ? 36 : -36}%)`
-    el.style.opacity = '0.4'
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.transition = 'transform .24s cubic-bezier(.2,.8,.2,1), opacity .24s'
-      el.style.transform = ''
-      el.style.opacity = ''
-    }))
-  }, [page])
+    if (shown.current === idx) { place(idx); return }
+    shown.current = idx
+    clearSides()
+    place(idx, 0, true)
+  }, [idx])
 
   useEffect(() => {
-    const el = ref.current
-    if (!el || !enabled || !TAB_PAGES.includes(page)) return
-    const idx = TAB_PAGES.indexOf(page)
-    let sx = 0, sy = 0, ok = false, mode = '' // '' 아직 모름 · 'x' 옆으로 · 'y' 위아래
-    const W = () => window.innerWidth
+    const el = track.current
+    if (!el || !enabled) return
+    let sx = 0, sy = 0, st = 0, ok = false, mode = '', lastX = 0, lastT = 0, vx = 0
+    const W = () => el.parentElement.clientWidth
     const start = (e) => {
       const t = e.touches[0]
-      sx = t.clientX; sy = t.clientY; mode = ''
-      // 화면 끝(아이폰 뒤로 가기)·옆으로 움직이는 부분·입력칸·창 안에서는 넘기지 않는다
-      ok = sx > 28 && sx < W() - 28 && !e.target.closest('input, textarea, select, .no-swipe, .hc-seg, .tabs, .scroll-x, .month, .dialog, .overlay, .sheet-wrap, .phone-search, .hb-pop')
+      sx = lastX = t.clientX; sy = t.clientY; st = lastT = performance.now(); mode = ''; vx = 0
+      ok = sx > 24 && sx < window.innerWidth - 24 && !e.target.closest('input, textarea, select, .no-swipe, .hc-seg, .tabs, .scroll-x, .month, .dialog, .overlay, .sheet-wrap, .phone-search, .hb-pop')
     }
     const move = (e) => {
       if (!ok) return
       const t = e.touches[0]
       const dx = t.clientX - sx, dy = t.clientY - sy
       if (!mode) {
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
-        mode = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y'
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        mode = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+        if (mode === 'x') alignSides(window.scrollY)
       }
       if (mode !== 'x') return
       e.preventDefault()
-      // 맨 처음·맨 끝 화면에서는 고무줄처럼 덜 움직인다
+      const now = performance.now()
+      vx = (t.clientX - lastX) / Math.max(1, now - lastT); lastX = t.clientX; lastT = now
       const edge = (dx > 0 && idx === 0) || (dx < 0 && idx === TAB_PAGES.length - 1)
-      el.style.transition = 'none'
-      el.style.transform = `translateX(${edge ? dx * 0.25 : dx}px)`
+      place(idx, edge ? dx / 3 : dx)
     }
     const end = (e) => {
       if (!ok || mode !== 'x') return
-      const dx = e.changedTouches[0].clientX - sx
-      const i = idx + (dx < 0 ? 1 : -1)
-      if (Math.abs(dx) > 70 && i >= 0 && i < TAB_PAGES.length) {
-        el.style.transition = 'transform .16s ease-in, opacity .16s'
-        el.style.transform = `translateX(${dx < 0 ? -45 : 45}%)`
-        el.style.opacity = '0.3'
-        setTimeout(() => { location.hash = TAB_HASH[TAB_PAGES[i]] }, 150)
+      const dx = (e.changedTouches[0]?.clientX ?? lastX) - sx
+      // 반 넘게 밀었거나, 빠르게 튕기면 넘어간다
+      const flick = Math.abs(vx) > 0.35 && Math.abs(dx) > 24
+      const go = Math.abs(dx) > W() * 0.35 || flick
+      const dir = (flick ? vx : dx) < 0 ? 1 : -1
+      const next = idx + dir
+      if (go && next >= 0 && next < TAB_PAGES.length) {
+        shown.current = next
+        place(next, 0, true)
+        const done = () => {
+          el.removeEventListener('transitionend', done)
+          window.scrollTo(0, 0)
+          clearSides()
+          location.hash = TAB_HASH[TAB_PAGES[next]]
+        }
+        if (reduceMotion()) done(); else el.addEventListener('transitionend', done)
       } else {
-        el.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'
-        el.style.transform = ''
+        place(idx, 0, true)
+        setTimeout(clearSides, 360)
       }
     }
     el.addEventListener('touchstart', start, { passive: true })
@@ -266,7 +287,20 @@ function useSwipeTabs(ref, page, enabled) {
       el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move)
       el.removeEventListener('touchend', end); el.removeEventListener('touchcancel', end)
     }
-  }, [page, enabled])
+  }, [idx, enabled])
+
+  return (
+    <div className="swipe-viewport">
+      <div className="swipe-track" ref={track} style={{ transform: `translate3d(${-idx * 100}%, 0, 0)` }}>
+        {TAB_PAGES.map((id, i) => (
+          <section key={id} ref={(n) => { panels.current[i] = n }} className={`swipe-panel${i === idx ? ' is-active' : ''}`}
+            aria-hidden={i !== idx} inert={i !== idx ? '' : undefined}>
+            {mounted.has(i) && PANELS[id]()}
+          </section>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function Desk() {
@@ -274,8 +308,6 @@ function Desk() {
   const notices = useNotices()
   const [menuOpen, setMenuOpen] = useState(false)
   const phone = useIsPhone()
-  const mainRef = useRef(null)
-  useSwipeTabs(mainRef, page, phone && !menuOpen)
   return (
     <div className={`app${phone ? ' is-phone' : ''}`}>
       <Sidebar open={menuOpen} page={page} notices={notices} onClose={() => setMenuOpen(false)} />
@@ -290,13 +322,13 @@ function Desk() {
           {phone && <span className="mobile-tools"><PhoneTools notices={notices} /></span>}
         </div>
 
-        <div className="swipe-page" ref={mainRef}>
+        <div className="swipe-page">
         <div className="ticker" aria-hidden="true">
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
-          phone ? <PhoneHome /> : <>
+        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+          <>
         <div className="home-top">
           <header className="title">
             <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>

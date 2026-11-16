@@ -858,3 +858,14 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .swipe-page { display: flex; flex-direction: column; gap: inherit; min-width: 0; will-change: transform; }
 .is-phone .main { overflow-x: clip; }
 .is-phone .swipe-page { touch-action: pan-y; }
+/* 휴대폰 옆으로 넘기기: 네 화면을 나란히 (아이폰 홈 화면처럼) */
+.swipe-viewport { overflow: clip; margin: 0 -16px; }
+.swipe-track { display: flex; align-items: flex-start; will-change: transform; touch-action: pan-y; }
+.swipe-panel { flex: 0 0 100%; min-width: 0; padding: 0 16px; display: flex; flex-direction: column; gap: 20px; }
+.swipe-panel:not(.is-active) { max-height: 100vh; overflow: hidden; }
+/* 아래 탭: 조금 더 높게, 아이폰 홈 막대와 떨어지게 */
+.is-phone .phone-tabs { padding: 8px 6px max(14px, calc(env(safe-area-inset-bottom) + 4px)); }
+.ptab { min-height: 54px; gap: 3px; font-size: 11px; }
+.ptab-plus svg { margin-top: -20px; }
+.is-phone .main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.is-phone .mobile-bar { padding-top: max(12px, env(safe-area-inset-top)); }
