@@ -90,7 +90,7 @@ const range = (a, b) => `[${a.toISOString()},${b.toISOString()})`
 const kDate = (d) => `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW_KO[d.getDay()]})`
 
 // '["2026-11-14 00:00:00+00","2026-11-14 06:00:00+00")' → [Date, Date]
-function parseRange(r) {
+export function parseRange(r) {
   const m = r.match(/^[[(]"?([^",]+)"?,"?([^",\])]+)"?[\])]$/)
   const fix = (s) => new Date(s.trim().replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'))
   return [fix(m[1]), fix(m[2])]
@@ -434,6 +434,33 @@ export function PillLink({ id, href, inPage, children }) {
     : <h2 id={id} className="pill pill-link"><a href={href}>{children}<span aria-hidden="true"> ›</span></a></h2>
 }
 
+// 홈 카드 머리: 제목(누르면 세부 페이지) · 기간 · ‹ › · 오늘 · 오른쪽 버튼들
+export function HomeHead({ id, title, href, range, week0, setWeek0, children }) {
+  const thisWeek = startOfWeek()
+  return (
+    <div className="hc-head">
+      <h2 id={id} className="hc-title">{href ? <a href={href}>{title}</a> : title}</h2>
+      {range && <span className="hc-range">{range}</span>}
+      {setWeek0 && (
+        <span className="hc-nav">
+          <button type="button" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
+          <button type="button" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
+          <button type="button" className={`hc-today${sameDay(week0, thisWeek) ? ' is-now' : ''}`} onClick={() => setWeek0(thisWeek)}>오늘</button>
+        </span>
+      )}
+      {children && <span className="hc-right">{children}</span>}
+    </div>
+  )
+}
+const rangeText = (a, b) => `${a.getMonth() + 1}.${a.getDate()} – ${b.getMonth() + 1}.${b.getDate()}`
+export const weekRange = (week0) => rangeText(week0, addDays(week0, 6))
+const dayHead = (d, inPage) => (
+  <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}>
+    {inPage ? <span>{DOW_EN[d.getDay()]} · {d.getDate()}</span> : <span><small>{DOW_KO[d.getDay()]}</small> <b>{d.getDate()}</b></span>}
+  </span>
+)
+const CAL_FILTERS = [['', '전체'], ['all', '교회'], ['edu', '교육부'], ['parish', '교구'], ['personal', '개인']]
+
 // 세부 페이지 제목 옆 월별 / 주별 바꾸기
 export function ViewSwitch({ value, onChange }) {
   return (
@@ -449,6 +476,7 @@ export function WeekCalendar({ inPage }) {
   const { departments, version, openModal } = useData()
   const [week0, setWeek0] = useState(startOfWeek())
   const [events, setEvents] = useState(null)
+  const [grp, setGrp] = useState('')
   const days = [...Array(7)].map((_, i) => addDays(week0, i))
   const today = new Date()
 
@@ -458,40 +486,59 @@ export function WeekCalendar({ inPage }) {
       .then(({ data }) => setEvents(data ?? []))
   }, [week0, version])
 
+  const grpOf = (e) => departments.find((d) => d.id === e.dept_id)?.grp ?? 'all'
+  const shownEvents = events && grp ? events.filter((e) => grpOf(e) === grp) : events
+
+  const grid = (
+    <div className="week">
+      {(() => { const lay = layoutRow(days, shownEvents ?? []); return days.map((d, di) => {
+        const { bars, singles: list } = lay[di]
+        return (
+          <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
+            {dayHead(d, inPage)}
+            {events === null && <span className="skeleton" />}
+            {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
+              : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
+            {list.map((e) => (
+              <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
+                {eventText(e, d)}
+                {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
+              </button>
+            ))}
+            <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
+          </div>
+        )
+      }) })()}
+    </div>
+  )
+
+  if (!inPage) {
+    return (
+      <section className="hc" aria-labelledby="week-h">
+        <HomeHead id="week-h" title="주간 캘린더" href="#calendar" range={weekRange(week0)} week0={week0} setWeek0={setWeek0}>
+          <span className="hc-seg" role="group" aria-label="부서 묶음">
+            {CAL_FILTERS.map(([id, name]) => <button key={id} type="button" className={grp === id ? 'is-on' : ''} aria-pressed={grp === id} onClick={() => setGrp(id)}>{name}</button>)}
+          </span>
+          <a href="#calendar" className="hc-more">교회 캘린더 →</a>
+        </HomeHead>
+        <div className="hc-scroll">{grid}</div>
+        <div className="hc-legend">{LEGEND.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}</div>
+      </section>
+    )
+  }
+
   return (
     <section className="block" aria-labelledby="week-h">
       <div className="block-head">
-        <PillLink id="week-h" href="#calendar" inPage={inPage}>{inPage ? '주별' : 'Weekly Calendar'}</PillLink>
+        <PillLink id="week-h" href="#calendar" inPage={inPage}>주별</PillLink>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
         <strong className="grow">{week0.getFullYear()}년 {kDate(days[0]).replace(/ \(.\)/, '')} – {kDate(days[6]).replace(/ \(.\)/, '')}</strong>
         {LEGEND.map((g) => <span key={g.id} className={`tag tag-${g.id} round`}>{g.name}</span>)}
-        {!inPage && <a href="#calendar" className="btn btn-link">월별로 보기</a>}
       </div>
-      <div className="card scroll-x">
-        <div className="week">
-          {(() => { const lay = layoutRow(days, events ?? []); return days.map((d, di) => {
-            const { bars, singles: list } = lay[di]
-            return (
-              <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
-                <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
-                {events === null && <span className="skeleton" />}
-                {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
-                  : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
-                {list.map((e) => (
-                  <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
-                    {eventText(e, d)}
-                    {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
-                  </button>
-                ))}
-                <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
-              </div>
-            )
-          }) })()}
-        </div>
-      </div>
+      <div className="card scroll-x">{grid}</div>
     </section>
   )
 }
@@ -548,41 +595,53 @@ export function CarsWeek({ inPage }) {
   const days = [...Array(7)].map((_, i) => addDays(week0, i))
   const bookings = useBookings(week0, addDays(week0, 7))
   const today = new Date()
+  const body = vehicles.length === 0 ? (
+    <div className="empty">등록된 차량이 없습니다. 관리자가 차량 현황 화면에서 차량을 등록하면 여기에 나타납니다.</div>
+  ) : (
+    <div className="week week-cars">
+      {days.map((d) => {
+        const list = (bookings ?? []).filter((b) => sameDay(b.span[0], d)).sort((a, b) => a.span[0] - b.span[0])
+        return (
+          <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
+            {dayHead(d, inPage)}
+            {bookings === null && <span className="skeleton" />}
+            {list.map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />)}
+            <button type="button" className="add-slot" aria-label={`${kDate(d)} 차량 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
+          </div>
+        )
+      })}
+    </div>
+  )
+  const legend = vehicles.length > 0 && (
+    <div className="car-legend" aria-label="차량 색">
+      {vehicles.map((v) => <span key={v.id} className="tag round" style={carStyle(vehicles, v.id)}>{v.name}</span>)}
+    </div>
+  )
+
+  if (!inPage) {
+    return (
+      <section className="hc" aria-labelledby="car-h">
+        <HomeHead id="car-h" title="차량 현황" href="#cars" range={weekRange(week0)} week0={week0} setWeek0={setWeek0}>
+          <button type="button" className="hc-btn is-green" onClick={() => openModal({ type: 'car' })}>+ 차량 신청</button>
+          <a href="#cars" className="hc-more">차량 현황 →</a>
+        </HomeHead>
+        <div className="hc-scroll">{body}</div>
+        {legend}
+      </section>
+    )
+  }
+
   return (
     <section className="block" aria-labelledby="car-h">
       <div className="block-head">
-        <PillLink id="car-h" href="#cars" inPage={inPage}>{inPage ? '주별' : '차량 현황'}</PillLink>
+        <PillLink id="car-h" href="#cars" inPage={inPage}>주별</PillLink>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
         </div>
         <strong className="grow">{sameDay(week0, startOfWeek()) ? '이번 주' : `${md(days[0])} – ${md(days[6])}`}</strong>
-        {!inPage && <a href="#cars" className="btn btn-link">월별로 보기</a>}
       </div>
-      <div className="card scroll-x">
-        {vehicles.length === 0 ? (
-          <div className="empty">등록된 차량이 없습니다. 관리자가 차량 현황 화면에서 차량을 등록하면 여기에 나타납니다.</div>
-        ) : (
-          <div className="week week-cars">
-            {days.map((d) => {
-              const list = (bookings ?? []).filter((b) => sameDay(b.span[0], d)).sort((a, b) => a.span[0] - b.span[0])
-              return (
-                <div key={ymd(d)} className={`week-day${sameDay(d, today) ? ' is-today' : ''}`}>
-                  <span className="week-head" data-ko={`${d.getDate()} ${DOW_KO[d.getDay()]}`}><span>{DOW_EN[d.getDay()]} · {d.getDate()}</span></span>
-                  {bookings === null && <span className="skeleton" />}
-                  {list.map((b) => <BookingTag key={b.id} b={b} departments={departments} vehicles={vehicles} showCar />)}
-                  <button type="button" className="add-slot" aria-label={`${kDate(d)} 차량 신청`} onClick={() => openModal({ type: 'car', initial: { date: ymd(d) } })}>+</button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {vehicles.length > 0 && (
-          <div className="car-legend" aria-label="차량 색">
-            {vehicles.map((v) => <span key={v.id} className="tag round" style={carStyle(vehicles, v.id)}>{v.name}</span>)}
-          </div>
-        )}
-      </div>
+      <div className="card scroll-x">{body}{legend}</div>
     </section>
   )
 }

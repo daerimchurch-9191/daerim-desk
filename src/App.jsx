@@ -11,6 +11,7 @@ import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, Ca
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
 import { links } from './data.js'
+import { HomeTools } from './home.jsx'
 import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
@@ -79,9 +80,11 @@ function Sidebar({ open, onClose, page, notices }) {
       </div>
 
       <div className="nav">
+        <div className="quick-actions">
+          <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'event' }) }}><Icon name="plus" size={16} width={2.2} />일정</button>
+          <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={16} width={2.2} />차량</button>
+        </div>
         <a href="#home" onClick={onClose} className={`nav-item${page === 'home' ? ' is-current' : ''}`} aria-current={page === 'home' ? 'page' : undefined}>홈</a>
-        <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'event' }) }}><Icon name="plus" size={18} width={2.2} />일정 등록</button>
-        <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={18} width={2.2} />차량 신청</button>
         <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#calendar" onClick={onClose} className={`nav-item${page === 'calendar' ? ' is-current' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined}>교회 캘린더</a>
         <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
@@ -140,19 +143,24 @@ function Desk() {
 
         {page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
-        <header className="title">
-          <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
-          <span className="muted">대림교회 / 사역 대시보드 / {todayLabel()}</span>
-        </header>
+        <div className="home-top">
+          <header className="title">
+            <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
+            <span className="muted">대림교회 / 사역 대시보드 / {todayLabel()}</span>
+          </header>
+          <HomeTools notices={notices} />
+        </div>
 
         <NoticeStrip notices={notices} />
-        <div className="grid-2 top">
-          <MySermons />
-          <Todos />
+        <div className="home-v2">
+          <div className="hc-pair">
+            <MySermons />
+            <Todos />
+          </div>
+          <WeekCalendar />
+          <SermonTable />
+          <CarsWeek />
         </div>
-        <WeekCalendar />
-        <SermonTable />
-        <CarsWeek />
           </>
         )}
       </main>

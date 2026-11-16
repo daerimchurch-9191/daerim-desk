@@ -1,7 +1,7 @@
 // 본인만 보는 데이터: 할 일(매주 반복 포함), 내 폴더
 import { useEffect, useState } from 'react'
 import { supabase, toKorean } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, HomeHead } from './live.jsx'
 
 /* ---------- 할 일 ----------
  한 번만 하는 일: due(선택), 끝내면 last_done_on 에 끝낸 날짜.
@@ -30,7 +30,7 @@ function nextMonthly(t, week0) {
 const dueThisWeek = (t, week0) => t.repeat_week == null || ymd(nextMonthly(t, week0)) <= ymd(addDays(week0, 6))
 const repeatLabel = (t) => (t.repeat_week == null ? `매주 ${DOW_KO[t.repeat_dow]}` : `매월 ${WEEK_NAMES[t.repeat_week]} ${DOW_KO[t.repeat_dow]}`)
 
-function TodoModal({ initial, onClose }) {
+export function TodoModal({ initial, onClose }) {
   const { refresh, notify } = useData()
   const editing = Boolean(initial?.id)
   const [f, setF] = useState({
@@ -119,7 +119,7 @@ function TodoModal({ initial, onClose }) {
 export function Todos() {
   const { version, openModal } = useData()
   const [todos, setTodos] = useState(null)
-  const [filter, setFilter] = useState('week')
+  const [filter, setFilter] = useState('today')
   const week0 = startOfWeek()
   const today = ymd(new Date())
   const todayDow = new Date().getDay()
@@ -134,8 +134,8 @@ export function Todos() {
   // 끝낸 일회성 할 일은 끝낸 주까지만 보인다
   const visible = (todos ?? []).filter((t) => t.repeat_dow != null || !t.done || (t.last_done_on && t.last_done_on >= ymd(week0)))
   const filters = [
-    { id: 'week', name: '이번 주', test: (t) => (t.repeat_dow != null ? dueThisWeek(t, week0) : !t.due || t.due <= weekEnd) },
     { id: 'today', name: '오늘', test: (t) => (t.repeat_dow != null ? t.repeat_dow === todayDow && dueThisWeek(t, week0) : !t.done && t.due && t.due <= today) },
+    { id: 'week', name: '이번 주', test: (t) => (t.repeat_dow != null ? dueThisWeek(t, week0) : !t.due || t.due <= weekEnd) },
     { id: 'repeat', name: '반복', test: (t) => t.repeat_dow != null },
     { id: 'later', name: '다음 주 이후', test: (t) => (t.repeat_dow != null ? !dueThisWeek(t, week0) : Boolean(t.due) && t.due > weekEnd) },
   ]
@@ -152,53 +152,48 @@ export function Todos() {
     if (error) setTodos(todos) // 실패하면 되돌림
   }
 
-  const chip = (t) => {
-    if (t.repeat_dow != null) {
-      if (t.repeat_week == null) return <span className="chip">{repeatLabel(t)}</span>
-      const d = nextMonthly(t, week0)
-      return <span className="chip">{repeatLabel(t)} · {d.getMonth() + 1}/{d.getDate()}</span>
-    }
-    if (!t.due) return null
-    if (!t.done && t.due < today) return <span className="chip chip-warn">지남 {Number(t.due.slice(5, 7))}/{Number(t.due.slice(8))}</span>
-    if (t.due === today) return <span className="chip chip-plain">오늘</span>
-    return <span className="chip chip-plain">{Number(t.due.slice(5, 7))}/{Number(t.due.slice(8))}</span>
-  }
-
   const allDone = shown.length > 0 && shown.every((t) => isDoneNow(t, week0))
 
+  const sub = (t) => {
+    if (t.repeat_dow != null) {
+      if (t.repeat_week == null) return repeatLabel(t)
+      const d = nextMonthly(t, week0)
+      return `${repeatLabel(t)} · ${d.getMonth() + 1}/${d.getDate()}`
+    }
+    if (!t.due) return '마감 없음'
+    const md = `${Number(t.due.slice(5, 7))}/${Number(t.due.slice(8))}`
+    if (!t.done && t.due < today) return <span className="is-late">지남 {md}</span>
+    return t.due === today ? '오늘 마감' : `${md} 마감`
+  }
+  const left = shown.filter((t) => !isDoneNow(t, week0)).length
+
   return (
-    <section className="block" aria-labelledby="todo-h">
-      <div className="block-head">
-        <h2 id="todo-h" className="pill">Todolist</h2>
-        <button type="button" className="btn btn-primary push-end" onClick={() => open(null)}>+ 할 일 추가</button>
-      </div>
-      <div className="card">
-        <div className="tabs">
+    <section className="hc" aria-labelledby="todo-h">
+      <HomeHead id="todo-h" title={<>할 일 <span className="hc-sub">{todos === null ? '' : `${left}개 남음`}</span></>}>
+        <span className="hc-seg" role="group" aria-label="할 일 보기">
           {filters.map((f) => (
-            <button key={f.id} type="button" className={`tab${filter === f.id ? ' is-on' : ''}`}
-              aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-              {f.name} {visible.filter(f.test).filter((t) => !isDoneNow(t, week0)).length}
-            </button>
+            <button key={f.id} type="button" className={filter === f.id ? 'is-on' : ''} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.name}</button>
           ))}
-        </div>
-        {todos === null && <span className="skeleton" />}
-        {todos !== null && shown.length === 0 && (
-          <div className="empty">{todos.length === 0 ? '아직 할 일이 없습니다. "+ 할 일 추가"로 시작해 보세요.' : '여기에 해당하는 할 일이 없습니다.'}</div>
-        )}
+        </span>
+      </HomeHead>
+      {todos === null && <span className="skeleton" />}
+      {todos !== null && shown.length === 0 && (
+        <div className="empty">{todos.length === 0 ? '아직 할 일이 없습니다. "+ 할 일 추가"로 시작해 보세요.' : '여기에 해당하는 할 일이 없습니다.'}</div>
+      )}
+      <div className="hc-list">
         {shown.map((t) => {
           const done = isDoneNow(t, week0)
           return (
-            <div key={t.id} className="todo-row">
-              <input id={`todo-${t.id}`} type="checkbox" checked={done} onChange={() => toggle(t)} />
-              <label htmlFor={`todo-${t.id}`} className={`grow${done ? ' is-done' : ''}`}>{t.text}</label>
-              {chip(t)}
-              <button type="button" className="link-btn" onClick={() => open(t)}>수정</button>
+            <div key={t.id} className="hc-row">
+              <input id={`todo-${t.id}`} className="hc-check" type="checkbox" checked={done} onChange={() => toggle(t)} />
+              <label htmlFor={`todo-${t.id}`} className={`hc-text${done ? ' is-done' : ''}`}><b>{t.text}</b><span>{sub(t)}</span></label>
+              <span className="hc-end"><button type="button" className="hc-edit" onClick={() => open(t)}>수정</button></span>
             </div>
           )
         })}
-        {allDone && <p className="note">이번 주 할 일을 모두 끝냈어요.</p>}
       </div>
+      {allDone && <p className="note">여기 있는 할 일을 모두 끝냈어요.</p>}
+      <button type="button" className="hc-add" onClick={() => open(null)}>+ 할 일 추가</button>
     </section>
   )
 }
-

@@ -2,7 +2,7 @@
 // 어느 쪽에서 본문을 고쳐도 양쪽이 함께 바뀐다.
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, TimeSelect, PillLink, ViewSwitch, useView } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek, DOW_KO, TimeSelect, PillLink, ViewSwitch, useView, HomeHead, weekRange } from './live.jsx'
 
 export const SERVICES = {
   dawn: { name: '새벽기도회', time: '05:30' },
@@ -121,7 +121,7 @@ function SermonModal({ initial, onClose }) {
   )
 }
 
-const useOpenSermon = () => {
+export const useOpenSermon = () => {
   const { openModal } = useData()
   return (initial) => openModal({ render: (close) => <SermonModal initial={initial} onClose={close} /> })
 }
@@ -161,17 +161,7 @@ export function SermonTable({ inPage }) {
     )
   }
 
-  return (
-    <section className="block" id="sermon-table" aria-labelledby="table-h">
-      <div className="block-head">
-        <PillLink id="table-h" href="#sermons" inPage={inPage}>{inPage ? '주별' : '예배 설교표'}</PillLink>
-        <div className="month-nav">
-          <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
-          <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
-        </div>
-        <strong className="grow">{md(days[0])} – {md(days[6])}</strong>
-      </div>
-      <div className="card">
+  const grid = (
         <div className="grid-2">
           <div className="box">
             <h3>새벽기도회 <small>매일 05:30 · 주일 포함</small></h3>
@@ -200,7 +190,28 @@ export function SermonTable({ inPage }) {
             </div>
           </div>
         </div>
+  )
+  if (!inPage) {
+    return (
+      <section className="hc" id="sermon-table" aria-labelledby="table-h">
+        <HomeHead id="table-h" title="예배 설교표" href="#sermons" range={weekRange(week0)} week0={week0} setWeek0={setWeek0}>
+          <a href="#sermons" className="hc-more">예배 설교표 →</a>
+        </HomeHead>
+        {grid}
+      </section>
+    )
+  }
+  return (
+    <section className="block" id="sermon-table" aria-labelledby="table-h">
+      <div className="block-head">
+        <PillLink id="table-h" href="#sermons" inPage={inPage}>주별</PillLink>
+        <div className="month-nav">
+          <button type="button" className="icon-btn light" aria-label="이전 주" onClick={() => setWeek0(addDays(week0, -7))}>‹</button>
+          <button type="button" className="icon-btn light" aria-label="다음 주" onClick={() => setWeek0(addDays(week0, 7))}>›</button>
+        </div>
+        <strong className="grow">{md(days[0])} – {md(days[6])}</strong>
       </div>
+      <div className="card">{grid}</div>
     </section>
   )
 }
@@ -225,33 +236,34 @@ export function MySermons() {
   const upcoming = (rows ?? []).filter((s) => s.date >= ymd(today)).length
 
   return (
-    <section className="block" aria-labelledby="sermon-h">
-      <PillLink id="sermon-h" href="#sermons">내 설교</PillLink>
-      <div className="card">
-        <div className="card-head">
-          <span className="muted">다가오는 설교 · 2주 안</span>
-          <span className="count">{upcoming} <small>편</small></span>
-        </div>
-        {rows === null && <span className="skeleton" />}
-        {rows?.length === 0 && <div className="empty">2주 안에 잡힌 설교가 없습니다.</div>}
+    <section className="hc" aria-labelledby="sermon-h">
+      <HomeHead id="sermon-h" title={<>내 설교 <span className="hc-sub">다가오는 설교</span> <span className="hc-count">{rows === null ? '' : upcoming}</span></>}>
+        <a href="#sermons" className="hc-more">예배 설교표 →</a>
+      </HomeHead>
+      {rows === null && <span className="skeleton" />}
+      {rows?.length === 0 && <div className="empty">2주 안에 잡힌 설교가 없습니다.</div>}
+      <div className="hc-list">
         {(rows ?? []).map((s) => {
           const d = toDate(s.date)
           const diff = Math.round((d - today) / 86400000)
           const done = diff < 0
+          const hasText = Boolean(s.passage)
           return (
-            <div key={s.id} className="sermon-row">
-              <span className={`date-badge${done ? ' is-done' : ''}`}><b>{md(d)}</b><span>{d.getDay() === 0 ? '주일' : `${DOW_KO[d.getDay()]}요일`}</span></span>
-              <div className="grow">
-                <span className="muted small">{hhmm(s.time)} {done ? '· 완료' : <span className="chip">{diff === 0 ? '오늘' : `D-${diff}`}</span>}</span>
-                <span className={done ? 'muted' : ''}>{s.title || SERVICES[s.service].name} · {s.passage || '본문 미정'}</span>
-              </div>
-              <button type="button" className="link-btn" onClick={() => open(s)}>수정</button>
+            <div key={s.id} className={`hc-row${done ? ' is-past' : ''}`}>
+              <span className={`hc-date${diff === 0 || (diff > 0 && s === rows.find((x) => x.date >= ymd(today))) ? ' is-next' : ''}`}><b>{d.getDate()}</b><span>{DOW_KO[d.getDay()]}</span></span>
+              <span className="hc-text">
+                <b>{s.title || SERVICES[s.service].name}{s.passage ? ` · ${s.passage}` : ''}</b>
+                <span>{md(d)} {hhmm(s.time)}{done ? ' · 지남' : diff === 0 ? ' · 오늘' : ` · D-${diff}`}</span>
+              </span>
+              <span className="hc-end">
+                {!done && <span className={`hc-chip${hasText ? '' : ' is-warn'}`}>{hasText ? '본문 있음' : '본문 없음'}</span>}
+                <button type="button" className="hc-edit" onClick={() => open(s)}>{hasText || done ? '수정' : '본문 쓰기'}</button>
+              </span>
             </div>
           )
         })}
-        <button type="button" className="btn btn-dashed" onClick={() => open({ service: 'other', date: ymd(new Date()) })}>+ 설교 추가</button>
-        <p className="note push">예배 설교표에 내 이름이 들어가면 여기에 함께 뜹니다. 본문은 어느 쪽에서 고쳐도 같이 바뀝니다.</p>
       </div>
+      <button type="button" className="hc-add" onClick={() => open({ service: 'other', date: ymd(new Date()) })}>+ 내 설교 추가</button>
     </section>
   )
 }
