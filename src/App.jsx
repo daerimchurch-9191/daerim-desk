@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth, visitRooms } from './auth.jsx'
 import { LoginPage, WaitingPage } from './LoginPage.jsx'
 import { ChangePasswordModal } from './AdminPage.jsx'
@@ -7,11 +7,11 @@ import { VisitsPage } from './visits.jsx'
 import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
 import { LeavePage } from './leave.jsx'
-import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO } from './live.jsx'
+import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO, useIsPhone, TodayCard } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
 import { links } from './data.js'
-import { HomeTools } from './home.jsx'
+import { HomeTools, PhoneTools } from './home.jsx'
 import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
@@ -120,21 +120,128 @@ function usePage() {
   return page
 }
 
+/* ---------- 휴대폰 ---------- */
+// 사람마다 홈 순서: 직분 '목사' → 목사님, 교구 소속 → 교구(심방) 전도사님, 그 외 → 교육부
+function roleOf(profile, departments) {
+  if ((profile.title ?? '').includes('목사')) return 'pastor'
+  const grps = (profile.dept_ids ?? []).map((id) => departments.find((d) => d.id === id)?.grp)
+  return grps.includes('parish') ? 'parish' : 'edu'
+}
+
+function VisitRoomsCard() {
+  const { profile } = useAuth()
+  const { departments } = useData()
+  const rooms = visitRooms(profile, departments)
+  if (!rooms.length) return null
+  return (
+    <section className="hc" aria-labelledby="vr-h">
+      <div className="hc-head"><h2 id="vr-h" className="hc-title"><a href="#visits">심방보고</a></h2><span className="hc-right"><a href="#visits" className="hc-more">심방보고 →</a></span></div>
+      <div className="vr-grid">
+        {rooms.map((r) => <a key={r.id} href="#visits" className="vr-room"><b>{r.name}</b><span>방 들어가기</span></a>)}
+      </div>
+    </section>
+  )
+}
+
+function PhoneHome() {
+  const { profile } = useAuth()
+  const { departments } = useData()
+  const role = roleOf(profile, departments)
+  if (role === 'pastor') return <div className="home-v2"><MySermons /><Todos /><TodayCard /><VisitRoomsCard /></div>
+  if (role === 'parish') return <div className="home-v2"><Todos /><TodayCard /><VisitRoomsCard /></div>
+  return <div className="home-v2"><Todos /><TodayCard /><MySermons /></div>
+}
+
+const TAB_PAGES = ['home', 'calendar', 'cars', 'sermons']
+const TAB_HASH = { home: '#home', calendar: '#calendar', cars: '#cars', sermons: '#sermons' }
+
+function PlusSheet({ onClose }) {
+  const { profile } = useAuth()
+  const { openModal, departments } = useData()
+  const canVisit = visitRooms(profile, departments).length > 0
+  const pick = (fn) => () => { onClose(); fn() }
+  return (
+    <div className="sheet-wrap" role="dialog" aria-modal="true" aria-label="추가하기" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <span className="sheet-grab" aria-hidden="true" />
+        <h2 className="sheet-title">무엇을 추가할까요?</h2>
+        <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'event' }))}><b>일정 등록</b><span>교회·부서·개인</span></button>
+        <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'car' }))}><b>차량 신청</b><span>겹치면 신청할 수 없어요</span></button>
+        {canVisit && <button type="button" className="sheet-opt" onClick={pick(() => { location.hash = '#visits' })}><b>심방보고 쓰기</b><span>교구 방으로 이동</span></button>}
+      </div>
+    </div>
+  )
+}
+
+function PhoneTabs({ page }) {
+  const [plus, setPlus] = useState(false)
+  const tab = (id, name, icon) => (
+    <a href={TAB_HASH[id]} className={`ptab${page === id ? ' is-on' : ''}`} aria-current={page === id ? 'page' : undefined}>
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
+      <span>{name}</span>
+    </a>
+  )
+  return (
+    <>
+      <nav className="phone-tabs" aria-label="아래 메뉴">
+        {tab('home', '홈', <path d="M3.5 9 10 3.5 16.5 9v7.5h-4.5v-5H8v5H3.5z" />)}
+        {tab('calendar', '캘린더', <><rect x="3" y="4.5" width="14" height="12.5" rx="2" /><path d="M3 8.5h14M7 2.8v3.4M13 2.8v3.4" /></>)}
+        <button type="button" className="ptab-plus" aria-label="추가하기" onClick={() => setPlus(true)}>
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
+        </button>
+        {tab('cars', '차량', <><path d="M3 12.5V9l1.8-4h10.4L17 9v3.5zM3 12.5V15h2.5v-2.5M14.5 12.5V15H17v-2.5M3 9h14" /><circle cx="6.3" cy="11" r=".6" /><circle cx="13.7" cy="11" r=".6" /></>)}
+        {tab('sermons', '설교표', <path d="M4 3.5h9.5L16 6v10.5H4zM7 8h6M7 11h6M7 14h4" />)}
+      </nav>
+      {plus && <PlusSheet onClose={() => setPlus(false)} />}
+    </>
+  )
+}
+
+// 휴대폰: 화면 가운데를 옆으로 밀면 홈 → 캘린더 → 차량 → 설교표
+function useSwipeTabs(ref, page, enabled) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !enabled || !TAB_PAGES.includes(page)) return
+    let sx = 0, sy = 0, ok = false
+    const start = (e) => {
+      const t = e.touches[0]
+      sx = t.clientX; sy = t.clientY
+      // 화면 끝(아이폰 뒤로 가기)·옆으로 움직이는 부분·입력칸·창 안에서는 넘기지 않는다
+      ok = sx > 28 && sx < window.innerWidth - 28 && !e.target.closest('input, textarea, select, .no-swipe, .hc-seg, .tabs, .scroll-x, .month, .dialog, .overlay, .sheet-wrap, .phone-search')
+    }
+    const end = (e) => {
+      if (!ok) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - sx, dy = t.clientY - sy
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return
+      const i = TAB_PAGES.indexOf(page) + (dx < 0 ? 1 : -1)
+      if (i >= 0 && i < TAB_PAGES.length) location.hash = TAB_HASH[TAB_PAGES[i]]
+    }
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchend', end, { passive: true })
+    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchend', end) }
+  }, [page, enabled])
+}
+
 function Desk() {
   const page = usePage()
   const notices = useNotices()
   const [menuOpen, setMenuOpen] = useState(false)
+  const phone = useIsPhone()
+  const mainRef = useRef(null)
+  useSwipeTabs(mainRef, page, phone && !menuOpen)
   return (
-    <div className="app">
+    <div className={`app${phone ? ' is-phone' : ''}`}>
       <Sidebar open={menuOpen} page={page} notices={notices} onClose={() => setMenuOpen(false)} />
       {menuOpen && <div className="scrim only-mobile" onClick={() => setMenuOpen(false)} />}
 
-      <main className="main">
+      <main className="main" ref={mainRef}>
         <div className="mobile-bar only-mobile">
           <button type="button" className="icon-btn" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
             <Icon name="menu" size={22} width={2.2} />
           </button>
           <a href="#home" className="display mobile-home" onClick={() => window.scrollTo(0, 0)}>MINISTRY DESK</a>
+          {phone && <span className="mobile-tools"><PhoneTools notices={notices} /></span>}
         </div>
 
         <div className="ticker" aria-hidden="true">
@@ -142,7 +249,7 @@ function Desk() {
         </div>
 
         {page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
-          <>
+          phone ? <PhoneHome /> : <>
         <div className="home-top">
           <header className="title">
             <h1 className="display"><span className="cross" aria-hidden="true" />MINISTRY DESK</h1>
@@ -164,6 +271,7 @@ function Desk() {
           </>
         )}
       </main>
+      {phone && <PhoneTabs page={page} />}
     </div>
   )
 }

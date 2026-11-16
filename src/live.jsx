@@ -12,6 +12,18 @@ export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() 
 export const startOfWeek = (d = new Date()) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -x.getDay()) }
 export const sameDay = (a, b) => ymd(a) === ymd(b)
 const md = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+// 휴대폰 화면(700px 이하)인가
+export function useIsPhone() {
+  const q = '(max-width: 700px)'
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches)
+  useEffect(() => {
+    const m = window.matchMedia(q)
+    const f = () => setOn(m.matches)
+    m.addEventListener('change', f)
+    return () => m.removeEventListener('change', f)
+  }, [])
+  return on
+}
 // 세부 페이지의 월별/주별 선택을 기억한다 (탭을 닫으면 처음엔 월별)
 export function useView(key) {
   const k = `view:${key}`
@@ -543,6 +555,37 @@ export function WeekCalendar({ inPage }) {
   )
 }
 
+/* ---------- 휴대폰 홈: 오늘 일정 ---------- */
+export function TodayCard() {
+  const { departments, version, openModal } = useData()
+  const [list, setList] = useState(null)
+  const today = new Date()
+  const d0 = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  useEffect(() => {
+    overlapping(supabase.from('events').select('*'), d0, addDays(d0, 1)).order('starts_at')
+      .then(({ data }) => setList(data ?? []))
+  }, [version])
+  return (
+    <section className="hc" aria-labelledby="today-h">
+      <HomeHead id="today-h" title={<>오늘 <span className="hc-sub">{kDate(today)}</span></>}>
+        <a href="#calendar" className="hc-more">캘린더 →</a>
+      </HomeHead>
+      {list === null && <span className="skeleton" />}
+      {list?.length === 0 && <p className="muted small">오늘은 일정이 없습니다.</p>}
+      <div className="hc-list">
+        {(list ?? []).map((e) => (
+          <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openModal({ type: 'event', initial: e })}>
+            <span className="ev-when">{sameDay(new Date(e.starts_at), today) ? (e.all_day ? '종일' : hm(new Date(e.starts_at))) : '이어짐'}</span>
+            <span className={`ev-bar ${deptTag(departments, e.dept_id)}`} />
+            <span className="hc-text"><b>{e.title}</b><span>{deptName(departments, e.dept_id)}</span></span>
+            <span className="hc-end chev">›</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 /* ---------- 차량 예약 불러오기 ---------- */
 function useBookings(from, to) {
   const { version } = useData()
@@ -768,6 +811,10 @@ export function CalendarMonth() {
   const groupTabs = [{ id: 'every', name: '모두' }, ...GROUPS]
   const deptsOf = (g) => departments.filter((d) => d.grp === g)
   const [view, setView] = useView('calendar')
+  const phone = useIsPhone()
+  const [pick, setPick] = useState(null)
+  const picked = pick ?? (month.getMonth() === now.getMonth() && month.getFullYear() === now.getFullYear() ? now : month)
+  const pickedList = shown.filter((e) => onDay(e, picked)).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
 
   return (
     <>
@@ -806,7 +853,8 @@ export function CalendarMonth() {
               if (!d) return <div key={i} className="month-cell is-empty" />
               const { bars, singles: list } = lay[i]
               return (
-                <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}`}>
+                <div key={i} className={`month-cell${sameDay(d, now) ? ' is-today' : ''}${phone && sameDay(d, picked) ? ' is-picked' : ''}`}
+                  onClick={phone ? () => setPick(d) : undefined}>
                   <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {events === null && <span className="skeleton" />}
                   {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
@@ -823,6 +871,25 @@ export function CalendarMonth() {
             }) })()}
           </div>
         </div>
+        {phone && events !== null && (
+          <div className="hc day-panel">
+            <div className="hc-head">
+              <h2 className="hc-title">{kDate(picked)}</h2>
+              <span className="hc-right"><button type="button" className="hc-btn is-green" onClick={() => openModal({ type: 'event', initial: { date: ymd(picked) } })}>+ 이 날 일정</button></span>
+            </div>
+            {pickedList.length === 0 && <p className="muted small">이 날은 일정이 없습니다.</p>}
+            <div className="hc-list">
+              {pickedList.map((e) => (
+                <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openModal({ type: 'event', initial: e })}>
+                  <span className="ev-when">{sameDay(new Date(e.starts_at), picked) ? (e.all_day ? '종일' : hm(new Date(e.starts_at))) : '이어짐'}</span>
+                  <span className={`ev-bar ${deptTag(departments, e.dept_id)}`} />
+                  <span className="hc-text"><b>{e.title}</b><span>{deptName(departments, e.dept_id)}{e.location ? ` · ${e.location}` : ''}</span></span>
+                  <span className="hc-end chev">›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="note">
           {dept ? `${deptName(departments, dept)} 일정만 보고 있습니다.` : `이번 달 일정 ${shown.length}개.`} 날짜 칸의 + 로 그날 일정을 등록하고, 일정을 누르면 내용을 보거나 고칠 수 있습니다.
         </p>

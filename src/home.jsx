@@ -30,7 +30,7 @@ function useDismiss(ref, open, close) {
 }
 
 /* ---------- 검색 ---------- */
-function SearchBox({ notices }) {
+function SearchBox({ notices, autoFocus, onDone }) {
   const { profile } = useAuth()
   const { staff, departments, openModal } = useData()
   const openSermon = useOpenSermon()
@@ -73,7 +73,7 @@ function SearchBox({ notices }) {
     return () => { alive = false; clearTimeout(t) }
   }, [q, staff, notices.list])
 
-  const go = (fn) => () => { setOpen(false); fn() }
+  const go = (fn) => () => { setOpen(false); onDone?.(); fn() }
   const preacher = (s) => (s.preacher_id ? staff.find((p) => p.id === s.preacher_id)?.name : s.preacher_name) || '설교자 미정'
   const groups = res && [
     ['일정', res.ev.map((e) => ({ key: `e${e.id}`, title: e.title, sub: shortDate(e.starts_at), on: go(() => openModal({ type: 'event', initial: e })) }))],
@@ -88,7 +88,7 @@ function SearchBox({ notices }) {
     <div className="hs" ref={box}>
       <label className="hs-box">
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="9" cy="9" r="5.5" /><path d="M13.2 13.2 17 17" /></svg>
-        <input ref={input} type="search" value={q} placeholder="일정·설교·공지·광고 검색" aria-label="검색"
+        <input ref={input} type="search" value={q} autoFocus={autoFocus} placeholder="일정·설교·공지·광고 검색" aria-label="검색"
           onChange={(e) => { setQ(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} />
         {!q && <kbd>Ctrl K</kbd>}
       </label>
@@ -218,5 +218,24 @@ export function HomeTools({ notices }) {
       <SearchBox notices={notices} />
       <Bell notices={notices} />
     </div>
+  )
+}
+
+// 휴대폰 위쪽 검정 바: 돋보기를 누르면 검색칸이 바 아래로 펼쳐진다
+export function PhoneTools({ notices }) {
+  const [searching, setSearching] = useState(false)
+  return (
+    <>
+      <button type="button" className="icon-btn" aria-label="검색" aria-expanded={searching} onClick={() => setSearching(!searching)}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="9" r="5.5" /><path d="M13.2 13.2 17 17" /></svg>
+      </button>
+      <Bell notices={notices} />
+      {searching && (
+        <div className="phone-search">
+          <SearchBox notices={notices} autoFocus onDone={() => setSearching(false)} />
+          <button type="button" className="phone-search-x" onClick={() => setSearching(false)}>닫기</button>
+        </div>
+      )}
+    </>
   )
 }
