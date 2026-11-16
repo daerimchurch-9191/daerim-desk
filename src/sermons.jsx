@@ -229,7 +229,7 @@ export function MySermons() {
     supabase.from('sermons').select('*')
       .or(`preacher_id.eq.${profile.id},and(is_public.eq.false,created_by.eq.${profile.id})`)
       .gte('date', ymd(week0)).lte('date', ymd(addDays(week0, 13))).order('date').order('time')
-      .then(({ data }) => setRows(data ?? []))
+      .then(({ data }) => setRows((data ?? []).filter((s) => s.date >= ymd(new Date())))) // 지난 설교는 홈에 보이지 않는다
   }, [version, profile.id])
 
   // 오늘을 포함해 앞으로 남은 설교 수 (지난 설교는 목록에는 '완료'로 남지만 세지 않는다)
