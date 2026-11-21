@@ -292,7 +292,6 @@ function Grant({ reqs, people, balances, onChange }) {
         </table>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <p className="note">해마다 부여할 일수를 적고 저장하세요. 사용·대기는 그해에 시작하는 연차로 셉니다.</p>
     </section>
   )
 }
@@ -342,7 +341,6 @@ function LeaveCalendar({ reqs, people, onChange }) {
           })}
         </div>
       </div>
-      <p className="note">연차를 누르면 승인·반려하거나 승인을 취소할 수 있습니다.</p>
     </section>
   )
 }

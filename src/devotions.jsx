@@ -199,7 +199,6 @@ export function DevotionsPage() {
   for (let i = 0; i < month.getDay(); i++) cells.push(null)
   for (let d = new Date(month); d < next; d = addDays(d, 1)) cells.push(d)
   while (cells.length % 7) cells.push(null)
-  const filled = data ? Object.keys(data.dev).length : 0
   const pv = data?.dev[ymd(picked)]
 
   return (
@@ -252,7 +251,6 @@ export function DevotionsPage() {
             <p className="small"><b>본문</b> {data.dawn[ymd(picked)] || <span className="muted">새벽 본문 없음</span>}</p>
           </div>
         )}
-        <p className="note">이번 달 정해진 순서 {filled}일. 칸을 누르면 맡은 사람을 입력하거나 고칠 수 있고, 누구나 수정할 수 있습니다. 굵은 테두리 칸은 내 순서이며, 내 순서는 교회 캘린더의 개인 일정에도 보입니다.</p>
       </section>}
     </>
   )

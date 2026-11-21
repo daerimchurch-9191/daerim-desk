@@ -751,7 +751,6 @@ export function CarsMonth() {
             ))}
           </div>
         </div>
-        <p className="note">같은 차량은 시간이 겹치게 신청할 수 없습니다. 내가 신청한 예약은 "취소"로 지울 수 있습니다.</p>
       </section>}
       {profile.role === 'admin' && <VehicleAdmin />}
     </>
@@ -905,9 +904,6 @@ export function CalendarMonth() {
             </div>
           </div>
         )}
-        <p className="note">
-          {dept ? `${deptName(departments, dept)} 일정만 보고 있습니다.` : `이번 달 일정 ${shown.length}개.`} 날짜 칸의 + 로 그날 일정을 등록하고, 일정을 누르면 내용을 보거나 고칠 수 있습니다.
-        </p>
       </section>}
     </>
   )

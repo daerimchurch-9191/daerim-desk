@@ -305,7 +305,6 @@ export function SermonsMonth() {
   ]
   const wants = (service) => show === 'all' || show === 'mine' || show === service || (show === 'wedfri' && (service === 'wed' || service === 'fri'))
   const mineOnly = show === 'mine'
-  const filled = (rows ?? []).filter((s) => !isEmpty(s)).length
   const [view, setView] = useView('sermons')
 
   // 날짜 하루에 들어갈 칸: 새벽(매일), 수요(수), 금요(금)는 비어 있어도 자리를 보여주고, 특별 예배는 있는 것만
@@ -366,7 +365,6 @@ export function SermonsMonth() {
             ))}
           </div>
         </div>
-        <p className="note">이번 달 입력된 설교 {filled}편. 칸을 누르면 설교자와 본문을 입력하거나 고칠 수 있습니다. 굵은 테두리 칸은 내 설교입니다.</p>
       </section>}
     </>
   )

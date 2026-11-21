@@ -117,7 +117,6 @@ export function AdsPage() {
           ))}
           {rows?.length > 0 && <button type="button" className="btn btn-dark btn-block" onClick={copyAll}>이 주 광고 전체 복사</button>}
         </div>
-        <p className="note">사역자 누구나 올릴 수 있고, 누구나 고치고 정리할 수 있습니다. 복사하면 번호를 붙여 "제목 / 내용" 순서로 정리됩니다.</p>
       </section>
     </>
   )
