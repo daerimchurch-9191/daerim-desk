@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
       const f = pref(p.id)
       if (ev.dept_id === 'all') return f.cal_all
       if (f.cal_mine && myDepts(p.id).includes(ev.dept_id)) return true
+      // "교육부"(교육부 전체) 일정은 교육부 소속 누구에게나 내 부서 일정
+      if (f.cal_mine && ev.dept_id === 'edu' && myDepts(p.id).some((d) => dept.get(d)?.grp === 'edu')) return true
       return (grp === 'edu' && f.cal_edu) || (grp === 'parish' && f.cal_parish)
     }).map((p) => p.id)
     payload = { title: `[캘린더] ${cut(ev.title, 40)}`, body: `${md(ev.starts_at)}${ev.all_day ? ' 종일' : ' ' + hm(ev.starts_at)} · ${dept.get(ev.dept_id)?.name ?? ''}`, url: './#calendar', tag: `event-${ev.id}` }

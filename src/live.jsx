@@ -169,7 +169,7 @@ export function DeptChecks({ departments, value, onChange }) {
     <div className="dept-checks-group">
       <span className="muted small">{label}</span>
       <div className="dept-checks">
-        {departments.filter((d) => d.grp === g).map((d) => (
+        {departments.filter((d) => d.grp === g && d.id !== g).map((d) => (
           <label key={d.id} className={`dept-chip${value.includes(d.id) ? ' is-on' : ''}`}>
             <input type="checkbox" checked={value.includes(d.id)} onChange={() => toggle(d.id)} />{d.name}
           </label>
@@ -191,7 +191,7 @@ export function DeptSelect({ value, onChange, custom, onCustom, noAll, personal 
       <select id="dept-sel" value={value} onChange={(e) => onChange(e.target.value)}>
         {personal && <option value="personal">개인 (나만 보기)</option>}
         {!noAll && of('all').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+        <optgroup label="교육부">{of('edu').map((d) => <option key={d.id} value={d.id}>{d.id === 'edu' ? '교육부 전체' : d.name}</option>)}</optgroup>
         <optgroup label="교구">{of('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
         {onCustom && <option value="__custom">직접 입력…</option>}
       </select>
@@ -854,7 +854,7 @@ export function CalendarMonth() {
             <span className="visually-hidden">부서 하나만 보기</span>
             <select value={dept} onChange={(e) => setDept(e.target.value)}>
               <option value="">부서 하나만 보기</option>
-              <optgroup label="교육부">{deptsOf('edu').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
+              <optgroup label="교육부">{deptsOf('edu').map((d) => <option key={d.id} value={d.id}>{d.id === 'edu' ? '교육부 전체' : d.name}</option>)}</optgroup>
               <optgroup label="교구">{deptsOf('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
             </select>
           </label>
