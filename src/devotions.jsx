@@ -231,7 +231,7 @@ export function DevotionsPage() {
                   <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {data === null && <span className="skeleton" />}
                   {data !== null && on && (
-                    <button type="button" className={`sermon-slot svc-dev${v ? '' : ' is-empty'}${v?.leader_id === profile.id ? ' is-mine' : ''}`}
+                    <button type="button" className={`sermon-slot svc-dev${v ? '' : ' is-empty'}`}
                       onClick={(e) => { if (phone) { e.stopPropagation(); setPick(d) } else open(key) }}>
                       {v ? <span>{cellName(v)}{passage && <small> · {passage}</small>}</span> : <span>비어 있음</span>}
                     </button>

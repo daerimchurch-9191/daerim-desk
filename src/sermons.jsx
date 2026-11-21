@@ -353,9 +353,8 @@ export function SermonsMonth() {
                 {d && rows === null && <span className="skeleton" />}
                 {d && rows !== null && slotsOf(d).map(({ service, s, initial }, j) => {
                   const empty = isEmpty(s)
-                  const mine = s?.preacher_id === profile.id
                   return (
-                    <button key={j} type="button" className={`sermon-slot svc-${service}${empty ? ' is-empty' : ''}${mine ? ' is-mine' : ''}`} onClick={() => open(initial)}>
+                    <button key={j} type="button" className={`sermon-slot svc-${service}${empty ? ' is-empty' : ''}`} onClick={() => open(initial)}>
                       {service === 'special' && <b>{s.title}</b>}
                       {empty ? <span>비어 있음</span> : <span>{splitTitle(nameOf(s) || '미정')}{s.passage && <small> · {s.passage}</small>}</span>}
                     </button>
