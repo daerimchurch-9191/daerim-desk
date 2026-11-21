@@ -890,3 +890,7 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 @media (max-width: 400px) {
   .field-row:has(input[type=date]) { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 아침경건회 */
+.sermon-slot.svc-dev { background: #E4EEF0; color: #23535C; }
+.dev-passage { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #f3f5f4; font-size: 14px; color: var(--ink, #151716); }

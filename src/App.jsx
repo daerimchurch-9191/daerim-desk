@@ -7,6 +7,7 @@ import { VisitsPage } from './visits.jsx'
 import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
 import { LeavePage } from './leave.jsx'
+import { DevotionsPage } from './devotions.jsx'
 import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO, useIsPhone, TodayCard } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
@@ -85,12 +86,13 @@ function Sidebar({ open, onClose, page, notices }) {
           <button type="button" className="nav-item is-action" onClick={() => { onClose(); openModal({ type: 'car' }) }}><Icon name="plus" size={16} width={2.2} />차량</button>
         </div>
         <a href="#home" onClick={onClose} className={`nav-item${page === 'home' ? ' is-current' : ''}`} aria-current={page === 'home' ? 'page' : undefined}>홈</a>
-        <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#calendar" onClick={onClose} className={`nav-item${page === 'calendar' ? ' is-current' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined}>교회 캘린더</a>
         <a href="#sermons" onClick={onClose} className={`nav-item${page === 'sermons' ? ' is-current' : ''}`} aria-current={page === 'sermons' ? 'page' : undefined}>예배 설교표</a>
-        <a href="#leave" onClick={onClose} className={`nav-item${page === 'leave' ? ' is-current' : ''}`} aria-current={page === 'leave' ? 'page' : undefined}>연차</a>
         <a href="#ads" onClick={onClose} className={`nav-item${page === 'ads' ? ' is-current' : ''}`} aria-current={page === 'ads' ? 'page' : undefined}>주보 광고</a>
         {visitRooms(profile, departments).length > 0 && <a href="#visits" onClick={onClose} className={`nav-item${page === 'visits' ? ' is-current' : ''}`} aria-current={page === 'visits' ? 'page' : undefined}>심방보고</a>}
+        <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
+        <a href="#leave" onClick={onClose} className={`nav-item${page === 'leave' ? ' is-current' : ''}`} aria-current={page === 'leave' ? 'page' : undefined}>연차</a>
+        <a href="#devotions" onClick={onClose} className={`nav-item${page === 'devotions' ? ' is-current' : ''}`} aria-current={page === 'devotions' ? 'page' : undefined}>아침경건회</a>
       </div>
 
       <SideNotices notices={notices} onNavigate={onClose} />
@@ -110,7 +112,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => location.hash.startsWith('#admin') || location.hash === '#perms' ? 'admin' : location.hash.startsWith('#leave') ? 'leave' : ({ '#cars': 'cars', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#perms': 'perms' }[location.hash] ?? 'home')
+  const read = () => location.hash.startsWith('#admin') || location.hash === '#perms' ? 'admin' : location.hash.startsWith('#leave') ? 'leave' : ({ '#cars': 'cars', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#devotions': 'devotions', '#perms': 'perms' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -327,7 +329,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <div className="home-top">
           <header className="title">

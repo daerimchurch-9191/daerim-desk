@@ -1,6 +1,7 @@
 // 실제 데이터(Supabase)와 연결된 부분: 교회 일정, 차량 예약
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean, can } from './auth.jsx'
+import { useMyDuties } from './devotions.jsx'
 
 /* ---------- 날짜 ---------- */
 const DOW_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -44,7 +45,7 @@ export const eventText = (e, d) => {
   const last = e.ends_at ? new Date(new Date(e.ends_at).getTime() - 1) : s
   const days = Math.round((dayOf(last) - dayOf(s)) / 864e5) + 1
   const nth = Math.round((dayOf(d) - dayOf(s)) / 864e5) + 1
-  const when = nth === 1 ? (e.all_day ? '종일' : hm(s)) : ''
+  const when = nth === 1 && !e.no_time ? (e.all_day ? '종일' : hm(s)) : ''
   return `${when ? when + ' ' : ''}${e.title}${days > 1 ? ` (${nth}/${days})` : ''}`
 }
 // 여러 날 일정은 이어지는 막대로: 한 줄(주) 안에서 막대마다 층(lane)을 정해 날짜 칸끼리 높이를 맞춘다.
@@ -91,7 +92,7 @@ export function BarTag({ b, d, cls, onOpen }) {
 export function EventLabel({ e, d }) {
   const t = eventText(e, d)
   const s = new Date(e.starts_at)
-  const when = sameDay(s, d) ? (e.all_day ? '종일' : hm(s)) : ''
+  const when = sameDay(s, d) && !e.no_time ? (e.all_day ? '종일' : hm(s)) : ''
   return when ? <><span className="ev-time">{when} </span>{t.slice(when.length + 1)}</> : t
 }
 
@@ -111,6 +112,14 @@ export function parseRange(r) {
 /* ---------- 공용 데이터 ---------- */
 const DataContext = createContext(null)
 export const useData = () => useContext(DataContext)
+// 일정 누르기: 내 설교·경건회 순서(open 이 있는 줄)는 그 창으로, 나머지는 일정 창으로
+export const useOpenEvent = () => {
+  const { openModal } = useData()
+  return (e) => (e.open ? e.open() : openModal({ type: 'event', initial: e }))
+}
+// 일정 + 내 설교·경건회 순서 (둘 다 불러와야 보여준다)
+const withDuties = (events, duties) => (events && duties ? [...events, ...duties].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)) : null)
+const whenText = (e, d) => (!sameDay(new Date(e.starts_at), d) ? '이어짐' : e.no_time ? '' : e.all_day ? '종일' : hm(new Date(e.starts_at)))
 
 export function DataProvider({ children }) {
   const [departments, setDepartments] = useState([])
@@ -487,10 +496,12 @@ export function ViewSwitch({ value, onChange }) {
 export function WeekCalendar({ inPage }) {
   const { departments, version, openModal } = useData()
   const [week0, setWeek0] = useState(startOfWeek())
-  const [events, setEvents] = useState(null)
+  const [raw, setEvents] = useState(null)
   const [grp, setGrp] = useState('')
   const days = [...Array(7)].map((_, i) => addDays(week0, i))
   const today = new Date()
+  const openEv = useOpenEvent()
+  const events = withDuties(raw, useMyDuties(week0, addDays(week0, 7)))
 
   useEffect(() => {
     setEvents(null)
@@ -510,11 +521,11 @@ export function WeekCalendar({ inPage }) {
             {dayHead(d, inPage)}
             {events === null && <span className="skeleton" />}
             {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
-              : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
+              : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={openEv} />)}
             {list.map((e) => (
-              <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
+              <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openEv(e)}>
                 {eventText(e, d)}
-                {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
+                {e.dept_id !== 'all' && !e.duty && <small>{deptName(departments, e.dept_id)}</small>}
               </button>
             ))}
             <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
@@ -558,9 +569,11 @@ export function WeekCalendar({ inPage }) {
 /* ---------- 휴대폰 홈: 오늘 일정 ---------- */
 export function TodayCard() {
   const { departments, version, openModal } = useData()
-  const [list, setList] = useState(null)
+  const [raw, setList] = useState(null)
   const today = new Date()
   const d0 = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const openEv = useOpenEvent()
+  const list = withDuties(raw, useMyDuties(d0, addDays(d0, 1)))
   useEffect(() => {
     overlapping(supabase.from('events').select('*'), d0, addDays(d0, 1)).order('starts_at')
       .then(({ data }) => setList(data ?? []))
@@ -574,10 +587,10 @@ export function TodayCard() {
       {list?.length === 0 && <p className="muted small">오늘은 일정이 없습니다.</p>}
       <div className="hc-list">
         {(list ?? []).map((e) => (
-          <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openModal({ type: 'event', initial: e })}>
-            <span className="ev-when">{sameDay(new Date(e.starts_at), today) ? (e.all_day ? '종일' : hm(new Date(e.starts_at))) : '이어짐'}</span>
+          <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openEv(e)}>
+            <span className="ev-when">{whenText(e, today)}</span>
             <span className={`ev-bar ${deptTag(departments, e.dept_id)}`} />
-            <span className="hc-text"><b>{e.title}</b><span>{deptName(departments, e.dept_id)}</span></span>
+            <span className="hc-text"><b>{e.title}</b><span>{e.duty ? '나만 보기' : deptName(departments, e.dept_id)}</span></span>
             <span className="hc-end chev">›</span>
           </button>
         ))}
@@ -793,8 +806,10 @@ export function CalendarMonth() {
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
   const [group, setGroup] = useState('every') // every | all | edu | parish
   const [dept, setDept] = useState('') // 부서 하나만 볼 때
-  const [events, setEvents] = useState(null)
+  const [raw, setEvents] = useState(null)
   const next = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+  const openEv = useOpenEvent()
+  const events = withDuties(raw, useMyDuties(month, next))
 
   useEffect(() => {
     setEvents(null)
@@ -808,7 +823,7 @@ export function CalendarMonth() {
   for (let i = 0; i < month.getDay(); i++) cells.push(null)
   for (let d = new Date(month); d < next; d = addDays(d, 1)) cells.push(d)
   while (cells.length % 7) cells.push(null)
-  const groupTabs = [{ id: 'every', name: '모두' }, ...GROUPS]
+  const groupTabs = [{ id: 'every', name: '모두' }, ...GROUPS, { id: 'personal', name: '개인' }]
   const deptsOf = (g) => departments.filter((d) => d.grp === g)
   const [view, setView] = useView('calendar')
   const phone = useIsPhone()
@@ -858,11 +873,11 @@ export function CalendarMonth() {
                   <span className="month-date" data-dow={DOW_KO[d.getDay()]}>{d.getDate()}</span>
                   {events === null && <span className="skeleton" />}
                   {bars.map((b) => b.gap ? <span key={b.key} className="bar-gap" aria-hidden="true" />
-                    : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={(e) => openModal({ type: 'event', initial: e })} />)}
+                    : <BarTag key={b.key} b={b} d={d} cls={deptTag(departments, b.e.dept_id)} onOpen={openEv} />)}
                   {list.map((e) => (
-                    <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openModal({ type: 'event', initial: e })}>
+                    <button key={e.id} type="button" className={`tag ${deptTag(departments, e.dept_id)} tag-btn`} onClick={() => openEv(e)}>
                       <EventLabel e={e} d={d} />
-                      {e.dept_id !== 'all' && <small>{deptName(departments, e.dept_id)}</small>}
+                      {e.dept_id !== 'all' && !e.duty && <small>{deptName(departments, e.dept_id)}</small>}
                     </button>
                   ))}
                   <button type="button" className="add-slot" aria-label={`${kDate(d)} 일정 등록`} onClick={() => openModal({ type: 'event', initial: { date: ymd(d) } })}>+</button>
@@ -880,8 +895,8 @@ export function CalendarMonth() {
             {pickedList.length === 0 && <p className="muted small">이 날은 일정이 없습니다.</p>}
             <div className="hc-list">
               {pickedList.map((e) => (
-                <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openModal({ type: 'event', initial: e })}>
-                  <span className="ev-when">{sameDay(new Date(e.starts_at), picked) ? (e.all_day ? '종일' : hm(new Date(e.starts_at))) : '이어짐'}</span>
+                <button key={e.id} type="button" className="hc-row hc-rowbtn" onClick={() => openEv(e)}>
+                  <span className="ev-when">{whenText(e, picked)}</span>
                   <span className={`ev-bar ${deptTag(departments, e.dept_id)}`} />
                   <span className="hc-text"><b>{e.title}</b><span>{deptName(departments, e.dept_id)}{e.location ? ` · ${e.location}` : ''}</span></span>
                   <span className="hc-end chev">›</span>
