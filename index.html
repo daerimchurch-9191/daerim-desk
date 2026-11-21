@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  // 화면 끝까지 그리기(viewport-fit=cover)는 아이폰에서만 쓴다.
+  // 안드로이드는 이걸 켜면 위 상태 표시줄·아래 버튼 줄 밑으로 화면이 들어가 잘린다.
+  (function () {
+    var ua = navigator.userAgent
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    if (!ios) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width, initial-scale=1')
+  })()
+</script>
 <title>대림교회 사역 데스크</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" href="./icon-192.png">
