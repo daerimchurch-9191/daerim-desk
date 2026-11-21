@@ -42,14 +42,14 @@ function DevotionModal({ date, onClose }) {
   const { staff, refresh, notify } = useData()
   const [row, setRow] = useState(undefined) // undefined = 불러오는 중, null = 아직 없음
   const [passage, setPassage] = useState(null)
-  const [f, setF] = useState({ who: '', name: '', note: '' })
+  const [f, setF] = useState({ who: '', name: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     supabase.from('devotions').select('*').eq('date', date).maybeSingle().then(({ data }) => {
       setRow(data ?? null)
-      if (data) setF({ who: data.leader_id ?? (data.leader_name ? 'text' : ''), name: data.leader_name ?? '', note: data.note ?? '' })
+      if (data) setF({ who: data.leader_id ?? (data.leader_name ? 'text' : ''), name: data.leader_name ?? '' })
     })
     supabase.from('sermons').select('passage').eq('service', 'dawn').eq('is_public', true).eq('date', date).maybeSingle()
       .then(({ data }) => setPassage(data?.passage || ''))
@@ -69,7 +69,6 @@ function DevotionModal({ date, onClose }) {
     const fields = {
       leader_id: f.who !== 'text' ? f.who : null,
       leader_name: f.who === 'text' ? f.name.trim() : null,
-      note: f.note.trim() || null,
     }
     run(row ? supabase.from('devotions').update(fields).eq('date', date) : supabase.from('devotions').insert({ date, ...fields }), '경건회 순서를 저장했습니다.')
   }
@@ -85,7 +84,7 @@ function DevotionModal({ date, onClose }) {
       <p><strong>{kDate(toDate(date))}</strong></p>
       <label className="field">맡은 사람
         <select value={f.who} onChange={(e) => setF({ ...f, who: e.target.value })} disabled={row === undefined}>
-          <option value="">고르세요</option>
+          <option value="">선택</option>
           {staff.map((p) => <option key={p.id} value={p.id}>{p.name} {p.title}</option>)}
           <option value="text">직접 입력</option>
         </select>
@@ -95,7 +94,6 @@ function DevotionModal({ date, onClose }) {
         <span>본문 <small>(그날 새벽기도회 본문)</small></span>
         <p className="dev-passage">{passage === null ? '불러오는 중…' : passage || '새벽 본문이 아직 없습니다. 예배 설교표에 새벽 본문을 넣으면 여기에 자동으로 나옵니다.'}</p>
       </div>
-      <label className="field"><span>메모 <small>(선택)</small></span><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="예: 찬양 인도 함께" /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>
   )
@@ -170,7 +168,6 @@ function WeekList() {
                 <b className={sameDay(d, today) ? 'accent' : ''}>{DOW_KO[d.getDay()]} {d.getDate()}</b>
                 {data === null ? <span className="grow skeleton" />
                   : <span className="grow">{v ? nameOf(v) : <span className="muted">아직 비어 있음</span>} · {passage || <span className="muted">새벽 본문 없음</span>}
-                    {v?.note && <><br /><small className="muted">{v.note}</small></>}
                     {v?.leader_id === profile.id && <> <span className="chip">내 순서</span></>}</span>}
                 <button type="button" className="link-btn" onClick={() => open(ymd(d))}>{v ? '수정' : '입력'}</button>
               </div>
@@ -253,7 +250,6 @@ export function DevotionsPage() {
             </div>
             <p className="small"><b>맡은 사람</b> {pv ? nameOf(pv) : <span className="muted">아직 비어 있음</span>}</p>
             <p className="small"><b>본문</b> {data.dawn[ymd(picked)] || <span className="muted">새벽 본문 없음</span>}</p>
-            {pv?.note && <p className="small muted">{pv.note}</p>}
           </div>
         )}
         <p className="note">이번 달 정해진 순서 {filled}일. 칸을 누르면 맡은 사람을 입력하거나 고칠 수 있고, 누구나 수정할 수 있습니다. 굵은 테두리 칸은 내 순서이며, 내 순서는 교회 캘린더의 개인 일정에도 보입니다.</p>
