@@ -134,7 +134,7 @@ export function Todos() {
   // 끝낸 일회성 할 일은 끝낸 주까지만 보인다
   const visible = (todos ?? []).filter((t) => t.repeat_dow != null || !t.done || (t.last_done_on && t.last_done_on >= ymd(week0)))
   const filters = [
-    { id: 'today', name: '오늘', test: (t) => (t.repeat_dow != null ? t.repeat_dow === todayDow && dueThisWeek(t, week0) : !t.done && t.due && t.due <= today) },
+    { id: 'today', name: '오늘', test: (t) => (t.repeat_dow != null ? t.repeat_dow === todayDow && dueThisWeek(t, week0) : !t.done && (!t.due || t.due <= today)) }, // 마감 없는 할 일도 오늘에 보인다
     { id: 'week', name: '이번 주', test: (t) => (t.repeat_dow != null ? dueThisWeek(t, week0) : !t.due || t.due <= weekEnd) },
     { id: 'repeat', name: '반복', test: (t) => t.repeat_dow != null },
     { id: 'later', name: '다음 주 이후', test: (t) => (t.repeat_dow != null ? !dueThisWeek(t, week0) : Boolean(t.due) && t.due > weekEnd) },
