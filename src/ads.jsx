@@ -4,7 +4,9 @@ import { supabase, useAuth, toKorean } from './auth.jsx'
 import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
 
 // 기본은 다가오는 주일 (오늘이 주일이면 오늘)
-const nextSunday = () => { const t = new Date(); return t.getDay() === 0 ? startOfWeek(t) : addDays(startOfWeek(t), 7) }
+// 광고를 받는 주보(주일). 주보는 금요일에 마감되므로 토요일부터는 그다음 주 주보로 받는다.
+// 일~금 → 다가오는 주일(일요일이면 다음 주일), 토 → 8일 뒤 주일
+const nextSunday = () => { const t = new Date(); return addDays(startOfWeek(t), t.getDay() === 6 ? 14 : 7) }
 const sunLabel = (d) => `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 주일`
 
 function AdModal({ initial, weekOf, onClose, onSaved }) {
