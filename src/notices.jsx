@@ -9,6 +9,9 @@ export const AUDIENCES = [
   { id: 'all', name: '전체' },
   { id: 'parish', name: '교구' },
   { id: 'edu', name: '교육부' },
+  { id: 'rank:부목사', name: '부목사' },
+  { id: 'rank:전도사', name: '전도사' },
+  { id: 'rank:직원', name: '직원' },
 ]
 const audienceName = (id) => AUDIENCES.find((a) => a.id === id)?.name ?? '전체'
 const dateLabel = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일` }
@@ -131,7 +134,7 @@ function NoticeEditor({ initial, onClose }) {
           ))}
         </div>
       </fieldset>
-      <p className="muted small">교구·교육부 공지는 그 소속 사역자와 관리자에게만 보입니다.</p>
+      <p className="muted small">교구·교육부 공지는 그 소속에게, 직분 공지는 그 직분에게만 보입니다 (관리자는 모두 봄).</p>
       <label className="field"><span>게시 기간 <small>(이 날까지 보임, 비우면 계속)</small></span>
         <input type="date" value={f.until} onChange={(e) => setF({ ...f, until: e.target.value })} />
       </label>
@@ -218,8 +221,7 @@ export function NoticesPage({ notices }) {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">NOTICE</h1>
-        <span className="muted">공지 전체 보기{isAdmin ? ' · 공지 작성 권한이 있으면 모든 범위의 공지가 보입니다' : ''}</span>
+        <h1 className="display page-title">NOTICE<span className="page-ko">공지</span></h1>
       </header>
       <section className="block" aria-labelledby="notices-h">
         <div className="block-head">

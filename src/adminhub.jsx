@@ -33,8 +33,7 @@ export function AdminHub() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">ADMIN</h1>
-        <span className="muted">관리자 메뉴</span>
+        <h1 className="display page-title">ADMIN<span className="page-ko">관리자 메뉴</span></h1>
       </header>
       <nav className="tabs admin-tabs" aria-label="관리자 메뉴">
         {TABS.map((t) => (

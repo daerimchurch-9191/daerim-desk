@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     const { data: n } = await admin.from('notices').select('id, title, body, audience, created_by').eq('id', body.notice_id ?? -1).maybeSingle()
     if (!n) return reply({ error: '공지를 찾을 수 없습니다.' }, 404)
     const [{ data: people }, { data: depts }, { data: links }, { data: off }] = await Promise.all([
-      admin.from('profiles').select('id, role').eq('status', 'approved'),
+      admin.from('profiles').select('id, role, rank').eq('status', 'approved'),
       admin.from('departments').select('id, grp'),
       admin.from('profile_depts').select('profile_id, dept_id'),
       admin.from('notification_prefs').select('profile_id').eq('notice', false),
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const inAudience = (id: string) => (links ?? []).some((l) => l.profile_id === id && grp.get(l.dept_id) === n.audience)
     userIds = (people ?? [])
       .filter((p) => p.id !== n.created_by && !muted.has(p.id))
-      .filter((p) => n.audience === 'all' || p.role === 'admin' || inAudience(p.id))
+      .filter((p) => n.audience === 'all' || p.role === 'admin' || inAudience(p.id) || (n.audience.startsWith('rank:') && p.rank === n.audience.slice(5)))
       .map((p) => p.id)
     const text = (n.body ?? '').replace(/\s+/g, ' ').trim()
     payload = { title: `[공지] ${n.title}`, body: text.length > 120 ? text.slice(0, 120) + '…' : text, url: './#notices', tag: `notice-${n.id}` }
