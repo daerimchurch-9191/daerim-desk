@@ -1,4 +1,5 @@
-# main 에 올라갈 때마다 화면을 만들어 깃허브 페이지에 올린다
+# main 에 올라갈 때마다 화면을 만들어 깃허브 페이지에 올린다.
+# preview 브랜치가 있으면 그것도 만들어 /preview/ 주소에 함께 올린다 (휴대폰 등에서 미리 확인용).
 name: Deploy
 
 on:
@@ -29,6 +30,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: 미리보기(preview 브랜치) 만들기
+        run: |
+          if git ls-remote --exit-code --heads origin preview >/dev/null; then
+            git fetch --depth 1 origin preview
+            git worktree add ../preview-src FETCH_HEAD
+            cd ../preview-src && npm ci && npm run build
+            mkdir -p "$GITHUB_WORKSPACE/dist/preview" && cp -r dist/. "$GITHUB_WORKSPACE/dist/preview/"
+            echo "미리보기 포함"
+          else
+            echo "preview 브랜치 없음"
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
