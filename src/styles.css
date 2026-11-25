@@ -1,3 +1,5 @@
+/* 휴대폰 안전 여백: 브라우저가 알려 주는 값, 없으면 index.html 스크립트가 잰 값 */
+:root { --sat: max(env(safe-area-inset-top, 0px), var(--js-sat, 0px)); --sab: max(env(safe-area-inset-bottom, 0px), var(--js-sab, 0px)); color-scheme: light only; }
 :root {
   --ink: #151716;
   --ink-2: #2c332f;
@@ -796,17 +798,17 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
    - 왼쪽 위 ☰ 메뉴는 기존 메뉴 그대로
    ========================================================= */
 .phone-tabs, .sheet-wrap { display: none; }
-.is-phone .phone-tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: rgba(255, 255, 255, .97); border-top: 1px solid #e3e6e4; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.is-phone .phone-tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: rgba(255, 255, 255, .97); border-top: 1px solid #e3e6e4; padding: 6px 4px calc(6px + var(--sab)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .ptab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 50px; color: var(--t3); text-decoration: none; font-size: 11px; font-weight: 600; }
 .ptab.is-on { color: var(--accent); }
 .ptab-plus { flex: 1; display: flex; align-items: center; justify-content: center; border: 0; background: none; padding: 0; cursor: pointer; }
 .ptab-plus svg { box-sizing: content-box; padding: 13px; border-radius: 17px; background: var(--accent); color: #fff; box-shadow: 0 6px 16px rgba(15, 107, 84, .35); margin-top: -18px; }
-.is-phone .main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
-.is-phone .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
+.is-phone .main { padding-bottom: calc(96px + var(--sab)); }
+.is-phone .toast { bottom: calc(90px + var(--sab)); }
 
 /* ＋ 바텀 시트 */
 .is-phone .sheet-wrap { display: flex; position: fixed; inset: 0; z-index: 35; background: rgba(21, 23, 22, .5); align-items: flex-end; }
-.sheet { width: 100%; background: #fff; border-radius: 22px 22px 0 0; padding: 10px 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; animation: sheet-up .18s ease-out; }
+.sheet { width: 100%; background: #fff; border-radius: 22px 22px 0 0; padding: 10px 16px calc(24px + var(--sab)); display: flex; flex-direction: column; gap: 8px; animation: sheet-up .18s ease-out; }
 @keyframes sheet-up { from { transform: translateY(40px); opacity: .5; } }
 @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 .sheet-grab { width: 36px; height: 4px; border-radius: 2px; background: #d5dad7; align-self: center; margin-bottom: 6px; }
@@ -864,11 +866,11 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .swipe-panel { flex: 0 0 100%; min-width: 0; padding: 0 16px; display: flex; flex-direction: column; gap: 20px; }
 .swipe-panel:not(.is-active) { max-height: 100vh; overflow: hidden; }
 /* 아래 탭: 조금 더 높게, 아이폰 홈 막대와 떨어지게 */
-.is-phone .phone-tabs { padding: 8px 6px max(14px, calc(env(safe-area-inset-bottom) + 4px)); }
+.is-phone .phone-tabs { padding: 8px 6px max(14px, calc(var(--sab) + 4px)); }
 .ptab { min-height: 54px; gap: 3px; font-size: 11px; }
 .ptab-plus svg { margin-top: -20px; }
-.is-phone .main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-.is-phone .mobile-bar { padding-top: max(12px, env(safe-area-inset-top)); }
+.is-phone .main { padding-bottom: calc(110px + var(--sab)); }
+.is-phone .mobile-bar { padding-top: max(12px, var(--sat)); }
 
 /* ---------- 2026-11-16 점검: 휴대폰 달력 칸 글자가 낱자로 쪼개지지 않게 (낱말 단위로 줄바꿈, 넘치면 잘라냄) ---------- */
 @media (max-width: 700px) {
@@ -883,7 +885,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
   .month-grid-always .month-cell { padding: 3px 2px; }
 }
 /* 휴대폰 심방방: 아래 탭에 가리지 않게 */
-.is-phone .chat { height: calc(100dvh - 330px - env(safe-area-inset-bottom)); min-height: 360px; }
+.is-phone .chat { height: calc(100dvh - 330px - var(--sab)); min-height: 360px; }
 /* 한글이 낱말 중간에서 끊기지 않게 (띄어쓰기에서 줄바꿈, 아주 긴 글자는 그래도 넘치지 않게) */
 body { word-break: keep-all; overflow-wrap: anywhere; }
 /* 아주 좁은 휴대폰(400px 이하): 날짜 두 칸이 나란히 들어가지 않으면 위아래로 */
@@ -932,3 +934,14 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
   .month-grid-always.show-psg .sermon-slot.svc-dawn small.psg, .month-grid-always.show-psg .sermon-slot.svc-cho small.psg { display: block; }
   .psg-toggle { margin: 4px 0 8px; }
 }
+
+/* 상태 표시줄·버튼 줄 밑으로 들어가지 않게 (안드로이드 홈 화면 앱 포함) */
+.is-phone .sidebar { padding-top: var(--sat); padding-bottom: var(--sab); }
+.overlay { padding-top: calc(16px + var(--sat)); padding-bottom: calc(16px + var(--sab)); }
+.dialog { max-height: calc(100dvh - 32px - var(--sat) - var(--sab)); }
+.mobile-tools .hb-pop { top: calc(70px + var(--sat)); }
+.phone-search .hs-pop { top: calc(128px + var(--sat)); }
+.detail-row { display: flex; gap: 12px; margin: 0; padding: 9px 0; border-bottom: 1px solid #eef0ef; }
+.detail-row .muted { width: 56px; flex: none; }
+/* 휴대폰 월별 칸: "1호차(1414)"가 잘리지 않게 괄호 앞에서 줄바꿈 */
+.month-grid-always .tag-car b.car-name { display: block; white-space: normal; overflow-wrap: anywhere; margin-right: 0; }

@@ -656,12 +656,34 @@ function useBookings(from, to) {
   return list
 }
 
+// 달력에 보일 차량 이름: 번호판이 있으면 "1호차(1414)" (이름의 마지막 낱말 + 번호판), 없으면 이름 그대로
+export const carLabel = (v) => (!v ? '' : v.plate ? `${v.name.trim().split(/\s+/).pop()}(${v.plate})` : v.name)
+
 // 차량마다 다른 색 (차량 목록 순서대로)
 const CAR_COLORS = [['#DCEBFA', '#1D4E89'], ['#FCE1D6', '#8A3414'], ['#E3F1D2', '#3F5E14'], ['#F7DDEB', '#84205A'], ['#D8F0F0', '#145B5E'], ['#F3EBCB', '#6A5410'], ['#E7E2F6', '#3E2F7A']]
 export const carStyle = (vehicles, id) => {
   const i = Math.max(0, vehicles.findIndex((v) => v.id === id))
   const [background, color] = CAR_COLORS[i % CAR_COLORS.length]
   return { background, color }
+}
+
+// 차량 신청 자세히 보기 (고칠 수 없는 사람용)
+function CarDetail({ b, onClose }) {
+  const { vehicles, departments } = useData()
+  const v = vehicles.find((x) => x.id === b.vehicle_id)
+  const d = b.span[0]
+  const row = (k, val) => val ? <p className="detail-row"><span className="muted">{k}</span><b>{val}</b></p> : null
+  return (
+    <Modal title="차량 신청" onClose={onClose} onSubmit={(e) => { e.preventDefault(); onClose() }}
+      footer={<button type="submit" className="btn btn-primary">닫기</button>}>
+      {row('차량', v ? `${v.name}${v.plate ? ` (${v.plate})` : ''}` : '')}
+      {row('날짜', `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW_KO[d.getDay()]})`)}
+      {row('시간', `${hm(b.span[0])} – ${hm(b.span[1])}`)}
+      {row('부서', b.dept_text || deptName(departments, b.dept_id))}
+      {row('신청자', b.requester)}
+      {row('운전자', b.driver)}
+    </Modal>
+  )
 }
 
 function BookingTag({ b, departments, showCar, vehicles }) {
@@ -674,13 +696,18 @@ function BookingTag({ b, departments, showCar, vehicles }) {
     refresh(); notify('차량 신청을 취소했습니다.')
   }
   const label = <>
-    {showCar && <b>{vehicles.find((v) => v.id === b.vehicle_id)?.name}</b>}
+    {showCar && <b className="car-name">{carLabel(vehicles.find((v) => v.id === b.vehicle_id)).replace('(', '\u200b(')}</b>}
     <b>{b.dept_text || deptName(departments, b.dept_id) || '예약'}</b>
     {hm(b.span[0])} – {hm(b.span[1])}
     {b.requester && <small>{b.requester}{b.driver && b.driver !== b.requester ? ` · 운전 ${b.driver}` : ''}</small>}
   </>
   const style = carStyle(vehicles, b.vehicle_id)
-  if (!mine) return <span className="tag tag-car" style={style}>{label}</span>
+  // 신청자·관리자가 아니면 눌러서 자세한 내용만 본다 (고치기 없음)
+  if (!mine) return (
+    <span className="tag tag-car" style={style}>
+      <button type="button" className="tag-edit" title="자세히 보기" onClick={() => openModal({ render: (close) => <CarDetail b={b} onClose={close} /> })}>{label}</button>
+    </span>
+  )
   return (
     <span className="tag tag-car" style={style}>
       <button type="button" className="tag-edit" title="눌러서 고치기" onClick={() => openModal({ type: 'car', initial: b })}>{label}</button>
@@ -715,7 +742,7 @@ export function CarsWeek({ inPage }) {
   )
   const legend = vehicles.length > 0 && (
     <div className="car-legend" aria-label="차량 색">
-      {vehicles.map((v) => <span key={v.id} className="tag round" style={carStyle(vehicles, v.id)}>{v.name}</span>)}
+      {vehicles.map((v) => <span key={v.id} className="tag round" style={carStyle(vehicles, v.id)}>{carLabel(v)}</span>)}
     </div>
   )
 
@@ -779,7 +806,7 @@ export function CarsMonth() {
           <div className="tabs grow">
             <button type="button" className={`tab${filter === 'all' ? ' is-on' : ''}`} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>전체 차량</button>
             {vehicles.map((v) => (
-              <button key={v.id} type="button" className={`tab${filter === v.id ? ' is-on' : ''}`} aria-pressed={filter === v.id} onClick={() => setFilter(v.id)}>{v.name}</button>
+              <button key={v.id} type="button" className={`tab${filter === v.id ? ' is-on' : ''}`} aria-pressed={filter === v.id} onClick={() => setFilter(v.id)}>{carLabel(v)}</button>
             ))}
           </div>
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'car' })}>+ 차량 신청</button>
