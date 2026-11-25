@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase, useAuth, toKorean, can } from './auth.jsx'
 import { useData, Modal, ymd, addDays, sameDay, DOW_KO, layoutRow, BarTag } from './live.jsx'
 
-const PART = { full: '연차', am: '오전 반차', pm: '오후 반차' }
+const PART = { full: '연차' } // 우리 교회는 반차가 없다 (2026-11-25)
 const STATUS = { pending: '승인 대기', approved: '승인', rejected: '반려', cancelled: '취소' }
 const dt = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d) }
 const md = (s) => { const d = dt(s); return `${d.getMonth() + 1}/${d.getDate()}(${DOW_KO[d.getDay()]})` }
@@ -120,8 +120,8 @@ function LeaveRequestModal({ onClose, onDone, left }) {
   const [touched, setTouched] = useState(false) // 일수를 직접 고쳤는가
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const auto = (x) => (x.part === 'full' ? Math.max(1, between(x.start, x.end)) : 0.5)
-  const set = (patch) => { const x = { ...f, ...patch }; if (x.part !== 'full') x.end = x.start; if (x.end < x.start) x.end = x.start; if (!touched || 'part' in patch) x.days = auto(x); setF(x); setError('') }
+  const auto = (x) => Math.max(1, between(x.start, x.end))
+  const set = (patch) => { const x = { ...f, ...patch }; if (x.end < x.start) x.end = x.start; if (!touched) x.days = auto(x); setF(x); setError('') }
   async function save(e) {
     e.preventDefault()
     if (!(f.days > 0)) return setError('일수를 적어 주세요.')
@@ -134,20 +134,12 @@ function LeaveRequestModal({ onClose, onDone, left }) {
   return (
     <Modal title="연차 신청" onClose={onClose} onSubmit={save}
       footer={<><button type="button" className="btn" onClick={onClose}>취소</button><button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '신청 중…' : '신청'}</button></>}>
-      <fieldset className="segment-field">
-        <legend>종류</legend>
-        <div className="segment">
-          {Object.entries(PART).map(([k, v]) => (
-            <label key={k} className={f.part === k ? 'is-on' : ''}><input type="radio" name="part" checked={f.part === k} onChange={() => set({ part: k })} />{v}</label>
-          ))}
-        </div>
-      </fieldset>
       <div className="field-row">
-        <label className="field">{f.part === 'full' ? '시작 날짜' : '날짜'}<input type="date" value={f.start} onChange={(e) => set({ start: e.target.value })} required /></label>
-        {f.part === 'full' && <label className="field">끝 날짜<input type="date" value={f.end} min={f.start} onChange={(e) => set({ end: e.target.value })} required /></label>}
+        <label className="field">시작 날짜<input type="date" value={f.start} onChange={(e) => set({ start: e.target.value })} required /></label>
+        <label className="field">끝 날짜<input type="date" value={f.end} min={f.start} onChange={(e) => set({ end: e.target.value })} required /></label>
       </div>
       <label className="field"><span>쓰는 일수 <small>(쉬는 날이 끼어 있으면 고쳐 주세요)</small></span>
-        <input type="number" inputMode="decimal" step="0.5" min="0.5" max="60" value={f.days} onChange={(e) => { setTouched(true); setF({ ...f, days: Number(e.target.value) }) }} />
+        <input type="number" inputMode="decimal" step="1" min="1" max="60" value={f.days} onChange={(e) => { setTouched(true); setF({ ...f, days: Math.round(Number(e.target.value)) }) }} />
       </label>
       <label className="field"><span>사유 <small>(선택)</small></span><input value={f.reason} maxLength={300} onChange={(e) => setF({ ...f, reason: e.target.value })} /></label>
       {Number.isFinite(left) && <p className={`small ${f.days > left ? 'form-error' : 'muted'}`}>신청 뒤 남는 연차: {days(left - f.days)}{f.days > left ? ' (부여된 연차보다 많습니다)' : ''}</p>}
@@ -280,7 +272,7 @@ function Grant({ reqs, people, balances, onChange }) {
               return (
                 <tr key={p.id}>
                   <th scope="row">{p.name} {p.title}</th>
-                  <td><input className="grant-input" type="number" inputMode="decimal" step="0.5" min="0" max="365" aria-label={`${p.name} ${year}년 부여 일수`}
+                  <td><input className="grant-input" type="number" inputMode="numeric" step="1" min="0" max="365" aria-label={`${p.name} ${year}년 부여 일수`}
                     value={v} placeholder="—" onChange={(e) => setDraft({ ...draft, [p.id]: e.target.value })} /></td>
                   <td>{days(used)}</td><td>{days(wait)}</td>
                   <td><b>{v === '' ? '—' : days(Number(v) - used)}</b></td>
