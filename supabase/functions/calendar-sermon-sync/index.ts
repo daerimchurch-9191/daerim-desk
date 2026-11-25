@@ -129,16 +129,44 @@ Deno.serve(async (req) => {
     return json({ updates: [], creates: [], deletes: [], to_dashboard: 0, issues: ['no events'] })
   }
 
+  // ---- 중복 막기 (2026-11-25) ----
+  // 대시보드가 만든 일정(태그 있음)과 캘린더에서 사람이 만든 일정이 같은 설교 칸에 함께 생기면
+  // 사람이 만든 쪽을 남기고 대시보드가 만든 쪽을 캘린더에서 지운다.
+  const taggedKey = new Map<number, string>() // 설교 id → 대시보드가 만든 일정 키
+  for (const e of events) if (e.tag && Number(e.tag)) taggedKey.set(Number(e.tag), e.key)
+  const removed = new Set<string>()
+  const removeTagged = (key: string) => { if (removed.has(key)) return; removed.add(key); deletes.push(key); dropState.push(key) }
+  // 이미 기록된 짝 가운데 한 설교에 일정이 둘 이상 붙어 있으면 대시보드가 만든 쪽을 뺀다
+  const eventKeys = new Set(events.map((e) => e.key))
+  const keysBySermon = new Map<number, string[]>()
+  for (const st of states ?? []) if (st.sermon_id && eventKeys.has(st.event_key)) keysBySermon.set(st.sermon_id, [...(keysBySermon.get(st.sermon_id) ?? []), st.event_key])
+  for (const [sid, keys] of keysBySermon) {
+    const tk = taggedKey.get(sid)
+    if (keys.length > 1 && tk && keys.includes(tk)) removeTagged(tk)
+  }
+  // 사람이 만든 일정(태그 없음)을 먼저 맞춘다
+  events.sort((x, y) => (x.tag ? 1 : 0) - (y.tag ? 1 : 0))
+
   const seen = new Set<string>()
   for (const e of events) {
     seen.add(e.key)
+    if (removed.has(e.key)) continue
     const st = stateByKey.get(e.key)
     const ev = evVal(e)
     if (!st) {
       // 처음 보는 일정: 태그(대시보드가 만든 일정) → 같은 날 같은 예배 칸 순서로 짝을 찾는다
       const sv = serviceOf(e.kind)
       let s = e.tag ? sermons.get(Number(e.tag)) ?? null : null
+      // 대시보드가 만든 일정인데 그 설교가 이미 다른 일정과 짝이면 → 남는 일정이니 지운다
+      if (s && linked.has(s.id)) { removeTagged(e.key); continue }
       if (!s && sv !== 'special') s = [...sermons.values()].find((x) => x.service === sv && x.date === e.date && !linked.has(x.id)) ?? null
+      // 사람이 만든 일정인데 그 칸이 대시보드가 만든 일정과 짝이면 → 사람 쪽으로 짝을 옮기고 대시보드 일정은 지운다
+      if (!s && !e.tag && sv !== 'special') {
+        // (그 설교가 대시보드 일정 하나하고만 짝일 때만)
+        const x = [...sermons.values()].find((y) => y.service === sv && y.date === e.date && taggedKey.has(y.id) && taggedKey.get(y.id) !== e.key
+          && (keysBySermon.get(y.id) ?? []).every((k) => k === taggedKey.get(y.id)) && !newState.some((n) => n.sermon_id === y.id))
+        if (x) { removeTagged(taggedKey.get(x.id)!); s = x }
+      }
       if (!s && sv === 'special') s = [...sermons.values()].find((x) => x.service === 'special' && x.date === e.date && (x.title ?? '') === e.kind && !linked.has(x.id)) ?? null
       if (s) {
         if (smVal(s) === ev) keep(e, s, ev)
