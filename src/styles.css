@@ -945,3 +945,5 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .detail-row .muted { width: 56px; flex: none; }
 /* 휴대폰 월별 칸: "1호차(1414)"가 잘리지 않게 괄호 앞에서 줄바꿈 */
 .month-grid-always .tag-car b.car-name { display: block; white-space: normal; overflow-wrap: anywhere; margin-right: 0; }
+.screen-check { margin-top: 14px; }
+.screen-check pre { white-space: pre-wrap; word-break: break-all; font-size: 11px; background: #f3f5f4; padding: 8px; border-radius: 8px; margin: 6px 0 0; }

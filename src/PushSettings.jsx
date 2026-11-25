@@ -74,6 +74,28 @@ function NotifyItems() {
   )
 }
 
+// 휴대폰 화면이 상태 표시줄·버튼 줄에 가리는 문제를 점검할 때 쓰는 값 (캡처해서 보내 달라고 할 때)
+function screenInfo() {
+  const root = document.documentElement
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)'
+  root.appendChild(probe)
+  const cs = getComputedStyle(probe), envT = cs.paddingTop, envB = cs.paddingBottom
+  root.removeChild(probe)
+  const modes = ['standalone', 'fullscreen', 'minimal-ui', 'browser'].filter((m) => matchMedia(`(display-mode: ${m})`).matches).join(',')
+  const v = window.visualViewport
+  return [
+    `ver ${typeof __BUILD__ !== 'undefined' ? __BUILD__ : '-'}`,
+    `mode ${modes || '없음'}`,
+    `inner ${innerWidth}x${innerHeight}  outer ${outerWidth}x${outerHeight}`,
+    `screen ${screen.width}x${screen.height}  avail ${screen.availWidth}x${screen.availHeight}`,
+    `vv ${v ? `${Math.round(v.width)}x${Math.round(v.height)} top ${Math.round(v.offsetTop)}` : '-'}  dpr ${devicePixelRatio}`,
+    `env ${envT} / ${envB}  js ${root.style.getPropertyValue('--js-sat') || '없음'} / ${root.style.getPropertyValue('--js-sab') || '없음'}`,
+    `doc ${root.clientHeight}  ref ${document.referrer || '-'}`,
+    navigator.userAgent,
+  ].join('\n')
+}
+
 export function PushSettingsModal({ onClose }) {
   const { notify } = useData()
   const [state, setState] = useState(null)
@@ -116,6 +138,11 @@ export function PushSettingsModal({ onClose }) {
             ? <ol className="steps small"><li>사파리로 이 페이지를 엽니다.</li><li>아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.</li><li>"홈 화면에 추가"를 누릅니다.</li><li>홈 화면의 "사역 데스크" 아이콘으로 열고, 여기서 알림을 켭니다.</li></ol>
             : <ol className="steps small"><li>크롬 오른쪽 위 메뉴(⋮)를 누릅니다.</li><li>"홈 화면에 추가" 또는 "앱 설치"를 누릅니다.</li></ol>}
       </>}
+
+      <details className="screen-check">
+        <summary className="small muted">화면 점검 정보</summary>
+        <pre>{screenInfo()}</pre>
+      </details>
     </Modal>
   )
 }
