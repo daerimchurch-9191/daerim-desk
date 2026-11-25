@@ -80,7 +80,8 @@ function NoticeEditor({ initial, onClose }) {
   async function save(e) {
     e.preventDefault()
     if (!f.title.trim()) return setError('제목을 적어 주세요.')
-    const row = { title: f.title.trim(), body: f.body.trim() || null, audience: f.audience, until: f.until || null }
+    if (!f.until) return setError('게시 기간(언제까지 보일지)을 정해 주세요.')
+    const row = { title: f.title.trim(), body: f.body.trim() || null, audience: f.audience, until: f.until }
     setBusy(true)
     const res = editing
       ? await supabase.from('notices').update(row).eq('id', initial.id).select().single()
@@ -135,8 +136,8 @@ function NoticeEditor({ initial, onClose }) {
         </div>
       </fieldset>
       <p className="muted small">교구·교육부 공지는 그 소속에게, 직분 공지는 그 직분에게만 보입니다 (관리자는 모두 봄).</p>
-      <label className="field"><span>게시 기간 <small>(이 날까지 보임, 비우면 계속)</small></span>
-        <input type="date" value={f.until} onChange={(e) => setF({ ...f, until: e.target.value })} />
+      <label className="field"><span>게시 기간 <small>(이 날까지 보임)</small></span>
+        <input type="date" required min={editing ? undefined : ymd(new Date())} value={f.until} onChange={(e) => setF({ ...f, until: e.target.value })} />
       </label>
       <label className="field"><span>내용 <small>(선택)</small></span>
         <textarea rows={6} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />
