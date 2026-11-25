@@ -303,37 +303,6 @@ export function MySermons() {
   )
 }
 
-/* ---------- 휴대폰: 새벽 필터를 고르면 한 달 새벽기도를 목록으로 ---------- */
-function DawnList({ month, next, rows, today, open, staff, nameOf }) {
-  const days = []
-  for (let d = new Date(month); d < next; d = addDays(d, 1)) days.push(d)
-  const plain = (n) => n.replace(/\s+(목사|전도사|강도사)(님)?$/, '')
-  return (
-    <div className="card dawn-list">
-      <h3 className="sub-h">{month.getMonth() + 1}월 새벽기도회</h3>
-      {rows === null ? <span className="skeleton" /> : (
-        <ul>
-          {days.map((d) => {
-            const key = ymd(d)
-            const s = rows.find((x) => x.service === 'dawn' && x.date === key)
-            const cho = isChoharu(d)
-            const who = cho ? '담임목사' : s ? plain(nameOf(s)) : ''
-            return (
-              <li key={key} className={`${key === today ? 'is-today' : ''}${key < today ? ' is-past' : ''}${cho ? ' is-cho' : ''}`}>
-                <button type="button" onClick={() => open(s ?? { service: 'dawn', date: key })}>
-                  <span className="dl-date">{d.getDate()} <small>({DOW_KO[d.getDay()]})</small></span>
-                  <span className="dl-who">{cho && <b className="dl-cho">초하루</b>}{who || <i>미정</i>}</span>
-                  <span className="dl-psg">{s?.passage || ''}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </div>
-  )
-}
-
 /* ---------- 예배 설교표 월별 ---------- */
 const SHORT = { dawn: '새벽', wed: '수요', fri: '금요' }
 // 예배마다 색 (설교표 월별 칸·범례)
@@ -345,6 +314,8 @@ export function SermonsMonth() {
   const { profile } = useAuth()
   const { version, staff } = useData()
   const phone = useIsPhone()
+  // 휴대폰 달력 칸에 새벽 본문을 보일지 (기기마다 기억)
+  const [showPsg, setShowPsg] = useState(() => { try { return localStorage.getItem('sermons.showPsg') === '1' } catch { return false } })
   const now = new Date()
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
   const [show, setShow] = useState('all') // all | dawn | wedfri | special | mine
@@ -410,8 +381,14 @@ export function SermonsMonth() {
           <button type="button" className="btn btn-primary" onClick={() => open({ service: 'special', date: ymd(month.getMonth() === now.getMonth() ? now : month) })}>+ 특별 예배</button>
         </div>
         <div className="svc-legend" aria-label="예배 색">{SVC_LEGEND.map(([k, v]) => <span key={k} className={`sermon-slot svc-${k} legend`}>{v}</span>)}</div>
-        {phone && show === 'dawn' ? <DawnList month={month} next={next} rows={rows} today={today} open={open} staff={staff} nameOf={nameOf} /> : <div className="card scroll-x">
-          <div className="month month-grid-always">
+        {phone && (
+          <label className="check-line psg-toggle">
+            <input type="checkbox" checked={showPsg} onChange={(e) => { setShowPsg(e.target.checked); try { localStorage.setItem('sermons.showPsg', e.target.checked ? '1' : '') } catch { /* 저장 못 해도 괜찮음 */ } }} />
+            새벽 본문 보기
+          </label>
+        )}
+        <div className="card scroll-x">
+          <div className={`month month-grid-always${showPsg ? ' show-psg' : ''}`}>
             {DOW_KO.map((w) => <span key={w} className="month-dow">{w}</span>)}
             {cells.map((d, i) => (
               <div key={i} className={`month-cell${d === null ? ' is-empty' : ''}${d && ymd(d) === today ? ' is-today' : ''}`}>
@@ -439,7 +416,7 @@ export function SermonsMonth() {
               </div>
             ))}
           </div>
-        </div>}
+        </div>
       </section>}
     </>
   )

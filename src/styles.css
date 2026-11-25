@@ -926,19 +926,9 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
   .month-grid-always .sermon-slot small.psg { white-space: normal; word-break: break-all; line-height: 1.25; }
 }
 
-/* 휴대폰: 새벽기도 한 달 목록 (설교표 → 새벽) */
-.dawn-list ul { list-style: none; margin: 0; padding: 0; }
-.dawn-list li button { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 10px 4px; border: 0; border-bottom: 1px solid var(--line-2); background: none; font: inherit; font-size: 14px; text-align: left; color: var(--ink); cursor: pointer; }
-.dawn-list li:last-child button { border-bottom: 0; }
-.dawn-list .dl-date { font-weight: 700; }
-.dawn-list .dl-date small { font-weight: 400; color: var(--muted); font-size: 12px; }
-.dawn-list .dl-who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dawn-list .dl-who i { font-style: normal; color: var(--muted); }
-.dawn-list .dl-psg { font-size: 13px; color: #0C4F3E; white-space: nowrap; }
-.dawn-list .dl-cho { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: #FBE1E1; color: #8A1F2B; font-size: 11px; }
-.dawn-list li.is-past button { opacity: .5; }
-.dawn-list li.is-today button { background: #F2FAF6; font-weight: 700; border-radius: 8px; }
 @media (max-width: 700px) {
-  /* 휴대폰 달력 칸은 이름만 (본문은 새벽 목록에서) */
+  /* 휴대폰 달력 칸은 이름만. "새벽 본문 보기"를 켜면 새벽(초하루) 칸에 본문 줄 */
   .month-grid-always .sermon-slot small.psg { display: none; }
+  .month-grid-always.show-psg .sermon-slot.svc-dawn small.psg, .month-grid-always.show-psg .sermon-slot.svc-cho small.psg { display: block; }
+  .psg-toggle { margin: 4px 0 8px; }
 }
