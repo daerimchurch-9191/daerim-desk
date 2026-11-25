@@ -1,5 +1,6 @@
 // 구글 캘린더 "대림교회 배우는 숲" ↔ 대시보드 양방향 연동.
 //  - "새벽 : 이름", "수요 : 이름", "금요 : 이름" 일정 → 설교표(sermons)
+//  - 초하루(매달 1일, 1일이 주일이면 2일)의 "초사 : 이름" 일정 → 그날 새벽 칸의 사회자 (설교는 담임목사님)
 //  - 그 밖의 일정 → 교회 캘린더(events, 교회 전체). 대시보드의 "교회 전체" 일정만 캘린더로 보낸다.
 // 캘린더 계정의 Apps Script가 일정이 바뀔 때마다, 그리고 10분마다 범위 안의 일정을 보낸다:
 //   { from, to, events: [{ key, kind, date, time, who, tag }] }   (제목이 "새벽 : 이름 직분" 모양인 것만)
@@ -13,7 +14,12 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json; charset=utf-8' } })
 const same = (a: string, b: string) => { if (a.length !== b.length) return false; let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i); return x === 0 }
-const KIND: Record<string, string> = { 새벽: 'dawn', 수요: 'wed', 금요: 'fri' }
+const KIND: Record<string, string> = { 새벽: 'dawn', 수요: 'wed', 금요: 'fri', 초사: 'dawn' }
+// 초하루 새벽기도회 날: 매달 1일, 1일이 주일이면 2일
+const isCho = (date: string) => { const [y, m, d] = date.split('-').map(Number); return d === (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() === 0 ? 2 : 1) }
+const KST = 9 * 3600000
+const kstYmd = (iso: string) => new Date(Date.parse(iso) + KST).toISOString().slice(0, 10)
+const kstHm = (iso: string) => new Date(Date.parse(iso) + KST).toISOString().slice(11, 16)
 const LABEL: Record<string, string> = { dawn: '새벽', wed: '수요', fri: '금요' }
 const DEFAULT_TIME: Record<string, string> = { dawn: '05:00', wed: '11:00', fri: '20:30', special: '11:00' }
 const TITLES = '목사|전도사|강도사|장로|권사|집사|사모|선교사|교수|목사님|전도사님'
@@ -26,7 +32,7 @@ const loose = (s: string | null | undefined) => {
 type Ev = { key: string; kind: string; date: string; time: string; who: string; tag?: string | null }
 type Ch = { key: string; title: string; allDay: boolean; start: string; end: string; location?: string; note?: string; tag?: string | null }
 type Row = { id: number; title: string; starts_at: string; ends_at: string | null; all_day: boolean; dept_id: string; location: string | null; note: string | null }
-type Sermon = { id: number; service: string; title: string | null; date: string; time: string | null; preacher_id: string | null; preacher_name: string | null; passage: string | null; is_public: boolean }
+type Sermon = { id: number; service: string; title: string | null; date: string; time: string | null; preacher_id: string | null; preacher_name: string | null; host_id: string | null; host_name: string | null; passage: string | null; is_public: boolean }
 
 Deno.serve(async (req) => {
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
@@ -38,12 +44,25 @@ Deno.serve(async (req) => {
   try { body = await req.json() } catch { return json({ error: '요청 형식이 잘못되었습니다.' }, 400) }
   const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s)
   if (!isDate(body.from) || !isDate(body.to) || !isDate(body.today)) return json({ error: '날짜 범위가 없습니다.' }, 400)
-  const events = (body.events ?? []).filter((e) => e.key && isDate(e.date) && /^\d{2}:\d{2}$/.test(e.time) && KIND[e.kind]).slice(0, 3000)
+  // 초하루의 "초사 : 이름" 일정은 교회 일정 목록에서 빼서 설교표(그날 새벽 칸의 사회자)로 맞춘다
+  const choItems: Ev[] = []
+  body.church = (body.church ?? []).filter((c) => {
+    const m = !c.allDay && c.title?.match(/^\s*초사\s*:\s*(.*)$/)
+    if (!m || !c.start || isNaN(Date.parse(c.start))) return true
+    const date = kstYmd(c.start)
+    if (!isCho(date)) return true
+    choItems.push({ key: c.key, kind: '초사', date, time: kstHm(c.start), who: m[1].trim(), tag: null })
+    return false
+  })
+  const events = [...(body.events ?? []), ...choItems]
+    .filter((e) => e.key && isDate(e.date) && /^\d{2}:\d{2}$/.test(e.time) && KIND[e.kind])
+    .filter((e) => !(e.kind === '새벽' && isCho(e.date))) // 초하루 날은 "초사" 일정이 새벽 칸을 맡는다
+    .slice(0, 3000)
 
   const [{ data: states }, { data: sermonRows }, { data: people }] = await Promise.all([
     db.from('calendar_sync_state').select('*'),
     db.from('sermons').select('*').in('service', ['dawn', 'wed', 'fri', 'special']).gte('date', body.from).lte('date', body.to),
-    db.from('profiles').select('id, name, title').eq('status', 'approved'),
+    db.from('profiles').select('id, name, title, rank').eq('status', 'approved'),
   ])
   const sermons = new Map(((sermonRows ?? []) as Sermon[]).map((s) => [s.id, s]))
   const stateByKey = new Map((states ?? []).map((s) => [s.event_key, s]))
@@ -57,18 +76,28 @@ Deno.serve(async (req) => {
   const hm = (t: string | null) => (t ?? '').slice(0, 5)
   // 비교 값: 예배|제목|날짜|시간|사람
   const evVal = (e: Ev) => { const sv = serviceOf(e.kind); return `${sv}|${sv === 'special' ? e.kind : ''}|${e.date}|${e.time}|${loose(e.who)}` }
-  const whoOf = (s: Sermon) => s.preacher_id ? (person.get(s.preacher_id)?.name ?? s.preacher_name ?? '') : (s.preacher_name ?? '')
-  const whoFull = (s: Sermon) => { const p = s.preacher_id ? person.get(s.preacher_id) : null; return p ? `${p.name}${p.title ? ' ' + p.title : ''}` : (s.preacher_name ?? '') }
+  const cho = (s: Sermon) => s.service === 'dawn' && isCho(s.date)
+  // 초하루 새벽 칸은 사회자가 "사람" 자리다 (설교는 담임목사님으로 정해져 있음)
+  const pid = (s: Sermon) => (cho(s) ? s.host_id : s.preacher_id)
+  const pname = (s: Sermon) => (cho(s) ? s.host_name : s.preacher_name)
+  const whoOf = (s: Sermon) => pid(s) ? (person.get(pid(s)!)?.name ?? pname(s) ?? '') : (pname(s) ?? '')
+  const whoFull = (s: Sermon) => { const p = pid(s) ? person.get(pid(s)!) : null; return p ? `${p.name}${p.title ? ' ' + p.title : ''}` : (pname(s) ?? '') }
   const smVal = (s: Sermon) => `${s.service}|${s.service === 'special' ? (s.title ?? '특별') : ''}|${s.date}|${hm(s.time) || DEFAULT_TIME[s.service]}|${loose(whoOf(s))}`
+  const head = (people ?? []).find((p) => p.rank === '담임목사')
   const toCal = (s: Sermon) => ({
-    title: `${s.service === 'special' ? (s.title || '특별') : LABEL[s.service]} : ${whoFull(s) || '미정'}`,
+    title: `${cho(s) ? '초사' : s.service === 'special' ? (s.title || '특별') : LABEL[s.service]} : ${whoFull(s) || '미정'}`,
     date: s.date, time: hm(s.time) || DEFAULT_TIME[s.service],
     description: s.passage ? `본문: ${s.passage}` : '',
   })
   const fields = (e: Ev) => {
     const p = findPerson(e.who)
     const sv = serviceOf(e.kind)
-    return { service: sv, title: sv === 'special' ? e.kind : null, date: e.date, time: e.time, preacher_id: p?.id ?? null, preacher_name: p ? null : (loose(e.who) ? e.who.trim() : null) }
+    const id = p?.id ?? null, name = p ? null : (loose(e.who) ? e.who.trim() : null)
+    if (sv === 'dawn' && isCho(e.date)) {
+      return { service: sv, title: null, date: e.date, time: e.time, host_id: id, host_name: name,
+        preacher_id: head?.id ?? null, preacher_name: head ? null : '담임목사' }
+    }
+    return { service: sv, title: sv === 'special' ? e.kind : null, date: e.date, time: e.time, preacher_id: id, preacher_name: name }
   }
 
   const updates: (ReturnType<typeof toCal> & { key: string })[] = []
@@ -132,8 +161,9 @@ Deno.serve(async (req) => {
     if (ev !== st.val) {
       if (!loose(e.who)) {
         // 캘린더에서 이름을 비웠다 → 설교자만 비운다 (본문은 남김)
-        await db.from('sermons').update({ preacher_id: null, preacher_name: null, date: e.date, time: e.time }).eq('id', s.id); toDash++
-        const n = { ...s, preacher_id: null, preacher_name: null, date: e.date, time: e.time }; sermons.set(s.id, n); keep(e, n, ev)
+        const blank = cho(s) ? { host_id: null, host_name: null } : { preacher_id: null, preacher_name: null }
+        await db.from('sermons').update({ ...blank, date: e.date, time: e.time }).eq('id', s.id); toDash++
+        const n = { ...s, ...blank, date: e.date, time: e.time }; sermons.set(s.id, n); keep(e, n, ev)
       } else { const n = await writeSermon(e, s); if (n) keep(e, n, smVal(n)) }
     } else if (smVal(s) !== st.val) {
       updates.push({ key: e.key, ...toCal(s) }); keep(e, s, smVal(s))
@@ -147,7 +177,7 @@ Deno.serve(async (req) => {
     const s = st.sermon_id ? sermons.get(st.sermon_id) : null
     if (!s) continue
     if (smVal(s) !== st.val) { creates.push({ sermon_id: s.id, ...toCal(s) }); linked.add(s.id); continue } // 대시보드에서 고친 게 있으면 다시 만든다
-    if (s.passage) await db.from('sermons').update({ preacher_id: null, preacher_name: null }).eq('id', s.id)
+    if (s.passage || cho(s)) await db.from('sermons').update(cho(s) ? { host_id: null, host_name: null } : { preacher_id: null, preacher_name: null }).eq('id', s.id)
     else await db.from('sermons').delete().eq('id', s.id)
     toDash++
   }

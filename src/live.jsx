@@ -138,7 +138,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     supabase.from('departments').select('*').order('sort').then(({ data }) => setDepartments(data ?? []))
     supabase.from('vehicles').select('*').eq('active', true).order('sort').order('id').then(({ data }) => setVehicles(data ?? []))
-    supabase.from('profiles').select('id, name, title').eq('status', 'approved').order('name').then(({ data }) => setStaff(data ?? []))
+    supabase.from('profiles').select('id, name, title, rank').eq('status', 'approved').order('name').then(({ data }) => setStaff(data ?? []))
   }, [version])
 
   const value = { departments, vehicles, staff, version, refresh, notify, openModal: setModal }
@@ -163,21 +163,66 @@ const LEGEND = [...GROUPS, { id: 'personal', name: '개인' }]
 export const deptNames = (ids, departments) => (ids ?? []).map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean).join(' · ')
 
 // 소속 부서 여러 개 고르기 (가입·정보 수정)
-export function DeptChecks({ departments, value, onChange }) {
+// 직분 (시스템): 부목사의 호칭은 "목사"
+export const RANKS = ['담임목사', '부목사', '전도사', '직원']
+// 직분마다 고를 수 있는 소속: 부목사 = 기획·교구·교육, 전도사 = 수련·심방(교구 고름)·교육
+const RANK_ROLES = {
+  부목사: [{ id: 'r_plan', name: '기획' }, { id: 'parish', name: '교구', sub: 'parish' }, { id: 'edu', name: '교육', sub: 'edu' }],
+  전도사: [{ id: 'r_train', name: '수련' }, { id: 'r_visit', name: '심방', sub: 'parish' }, { id: 'edu', name: '교육', sub: 'edu' }],
+}
+// 직분을 바꾸면 그 직분에서 못 고르는 소속은 뺀다
+export const keepDeptsForRank = (rank, ids, departments) => {
+  const roles = RANK_ROLES[rank] ?? []
+  const grp = (id) => departments.find((d) => d.id === id)?.grp
+  return ids.filter((id) => roles.some((r) => r.id === id || (r.sub && grp(id) === r.sub)))
+}
+
+// 소속 부서 여러 개 고르기 (가입·정보 수정). 직분에 따라 고를 수 있는 것이 다르다.
+export function DeptChecks({ departments, value, onChange, rank }) {
+  const roles = RANK_ROLES[rank] ?? []
+  const grpOf = (id) => departments.find((d) => d.id === id)?.grp
+  const [open, setOpen] = useState(() => Object.fromEntries(roles.filter((r) => r.sub).map((r) => [r.id, value.some((id) => grpOf(id) === r.sub)])))
+  if (!roles.length) return rank ? <p className="muted small">{rank}은(는) 소속 부서를 고르지 않습니다.</p> : null
   const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
-  const group = (g, label) => (
-    <div className="dept-checks-group">
-      <span className="muted small">{label}</span>
+  const isOn = (r) => (r.sub ? (open[r.id] || (r.id.startsWith('r_') && value.includes(r.id))) : value.includes(r.id))
+  function flip(r) {
+    if (!r.sub) return toggle(r.id)
+    const on = !isOn(r)
+    setOpen({ ...open, [r.id]: on })
+    // 심방처럼 표시가 따로 있는 것은 함께 넣고 빼고, 끌 때는 그 아래 교구·부서도 뺀다 (다른 항목이 같은 교구를 쓰면 남김)
+    let next = value.filter((x) => x !== r.id)
+    if (on && r.id.startsWith('r_')) next = [...next, r.id]
+    if (!on) {
+      const shared = roles.some((o) => o.id !== r.id && o.sub === r.sub && isOn(o))
+      if (!shared) next = next.filter((x) => grpOf(x) !== r.sub)
+    }
+    onChange(next)
+  }
+  const subs = [...new Set(roles.filter((r) => r.sub && isOn(r)).map((r) => r.sub))]
+  return (
+    <fieldset className="field dept-fieldset">
+      <legend>소속 <small>(여러 개 고를 수 있음)</small></legend>
       <div className="dept-checks">
-        {departments.filter((d) => d.grp === g && d.id !== g).map((d) => (
-          <label key={d.id} className={`dept-chip${value.includes(d.id) ? ' is-on' : ''}`}>
-            <input type="checkbox" checked={value.includes(d.id)} onChange={() => toggle(d.id)} />{d.name}
+        {roles.map((r) => (
+          <label key={r.id} className={`dept-chip${isOn(r) ? ' is-on' : ''}`}>
+            <input type="checkbox" checked={isOn(r)} onChange={() => flip(r)} />{r.name}
           </label>
         ))}
       </div>
-    </div>
+      {subs.map((g) => (
+        <div key={g} className="dept-checks-group">
+          <span className="muted small">{g === 'edu' ? '교육 — 맡은 부서' : '교구 — 맡은 교구'}</span>
+          <div className="dept-checks">
+            {departments.filter((d) => d.grp === g && d.id !== g).map((d) => (
+              <label key={d.id} className={`dept-chip sub${value.includes(d.id) ? ' is-on' : ''}`}>
+                <input type="checkbox" checked={value.includes(d.id)} onChange={() => toggle(d.id)} />{d.name}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </fieldset>
   )
-  return <fieldset className="field dept-fieldset"><legend>소속 부서 <small>(여러 개 고를 수 있음)</small></legend>{group('edu', '교육부')}{group('parish', '교구')}</fieldset>
 }
 
 export function DeptSelect({ value, onChange, custom, onCustom, noAll, personal }) {
@@ -721,8 +766,7 @@ export function CarsMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">VEHICLE</h1>
-        <span className="muted">차량 현황</span>
+        <h1 className="display page-title">VEHICLE<span className="page-ko">차량 현황</span></h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <CarsWeek inPage /> : <section className="block" aria-labelledby="month-h">
@@ -833,8 +877,7 @@ export function CalendarMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">CALENDAR</h1>
-        <span className="muted">교회 캘린더 · 부서마다 등록한 일정을 한눈에</span>
+        <h1 className="display page-title">CALENDAR<span className="page-ko">교회 캘린더</span></h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <WeekCalendar inPage /> : <section className="block" aria-labelledby="cal-h">

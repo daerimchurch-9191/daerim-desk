@@ -16,11 +16,43 @@ const md = (d) => `${d.getMonth() + 1}/${d.getDate()}`
 const dayLabel = (d) => `${DOW_KO[d.getDay()]} ${d.getDate()}`
 const toDate = (s) => new Date(`${s}T00:00`)
 const hhmm = (t) => (t ? t.slice(0, 5) : '')
-const isEmpty = (s) => !s || (!s.preacher_id && !s.preacher_name && !s.passage)
+const isEmpty = (s) => !s || (!s.preacher_id && !s.preacher_name && !s.passage && !s.host_id && !s.host_name)
+
+// 초하루 새벽기도회: 매달 1일, 1일이 주일이면 2일(월). 그날 새벽 칸을 대신하고 설교는 담임목사님, 사회자를 적는다.
+export const isChoharu = (date) => {
+  const d = typeof date === 'string' ? toDate(date) : date
+  const first = new Date(d.getFullYear(), d.getMonth(), 1)
+  const day = first.getDay() === 0 ? 2 : 1
+  return d.getDate() === day
+}
+const CHO_TIME = '05:30'
+const isCho = (s) => s?.service === 'dawn' && isChoharu(s.date)
+
+// 사역자 이름 칸 하나: 목록에서 고르거나(자동 완성) 그냥 적는다. 목록 이름과 같으면 그 사역자로 연결.
+const staffLabel = (p) => `${p.name} ${p.title ?? ''}`.trim()
+export function PersonInput({ label, value, onChange, placeholder, autoFocus }) {
+  const { staff } = useData()
+  const id = `pl-${label}`
+  return (
+    <label className="field">{label}
+      <input list={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder ?? '이름을 적거나 목록에서 고르기'} autoFocus={autoFocus} autoComplete="off" />
+      <datalist id={id}>{staff.map((p) => <option key={p.id} value={staffLabel(p)} />)}</datalist>
+    </label>
+  )
+}
+// 적은 글 → { id, name } (사역자와 같으면 id, 아니면 글자 그대로)
+const resolvePerson = (staff, text) => {
+  const t = text.trim().replace(/\s+/g, ' ')
+  if (!t) return { id: null, name: null }
+  const p = staff.find((x) => staffLabel(x) === t || x.name === t || `${x.name}${x.title ?? ''}` === t.replace(/ /g, ''))
+  return p ? { id: p.id, name: null } : { id: null, name: t }
+}
+const personText = (staff, id, name) => { const p = id && staff.find((x) => x.id === id); return p ? staffLabel(p) : name ?? '' }
 
 function usePreacherName() {
   const { staff } = useData()
   return (s) => {
+    if (isCho(s)) return '담임목사'
     if (s.preacher_id) {
       const p = staff.find((x) => x.id === s.preacher_id)
       return p ? `${p.name} ${p.title}` : '(알 수 없는 사역자)'
@@ -36,12 +68,13 @@ function SermonModal({ initial, onClose }) {
   const editing = Boolean(initial.id)
   const slot = SLOT.includes(initial.service)
   const personal = initial.service === 'other'
+  const cho = initial.service === 'dawn' && isChoharu(initial.date)
   const [f, setF] = useState({
     title: initial.title ?? '',
     date: initial.date ?? ymd(new Date()),
-    time: hhmm(initial.time) || SERVICES[initial.service].time,
-    who: initial.preacher_id ?? (initial.preacher_name ? 'text' : personal ? profile.id : ''),
-    name: initial.preacher_name ?? '',
+    time: hhmm(initial.time) || (cho ? CHO_TIME : SERVICES[initial.service].time),
+    who: personText(staff, initial.preacher_id, initial.preacher_name),
+    host: personText(staff, initial.host_id, initial.host_name),
     passage: initial.passage ?? '',
   })
   const [error, setError] = useState('')
@@ -61,14 +94,19 @@ function SermonModal({ initial, onClose }) {
   function save(e) {
     e.preventDefault()
     if (!slot && !f.title.trim()) return setError('예배 이름을 적어 주세요.')
-    if (f.who === 'text' && !f.name.trim()) return setError('설교자 이름을 적어 주세요.')
+    const who = personal ? { id: profile.id, name: null } : resolvePerson(staff, f.who)
+    const host = resolvePerson(staff, f.host)
+    const head = staff.find((x) => x.rank === '담임목사')
     const row = {
       service: initial.service,
       title: slot ? null : f.title.trim(),
       date: f.date,
       time: f.time || null,
-      preacher_id: f.who && f.who !== 'text' ? f.who : null,
-      preacher_name: f.who === 'text' ? f.name.trim() : null,
+      // 초하루는 설교자가 담임목사님으로 정해져 있다 (계정이 없으면 글자로)
+      preacher_id: cho ? head?.id ?? null : who.id,
+      preacher_name: cho ? (head ? null : '담임목사') : who.name,
+      host_id: cho ? host.id : null,
+      host_name: cho ? host.name : null,
       passage: f.passage.trim() || null,
       is_public: !personal,
     }
@@ -77,21 +115,21 @@ function SermonModal({ initial, onClose }) {
   // 정해진 칸(새벽·수요·금요)은 내용만 비우고, 특별 예배와 내 설교는 줄을 지운다
   const clear = () => run(
     slot
-      ? supabase.from('sermons').update({ preacher_id: null, preacher_name: null, passage: null }).eq('id', initial.id)
+      ? supabase.from('sermons').update({ preacher_id: null, preacher_name: null, passage: null, host_id: null, host_name: null }).eq('id', initial.id)
       : supabase.from('sermons').delete().eq('id', initial.id),
     slot ? '칸을 비웠습니다.' : '설교를 지웠습니다.',
   )
 
   const d = toDate(f.date)
   return (
-    <Modal title={slot ? SERVICES[initial.service].name : personal ? '내 설교' : '특별 예배'} onClose={onClose} onSubmit={save}
+    <Modal title={cho ? '초하루 새벽기도회' : slot ? SERVICES[initial.service].name : personal ? '내 설교' : '특별 예배'} onClose={onClose} onSubmit={save}
       footer={<>
         {editing && <button type="button" className="btn btn-danger" onClick={clear} disabled={busy}>{slot ? '비우기' : '삭제'}</button>}
         <button type="button" className="btn" onClick={onClose}>취소</button>
         <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
       </>}>
       {slot ? (
-        <p><strong>{d.getMonth() + 1}월 {d.getDate()}일 ({DOW_KO[d.getDay()]}) {f.time}</strong></p>
+        <p><strong>{d.getMonth() + 1}월 {d.getDate()}일 ({DOW_KO[d.getDay()]}) {cho ? CHO_TIME : f.time}</strong></p>
       ) : (
         <>
           <label className="field">예배 이름<input value={f.title} onChange={set('title')} placeholder={personal ? '예: 유년부 예배' : '예: 연합속회'} autoFocus /></label>
@@ -103,17 +141,13 @@ function SermonModal({ initial, onClose }) {
       )}
       {personal ? (
         <p className="muted small">나만 보는 설교입니다. 예배 설교표에는 나타나지 않습니다.</p>
-      ) : (
+      ) : cho ? (
         <>
-          <label className="field">설교자
-            <select value={f.who} onChange={set('who')}>
-              <option value="">아직 정하지 않음</option>
-              {staff.map((p) => <option key={p.id} value={p.id}>{p.name} {p.title}</option>)}
-              <option value="text">직접 입력 (외부 강사 등)</option>
-            </select>
-          </label>
-          {f.who === 'text' && <label className="field">설교자 이름<input value={f.name} onChange={set('name')} autoFocus /></label>}
+          <p className="field-static"><span>설교</span><b>담임목사</b></p>
+          <PersonInput label="사회자" value={f.host} onChange={(v) => setF({ ...f, host: v })} />
         </>
+      ) : (
+        <PersonInput label="설교자" value={f.who} onChange={(v) => setF({ ...f, who: v })} />
       )}
       <label className="field">본문<input value={f.passage} onChange={set('passage')} placeholder="예: 요한복음 3:16-21" /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -129,7 +163,7 @@ export const useOpenSermon = () => {
 /* ---------- 예배 설교표 ---------- */
 export function SermonTable({ inPage }) {
   const { profile } = useAuth()
-  const { version } = useData()
+  const { version, staff } = useData()
   const [week0, setWeek0] = useState(startOfWeek())
   const [rows, setRows] = useState(null)
   const open = useOpenSermon()
@@ -154,8 +188,9 @@ export function SermonTable({ inPage }) {
       <div key={`${service}-${ymd(d)}`} className="table-row">
         <b className={ymd(d) === today ? 'accent' : ''}>{label}</b>
         {rows === null ? <span className="grow skeleton" />
+          : empty && service === 'dawn' && isChoharu(d) ? <span className="grow"><span className="chip chip-cho">초하루</span> 담임목사 · 본문 미정 · 사회 미정</span>
           : empty ? <span className="grow muted">아직 비어 있음</span>
-          : <span className="grow">{nameOf(s) || '설교자 미정'} · {s.passage || '본문 미정'} {s.preacher_id === profile.id && <span className="chip">내 설교</span>}</span>}
+          : <span className="grow">{isCho(s) && <span className="chip chip-cho">초하루</span>} {nameOf(s) || '설교자 미정'} · {s.passage || '본문 미정'}{isCho(s) && ` · 사회 ${personText(staff, s.host_id, s.host_name) || '미정'}`} {s.preacher_id === profile.id && <span className="chip">내 설교</span>}</span>}
         <button type="button" className="link-btn" onClick={() => open(s ?? { service, date: ymd(d) })}>{empty ? '입력' : '수정'}</button>
       </div>
     )
@@ -271,13 +306,13 @@ export function MySermons() {
 /* ---------- 예배 설교표 월별 ---------- */
 const SHORT = { dawn: '새벽', wed: '수요', fri: '금요' }
 // 예배마다 색 (설교표 월별 칸·범례)
-const SVC_LEGEND = [['dawn', '새벽'], ['wed', '수요'], ['fri', '금요'], ['special', '특별']]
+const SVC_LEGEND = [['dawn', '새벽'], ['cho', '초하루'], ['wed', '수요'], ['fri', '금요'], ['special', '특별']]
 // "이현범 목사" → 이름과 직분을 나눠, 휴대폰 달력 칸에서는 이름만 한 줄로
 const splitTitle = (n) => { const m = n.match(/^(.*\S)\s+(목사|전도사|강도사|장로|권사|집사|사모|선교사)(님)?$/); return m ? <>{m[1]}<i className="ttl"> {m[2]}</i></> : n }
 
 export function SermonsMonth() {
   const { profile } = useAuth()
-  const { version } = useData()
+  const { version, staff } = useData()
   const now = new Date()
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
   const [show, setShow] = useState('all') // all | dawn | wedfri | special | mine
@@ -325,8 +360,7 @@ export function SermonsMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">SERMONS</h1>
-        <span className="muted">예배 설교표</span>
+        <h1 className="display page-title">SERMONS<span className="page-ko">예배 설교표</span></h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <SermonTable inPage /> : <section className="block" aria-labelledby="smonth-h">
@@ -353,10 +387,20 @@ export function SermonsMonth() {
                 {d && rows === null && <span className="skeleton" />}
                 {d && rows !== null && slotsOf(d).map(({ service, s, initial }, j) => {
                   const empty = isEmpty(s)
+                  if (service === 'dawn' && isChoharu(d)) {
+                    // 초하루: 설교는 담임목사님, 칸에는 사회자를 보여 준다
+                    const host = s ? personText(staff, s.host_id, s.host_name) : ''
+                    return (
+                      <button key={j} type="button" className="sermon-slot svc-cho" onClick={() => open(initial)}>
+                        <b>초하루</b>
+                        <span>{host ? <><i className="lbl">사회 </i>{splitTitle(host)}</> : <><i className="lbl">사회 </i>미정</>}{s?.passage && <small className="psg">{s.passage}</small>}</span>
+                      </button>
+                    )
+                  }
                   return (
                     <button key={j} type="button" className={`sermon-slot svc-${service}${empty ? ' is-empty' : ''}`} onClick={() => open(initial)}>
                       {service === 'special' && <b>{s.title}</b>}
-                      {empty ? <span>비어 있음</span> : <span>{splitTitle(nameOf(s) || '미정')}{s.passage && <small> · {s.passage}</small>}</span>}
+                      {empty ? <span>비어 있음</span> : <span>{splitTitle(nameOf(s) || '미정')}{s.passage && <small className="psg">{s.passage}</small>}</span>}
                     </button>
                   )
                 })}

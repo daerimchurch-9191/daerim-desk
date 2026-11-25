@@ -90,8 +90,7 @@ export function AdsPage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">BULLETIN</h1>
-        <span className="muted">주보 광고 · 주일마다 모아서 한 번에 복사</span>
+        <h1 className="display page-title">BULLETIN<span className="page-ko">주보 광고</span></h1>
       </header>
       <section className="block" aria-labelledby="ads-h">
         <div className="block-head">

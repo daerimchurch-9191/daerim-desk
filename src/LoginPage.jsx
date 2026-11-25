@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, idToEmail, ID_PATTERN, toKorean, useAuth } from './auth.jsx'
-import { DeptChecks } from './live.jsx'
+import { DeptChecks, RANKS, keepDeptsForRank } from './live.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -19,7 +19,7 @@ function Shell({ children }) {
 
 export function LoginPage() {
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ id: '', pw: '', pw2: '', name: '', title: '전도사', dept_ids: [] })
+  const [form, setForm] = useState({ id: '', pw: '', pw2: '', name: '', rank: '', dept_ids: [] })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [depts, setDepts] = useState([])
@@ -35,6 +35,7 @@ export function LoginPage() {
     if (!ID_PATTERN.test(id)) return setError('아이디는 영어 소문자·숫자로 3~20자로 적어 주세요.')
     if (mode === 'signup') {
       if (!form.name.trim()) return setError('이름을 적어 주세요.')
+      if (!form.rank) return setError('직분을 골라 주세요.')
       if (form.pw.length < 6) return setError('비밀번호는 6자 이상이어야 합니다.')
       if (form.pw !== form.pw2) return setError('비밀번호 확인이 맞지 않습니다.')
     }
@@ -44,7 +45,7 @@ export function LoginPage() {
       : await supabase.auth.signUp({
           email: idToEmail(id),
           password: form.pw,
-          options: { data: { login_id: id, name: form.name.trim(), title: form.title.trim() || '전도사', dept_ids: form.dept_ids } },
+          options: { data: { login_id: id, name: form.name.trim(), rank: form.rank, title: form.rank === '부목사' ? '목사' : form.rank, dept_ids: form.dept_ids } },
         })
     setBusy(false)
     if (res.error) setError(toKorean(res.error.message))
@@ -62,8 +63,13 @@ export function LoginPage() {
         {isSignup && (
           <>
             <label className="field">이름<input value={form.name} onChange={set('name')} placeholder="예: 박수아" /></label>
-            <label className="field">직분<input value={form.title} onChange={set('title')} /></label>
-            <DeptChecks departments={depts} value={form.dept_ids} onChange={(v) => setForm({ ...form, dept_ids: v })} />
+            <label className="field">직분
+              <select value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value, dept_ids: keepDeptsForRank(e.target.value, form.dept_ids, depts) })}>
+                <option value="">고르기</option>
+                {RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <DeptChecks key={form.rank} departments={depts} rank={form.rank} value={form.dept_ids} onChange={(v) => setForm({ ...form, dept_ids: v })} />
           </>
         )}
         <label className="field">비밀번호

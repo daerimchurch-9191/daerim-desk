@@ -50,8 +50,7 @@ export function LeavePage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">LEAVE</h1>
-        <span className="muted">연차 · 신청하고 남은 연차 확인하기</span>
+        <h1 className="display page-title">LEAVE<span className="page-ko">연차</span></h1>
       </header>
       {tabs.length > 1 && (
         <nav className="tabs admin-tabs" aria-label="연차 메뉴">

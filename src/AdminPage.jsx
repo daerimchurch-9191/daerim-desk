@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean, withDepts } from './auth.jsx'
-import { useData, Modal, DeptChecks, deptNames } from './live.jsx'
+import { useData, Modal, DeptChecks, deptNames, RANKS, keepDeptsForRank } from './live.jsx'
 
 // 관리자가 다른 사역자의 비밀번호를 새로 정해 준다 (Supabase 함수 reset-password)
 function ResetPasswordModal({ person, onClose }) {
@@ -74,7 +74,7 @@ const STATUS = { pending: '승인 대기', approved: '승인됨', rejected: '반
 // 사역자 정보 고치기: 이름·직분·부서 (부서는 공지 받는 범위를 정하므로 관리자만)
 function EditMemberModal({ person, onClose, onDone }) {
   const { departments } = useData()
-  const [f, setF] = useState({ name: person.name ?? '', title: person.title ?? '', dept_ids: person.dept_ids ?? [] })
+  const [f, setF] = useState({ name: person.name ?? '', rank: person.rank ?? '', dept_ids: person.dept_ids ?? [] })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setError('') }
@@ -83,7 +83,7 @@ function EditMemberModal({ person, onClose, onDone }) {
     if (!f.name.trim()) return setError('이름을 적어 주세요.')
     setBusy(true)
     const r1 = await supabase.rpc('set_member_depts', { member: person.id, depts: f.dept_ids })
-    const { error } = r1.error ? r1 : await supabase.from('profiles').update({ name: f.name.trim(), title: f.title.trim() || null }).eq('id', person.id)
+    const { error } = r1.error ? r1 : await supabase.from('profiles').update({ name: f.name.trim(), rank: f.rank || null }).eq('id', person.id)
     setBusy(false)
     if (error) return setError(toKorean(error.message))
     onDone(); onClose()
@@ -97,9 +97,14 @@ function EditMemberModal({ person, onClose, onDone }) {
       <p className="muted small">아이디 {person.login_id}</p>
       <div className="field-row">
         <label className="field">이름<input value={f.name} onChange={set('name')} /></label>
-        <label className="field">직분<input value={f.title} onChange={set('title')} /></label>
+        <label className="field">직분
+          <select value={f.rank} onChange={(e) => { setF({ ...f, rank: e.target.value, dept_ids: keepDeptsForRank(e.target.value, f.dept_ids, departments) }); setError('') }}>
+            <option value="">고르기</option>
+            {RANKS.map((r) => <option key={r} value={r}>{r}{r === '부목사' ? ' (호칭: 목사)' : ''}</option>)}
+          </select>
+        </label>
       </div>
-      <DeptChecks departments={departments} value={f.dept_ids} onChange={(v) => { setF({ ...f, dept_ids: v }); setError('') }} />
+      <DeptChecks key={f.rank} departments={departments} rank={f.rank} value={f.dept_ids} onChange={(v) => { setF({ ...f, dept_ids: v }); setError('') }} />
       <p className="muted small">부서를 바꾸면 받는 공지 범위(교구·교육부)도 함께 바뀝니다. 여러 부서를 맡으면 모두 체크하세요. 심방보고 방은 권한 관리에서 따로 바꿔 주세요.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
     </Modal>

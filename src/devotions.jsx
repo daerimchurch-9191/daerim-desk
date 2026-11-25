@@ -204,8 +204,7 @@ export function DevotionsPage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">DEVOTION</h1>
-        <span className="muted">아침경건회 · 본문은 그날 새벽기도회 본문</span>
+        <h1 className="display page-title">DEVOTION<span className="page-ko">아침경건회</span></h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <WeekList /> : <section className="block" aria-labelledby="dmonth-h">
