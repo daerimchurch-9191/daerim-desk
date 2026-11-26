@@ -947,3 +947,59 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .month-grid-always .tag-car b.car-name { display: block; white-space: normal; overflow-wrap: anywhere; margin-right: 0; }
 .screen-check { margin-top: 14px; }
 .screen-check pre { white-space: pre-wrap; word-break: break-all; font-size: 11px; background: #f3f5f4; padding: 8px; border-radius: 8px; margin: 6px 0 0; }
+
+/* ---------- 출석현황 ---------- */
+.nav-split { display: flex; gap: 6px; }
+.nav-split .nav-item { flex: 1; }
+.nav-plus { flex: none; width: 44px; min-height: 44px; border: 1px solid var(--side-line); border-radius: 12px; background: none; color: #fff; display: grid; place-items: center; cursor: pointer; }
+.nav-plus:hover { background: rgba(255,255,255,.08); }
+.att-group { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 12px; margin: 0; }
+.att-group legend { font-weight: 700; padding: 0 6px; }
+.att-group legend b { color: var(--accent); margin-left: 6px; }
+.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.att-in { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.att-in input { width: 100%; font-size: 16px; text-align: right; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums; }
+.att-total { margin: 0; text-align: right; font-weight: 700; }
+.att-total b { font-size: 20px; margin-left: 8px; }
+.att-sec h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.att-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.att-cell { background: #F3F5F4; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.att-cell span { font-size: 13px; color: var(--muted); }
+.att-cell b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.att-cell.is-sum { background: #E3EFEA; }
+.att-cell.is-sum b { color: var(--accent); }
+.att-grand { display: flex; justify-content: space-between; align-items: baseline; background: var(--ink); color: #fff; border-radius: 14px; padding: 14px 16px; }
+.att-grand b { font-size: 26px; font-variant-numeric: tabular-nums; }
+.att-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 14px; }
+.att-table th, .att-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line-2, #eef0ef); white-space: nowrap; }
+.att-table thead th { font-size: 13px; color: var(--muted); font-weight: 700; }
+.att-table tbody th, .att-table tfoot th, .att-table thead th:first-child { text-align: left; }
+.att-table .is-sum { font-weight: 700; background: #F3F8F6; }
+.att-table tfoot td, .att-table tfoot th { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+.att-table tr.is-click { cursor: pointer; }
+.att-table tr.is-click:hover td, .att-table tr.is-click:hover th { background: #EEF5F2; }
+.att-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.att-stat { gap: 4px; }
+.att-big { font-size: 30px; font-variant-numeric: tabular-nums; }
+.delta { font-size: 13px; font-weight: 700; color: var(--muted); }
+.delta.up { color: #0F6B54; }
+.delta.down { color: #B0412E; }
+.att-chart svg { width: 100%; height: auto; display: block; }
+.att-chart .grid { stroke: #E7EAE8; stroke-width: 1; }
+.att-chart .tick { font-size: 12px; fill: #6B716E; }
+.att-chart .line { fill: none; stroke: #0F6B54; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.att-chart .dot { fill: #0F6B54; stroke: #fff; stroke-width: 2; }
+.att-chart .cross { stroke: #9AA19D; stroke-width: 1; stroke-dasharray: 3 3; }
+.att-tip { margin: 6px 0 0; font-size: 14px; }
+.att-bars { gap: 10px; }
+.att-bar { display: grid; grid-template-columns: 56px 1fr 64px; align-items: center; gap: 10px; }
+.att-bar span { font-size: 14px; }
+.att-bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.att-bar .track { height: 14px; background: #F0F2F1; border-radius: 4px; overflow: hidden; }
+.att-bar .track i { display: block; height: 100%; background: #0F6B54; border-radius: 0 4px 4px 0; }
+.is-phone .att-table { font-size: 13px; }
+.is-phone .att-table th, .is-phone .att-table td { padding: 7px 7px; }
+.is-phone .att-cell b { font-size: 18px; }
+.is-phone .title .seg button { padding: 7px 12px; }
+/* 출석 표: 옆으로 밀어도 첫 칸(날짜·월)은 고정 */
+.att-table tbody th, .att-table tfoot th, .att-table thead th:first-child { position: sticky; left: 0; background: var(--card, #fff); z-index: 1; }

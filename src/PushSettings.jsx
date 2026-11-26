@@ -13,7 +13,7 @@ const STATE_TEXT = {
 }
 
 // 알림 받을 항목 (notification_prefs). 저장한 적 없으면 기본값.
-const PREF_DEFAULTS = { notice: true, visit: true, ads: true, cars: true, leave: true, cal_all: true, cal_mine: true, cal_edu: false, cal_parish: false }
+const PREF_DEFAULTS = { notice: true, visit: true, ads: true, cars: true, leave: true, cal_all: true, cal_mine: true, cal_edu: false, cal_parish: false, attendance: true }
 
 function NotifyItems() {
   const { profile } = useAuth()
@@ -34,6 +34,7 @@ function NotifyItems() {
     visitRooms(profile, departments).length > 0 && { key: 'visit', name: '심방보고', hint: '내가 볼 수 있는 교구 방에 새 글 (내용은 알림에 보이지 않음)' },
     { key: 'ads', name: '주보 광고', hint: '새 광고가 올라올 때' },
     { key: 'cars', name: '차량 신청', hint: '새 차량 신청 (노션에서 들어온 것 포함)' },
+    { key: 'attendance', name: '출석현황', hint: '한 주일 인원이 모두 입력되면 한 번' },
     { key: 'leave', name: '연차', hint: can(profile, 'leave_admin') ? '새 연차 신청, 내 연차 승인·반려' : '내 연차 승인·반려' },
     { group: '캘린더 — 어떤 일정이 새로 생길 때 받을까요?' },
     { key: 'cal_all', name: '교회 전체 일정', sub: true },

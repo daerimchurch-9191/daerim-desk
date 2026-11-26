@@ -8,6 +8,7 @@ import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
 import { LeavePage } from './leave.jsx'
 import { DevotionsPage } from './devotions.jsx'
+import { AttendancePage, useOpenAttendance } from './attendance.jsx'
 import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO, useIsPhone, TodayCard } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
@@ -43,6 +44,7 @@ function Icon({ name, size = 20, width = 1.7 }) {
 function Sidebar({ open, onClose, page, notices }) {
   const { profile, signOut } = useAuth()
   const { openModal, departments } = useData()
+  const openAttendance = useOpenAttendance()
   const [gearOpen, setGearOpen] = useState(false)
   useEffect(() => {
     if (!gearOpen) return
@@ -93,6 +95,10 @@ function Sidebar({ open, onClose, page, notices }) {
         <a href="#cars" onClick={onClose} className={`nav-item${page === 'cars' ? ' is-current' : ''}`} aria-current={page === 'cars' ? 'page' : undefined}>차량 현황</a>
         <a href="#leave" onClick={onClose} className={`nav-item${page === 'leave' ? ' is-current' : ''}`} aria-current={page === 'leave' ? 'page' : undefined}>연차</a>
         <a href="#devotions" onClick={onClose} className={`nav-item${page === 'devotions' ? ' is-current' : ''}`} aria-current={page === 'devotions' ? 'page' : undefined}>아침경건회</a>
+        <div className="nav-split">
+          <a href="#attendance" onClick={onClose} className={`nav-item${page === 'attendance' ? ' is-current' : ''}`} aria-current={page === 'attendance' ? 'page' : undefined}>출석현황</a>
+          <button type="button" className="nav-plus" aria-label="출석 보고" title="출석 보고" onClick={() => { onClose(); openAttendance() }}><Icon name="plus" size={16} width={2.2} /></button>
+        </div>
       </div>
 
       <SideNotices notices={notices} onNavigate={onClose} />
@@ -112,7 +118,7 @@ function Sidebar({ open, onClose, page, notices }) {
 const todayLabel = () => { const d = new Date(); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW_KO[d.getDay()]}요일` }
 
 function usePage() {
-  const read = () => location.hash.startsWith('#admin') || location.hash === '#perms' ? 'admin' : location.hash.startsWith('#leave') ? 'leave' : ({ '#cars': 'cars', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#devotions': 'devotions', '#perms': 'perms' }[location.hash] ?? 'home')
+  const read = () => location.hash.startsWith('#admin') || location.hash === '#perms' ? 'admin' : location.hash.startsWith('#leave') ? 'leave' : ({ '#cars': 'cars', '#notices': 'notices', '#sermons': 'sermons', '#calendar': 'calendar', '#ads': 'ads', '#visits': 'visits', '#devotions': 'devotions', '#attendance': 'attendance', '#perms': 'perms' }[location.hash] ?? 'home')
   const [page, setPage] = useState(read)
   useEffect(() => {
     const on = () => { setPage(read()); window.scrollTo(0, 0) }
@@ -160,6 +166,7 @@ const TAB_HASH = { home: '#home', calendar: '#calendar', cars: '#cars', sermons:
 function PlusSheet({ onClose }) {
   const { profile } = useAuth()
   const { openModal, departments } = useData()
+  const openAttendance = useOpenAttendance()
   const canVisit = visitRooms(profile, departments).length > 0
   const pick = (fn) => () => { onClose(); fn() }
   return (
@@ -170,6 +177,7 @@ function PlusSheet({ onClose }) {
         <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'event' }))}><b>일정 등록</b><span>교회·부서·개인</span></button>
         <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'car' }))}><b>차량 신청</b><span>겹치면 신청할 수 없어요</span></button>
         {canVisit && <button type="button" className="sheet-opt" onClick={pick(() => { location.hash = '#visits' })}><b>심방보고 쓰기</b><span>교구 방으로 이동</span></button>}
+        <button type="button" className="sheet-opt" onClick={pick(() => openAttendance())}><b>출석 보고</b><span>주일예배 인원</span></button>
       </div>
     </div>
   )
@@ -329,7 +337,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'attendance' ? <AttendancePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <div className="home-top">
           <header className="title">
