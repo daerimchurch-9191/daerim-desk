@@ -1,7 +1,7 @@
 // 주일예배 출석현황 (2026-11-26)
 // 주일마다 칸별 인원: 장년(1·2·3부, 청년=4부), 교육(유아·유치·유년·초등·청소년). 승인된 사역자 누구나 입력·수정.
 // 옛 종이 기록은 교육 부서별 숫자가 없어 'edu'(교육 합계) 한 칸으로 들어 있다. 부서 칸이 하나라도 있으면 부서 합을 쓴다.
-// 보기: 주일별 / 월별(주일마다 한 줄 + 평균) / 연별(달마다 평균) / 분석(평균 카드·추이 그래프·부서별 비교·작년 같은 달 비교)
+// 보기: 주일별(종이 양식 모양) / 연별(종이 출석현황표처럼 한 해 주일 전부, 상반기|하반기) / 분석(평균 카드·추이 그래프·부서별 비교·작년 같은 달 비교)
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, toKorean } from './auth.jsx'
 import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
@@ -154,7 +154,7 @@ function WeekView() {
           <div className="att-cols">
             <div className="att-col">
               <h3>예배</h3>
-              {[['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부']].map(line)}
+              {[['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부 (청년)']].map(line)}
               <div className="att-line is-sub"><span>장년</span><b>{fmt(s.adult)}</b><em>명</em></div>
             </div>
             <div className="att-col">
@@ -166,44 +166,6 @@ function WeekView() {
           <div className="att-line is-total"><span>합계</span><b>{fmt(s.total)}</b><em>명</em></div>
           {(s.total == null || by) && <p className="small muted">{[s.total == null && `${filled}/9칸 입력`, by && `마지막 입력 ${by.name} ${by.title}`].filter(Boolean).join(' · ')}</p>}
         </>}
-      </div>
-    </section>
-  )
-}
-
-/* ---------- 월별 (주일마다 한 줄) ---------- */
-function MonthView({ start }) {
-  const now = new Date()
-  const [m, setM] = useState(start ?? new Date(now.getFullYear(), now.getMonth(), 1))
-  const next = new Date(m.getFullYear(), m.getMonth() + 1, 1)
-  const data = useAttendance(m, next)
-  const open = useOpenAttendance()
-  const weeks = sundaysBetween(m, next).map((d) => ({ d, s: weekStats(data?.[ymd(d)] ?? {}) }))
-  const has = weeks.filter((w) => w.s.total != null)
-  const cols = [...ADULT, ['adult', '장년 합'], ...EDU, ['edu', '교육 합'], ['total', '합계']]
-  const sumCol = (k) => k === 'adult' || k === 'edu' || k === 'total'
-  return (
-    <section className="block">
-      <div className="block-head">
-        <h2 className="pill">{m.getFullYear()}년 {m.getMonth() + 1}월</h2>
-        <div className="month-nav">
-          <button type="button" className="icon-btn light" aria-label="이전 달" onClick={() => setM(new Date(m.getFullYear(), m.getMonth() - 1, 1))}>‹</button>
-          <button type="button" className="icon-btn light" aria-label="다음 달" onClick={() => setM(next)}>›</button>
-        </div>
-      </div>
-      <div className="card scroll-x">
-        <table className="att-table">
-          <thead><tr><th>주일</th>{cols.map(([k, n]) => <th key={k} className={sumCol(k) ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
-          <tbody>
-            {data === null ? <tr><td colSpan={cols.length + 1}><span className="skeleton" /></td></tr> : weeks.map(({ d, s }) => (
-              <tr key={ymd(d)} className="is-click" onClick={() => open(ymd(d))} title="눌러서 입력·고치기">
-                <th>{d.getMonth() + 1}/{d.getDate()}</th>
-                {cols.map(([k]) => <td key={k} className={sumCol(k) ? 'is-sum' : ''}>{k === 'edu' && s.eduLegacy ? <span title="옛 기록: 교육 합계만">{fmt(s.edu)}*</span> : fmt(s[k])}</td>)}
-              </tr>
-            ))}
-          </tbody>
-          {has.length > 0 && <tfoot><tr><th>평균</th>{cols.map(([k]) => <td key={k} className={sumCol(k) ? 'is-sum' : ''}>{fmt(avg(has.map((w) => w.s[k])))}</td>)}</tr></tfoot>}
-        </table>
       </div>
     </section>
   )
@@ -223,34 +185,61 @@ const monthAvgs = (weeks) => [...Array(12)].map((_, i) => {
   const a = (k) => avg(ws.map((w) => w.s[k]))
   return { month: i, n: ws.length, main: a('main'), youth: a('youth'), adult: a('adult'), edu: a('edu'), total: a('total') }
 })
-const YEAR_COLS = [['main', '1~3부'], ['youth', '청년'], ['adult', '장년 합'], ['edu', '교육'], ['total', '합계']]
+// 연별: 종이 출석현황표처럼 한 해 주일을 모두 한 줄씩 (상반기 | 하반기 나란히), 맨 아래 주일 평균
+const PAPER_COLS = [['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부'], ['adult', '장년'], ['edu', '교육'], ['total', '합계']]
+const isSumCol = (k) => k === 'adult' || k === 'edu' || k === 'total'
 
-function YearView({ onPickMonth }) {
+function YearHalf({ weeks, months, open }) {
+  return (
+    <table className="att-table att-paper">
+      <thead><tr><th>월</th><th>일</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
+      <tbody>
+        {months.map((mi) => {
+          const ws = weeks.filter((w) => w.d.getMonth() === mi)
+          return ws.map((w, i) => (
+            <tr key={ymd(w.d)} className={`is-click${i === 0 ? ' month-start' : ''}`} onClick={() => open(ymd(w.d))} title="눌러서 입력·고치기">
+              {i === 0 && <th rowSpan={ws.length} className="att-month">{mi + 1}</th>}
+              <th>{w.d.getDate()}</th>
+              {PAPER_COLS.map(([k]) => <td key={k} className={isSumCol(k) ? 'is-sum' : ''}>{w.s[k] == null ? '' : fmt(w.s[k])}</td>)}
+            </tr>
+          ))
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+function YearView() {
   const [year, setYear] = useState(new Date().getFullYear())
-  const weeks = useYear(year)
-  const months = monthAvgs(weeks)
+  const from = useMemo(() => new Date(year, 0, 1), [year]), to = useMemo(() => new Date(year + 1, 0, 1), [year])
+  const data = useAttendance(from, to)
+  const open = useOpenAttendance()
+  const weeks = data ? sundaysBetween(from, to).map((d) => ({ d, s: weekStats(data[ymd(d)] ?? {}) })) : null
+  const has = (weeks ?? []).filter((w) => w.s.total != null)
   return (
     <section className="block">
       <div className="block-head">
-        <h2 className="pill">{year}년 · 주일 평균</h2>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 해" onClick={() => setYear(year - 1)}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 해" onClick={() => setYear(year + 1)}>›</button>
         </div>
       </div>
-      <div className="card scroll-x">
-        <table className="att-table">
-          <thead><tr><th>월</th><th>주일</th>{YEAR_COLS.map(([k, n]) => <th key={k} className={k === 'adult' || k === 'total' ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
-          <tbody>
-            {weeks === null ? <tr><td colSpan={7}><span className="skeleton" /></td></tr> : months.map((r) => (
-              <tr key={r.month} className={r.n ? 'is-click' : ''} onClick={r.n ? () => onPickMonth(new Date(year, r.month, 1)) : undefined}>
-                <th>{r.month + 1}월</th><td className="muted">{r.n || '–'}</td>
-                {YEAR_COLS.map(([k]) => <td key={k} className={k === 'adult' || k === 'total' ? 'is-sum' : ''}>{fmt(r[k])}</td>)}
-              </tr>
-            ))}
-          </tbody>
-          {weeks?.length > 0 && <tfoot><tr><th>한 해</th><td className="muted">{weeks.length}</td>{YEAR_COLS.map(([k]) => <td key={k} className={k === 'adult' || k === 'total' ? 'is-sum' : ''}>{fmt(avg(weeks.map((w) => w.s[k])))}</td>)}</tr></tfoot>}
-        </table>
+      <div className="card att-sheet">
+        <h2 className="att-sheet-title">{year}년 주일예배 출석현황</h2>
+        {weeks === null ? <span className="skeleton" /> : <>
+          <div className="att-halves">
+            <div className="scroll-x"><YearHalf weeks={weeks} months={[0, 1, 2, 3, 4, 5]} open={open} /></div>
+            <div className="scroll-x"><YearHalf weeks={weeks} months={[6, 7, 8, 9, 10, 11]} open={open} /></div>
+          </div>
+          {has.length > 0 && (
+            <div className="scroll-x">
+              <table className="att-table att-paper">
+                <thead><tr><th>주일 평균</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
+                <tbody><tr><th>{has.length}주</th>{PAPER_COLS.map(([k]) => <td key={k} className={isSumCol(k) ? 'is-sum' : ''}>{fmt(avg(has.map((w) => w.s[k])))}</td>)}</tr></tbody>
+              </table>
+            </div>
+          )}
+        </>}
       </div>
     </section>
   )
@@ -391,18 +380,17 @@ function AnalysisView() {
 export function AttendancePage() {
   const [view, setView] = useState(() => { try { return sessionStorage.getItem('view:attendance') || 'week' } catch { return 'week' } })
   const set = (v) => { setView(v); try { sessionStorage.setItem('view:attendance', v) } catch { /* 괜찮음 */ } }
-  const [pick, setPick] = useState(null)
   return (
     <>
       <header className="title">
         <h1 className="display page-title">ATTENDANCE<span className="page-ko">출석현황</span></h1>
         <div className="seg" role="group" aria-label="보기 방식">
-          {[['week', '주일별'], ['month', '월별'], ['year', '연별'], ['analysis', '분석']].map(([v, t]) => (
-            <button key={v} type="button" className={view === v ? 'is-on' : ''} aria-pressed={view === v} onClick={() => { if (v === 'month') setPick(null); set(v) }}>{t}</button>
+          {[['week', '주일별'], ['year', '연별'], ['analysis', '분석']].map(([v, t]) => (
+            <button key={v} type="button" className={view === v ? 'is-on' : ''} aria-pressed={view === v} onClick={() => set(v)}>{t}</button>
           ))}
         </div>
       </header>
-      {view === 'week' ? <WeekView /> : view === 'month' ? <MonthView start={pick} /> : view === 'year' ? <YearView onPickMonth={(d) => { setPick(d); set('month') }} /> : <AnalysisView />}
+      {view === 'year' ? <YearView /> : view === 'analysis' ? <AnalysisView /> : <WeekView />}
     </>
   )
 }

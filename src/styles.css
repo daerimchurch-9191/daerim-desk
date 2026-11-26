@@ -1024,3 +1024,15 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .is-phone .att-line span { font-size: 14px; }
 .is-phone .att-line b { font-size: 18px; }
 .is-phone .att-line.is-total { padding: 14px 10px 0; }
+/* 출석 연별: 종이 출석현황표처럼 */
+.att-halves { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 1180px) { .att-halves { grid-template-columns: 1fr; } }
+.att-paper { border: 1px solid var(--ink); }
+.att-paper th, .att-paper td { border: 1px solid #D5DAD7; padding: 6px 8px; text-align: right; }
+.att-paper thead th { background: #F1E6DA; color: var(--ink); text-align: center; }
+.att-paper tbody th { text-align: center; background: #E3EFEA; font-weight: 700; }
+.att-paper .att-month { background: #CFE3D9; vertical-align: middle; font-size: 15px; }
+.att-paper tr.month-start td, .att-paper tr.month-start th { border-top: 2px solid var(--ink); }
+.att-paper tbody th, .att-paper tfoot th, .att-paper thead th:first-child { position: static; }
+.att-paper thead th:first-child { background: #F1E6DA; }
+.att-paper tbody th.att-month { background: #CFE3D9; }
