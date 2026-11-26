@@ -135,6 +135,12 @@ function WeekView() {
   const data = useAttendance(sun, addDays(sun, 1))
   const open = useOpenAttendance()
   const s = data ? weekStats(data[ymd(sun)] ?? {}) : null
+  // 주일 고르기 목록: 작년 1월부터 다음 주일까지, 최근 것이 위 (합계가 있으면 함께 보여줌)
+  const listFrom = useMemo(() => new Date(new Date().getFullYear() - 1, 0, 1), [])
+  const listTo = useMemo(() => addDays(lastSunday(), 8), [])
+  const listData = useAttendance(listFrom, listTo)
+  const options = sundaysBetween(listFrom, listTo).reverse()
+  if (!options.some((d) => ymd(d) === ymd(sun))) options.unshift(sun)
   const filled = s ? ALL_SLOTS.filter(([k]) => s[k] != null).length : 0
   const by = s?._by && staff.find((p) => p.id === s._by)
   // 스케치 모양: 왼쪽 예배(1~4부) + 장년, 오른쪽 교육부(다섯 부서) + 교육 합, 아래 합계
@@ -146,6 +152,12 @@ function WeekView() {
           <button type="button" className="icon-btn light" aria-label="이전 주일" onClick={() => setSun(addDays(sun, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주일" onClick={() => setSun(addDays(sun, 7))}>›</button>
         </div>
+        <select className="att-pick" aria-label="주일 고르기" value={ymd(sun)} onChange={(e) => setSun(toDate(e.target.value))}>
+          {options.map((d) => {
+            const t = listData ? weekStats(listData[ymd(d)] ?? {})?.total : null
+            return <option key={ymd(d)} value={ymd(d)}>{d.getFullYear()}. {d.getMonth() + 1}. {d.getDate()}.{t != null ? ` · ${fmt(t)}명` : ''}</option>
+          })}
+        </select>
         <button type="button" className="btn btn-primary" onClick={() => open(ymd(sun))}>{filled ? '인원 고치기' : '+ 인원 입력'}</button>
       </div>
       <div className="card att-sheet">

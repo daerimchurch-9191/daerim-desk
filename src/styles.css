@@ -1036,3 +1036,4 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .att-paper tbody th, .att-paper tfoot th, .att-paper thead th:first-child { position: static; }
 .att-paper thead th:first-child { background: #F1E6DA; }
 .att-paper tbody th.att-month { background: #CFE3D9; }
+.att-pick { min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; font: inherit; font-size: 16px; background: #fff; }
