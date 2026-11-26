@@ -1003,3 +1003,24 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .is-phone .title .seg button { padding: 7px 12px; }
 /* 출석 표: 옆으로 밀어도 첫 칸(날짜·월)은 고정 */
 .att-table tbody th, .att-table tfoot th, .att-table thead th:first-child { position: sticky; left: 0; background: var(--card, #fff); z-index: 1; }
+/* 출석 주일별: 종이 양식 모양 */
+.att-sheet { gap: 16px; }
+.att-sheet-title { margin: 0; font-size: 20px; text-align: center; }
+.att-cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--ink); }
+.att-col { padding: 12px 16px 0; display: flex; flex-direction: column; }
+.att-col + .att-col { border-left: 1px solid var(--line); }
+.att-col h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.att-line { display: grid; grid-template-columns: 1fr auto 20px; align-items: baseline; gap: 6px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.att-line span { font-size: 15px; }
+.att-line b { font-size: 20px; font-variant-numeric: tabular-nums; text-align: right; min-width: 3ch; }
+.att-line em { font-style: normal; font-size: 14px; color: var(--muted); }
+.att-line.is-sub { margin-top: auto; border-top: 1px solid var(--ink); border-bottom: 0; padding-top: 10px; }
+.att-line.is-sub span { font-weight: 700; }
+.att-line.is-sub b { color: var(--accent); }
+.att-line.is-total { border: 0; border-top: 2px solid var(--ink); padding: 14px 16px 0; }
+.att-line.is-total span { font-weight: 800; font-size: 17px; }
+.att-line.is-total b { font-size: 28px; }
+.is-phone .att-col { padding: 10px 10px 0; }
+.is-phone .att-line span { font-size: 14px; }
+.is-phone .att-line b { font-size: 18px; }
+.is-phone .att-line.is-total { padding: 14px 10px 0; }

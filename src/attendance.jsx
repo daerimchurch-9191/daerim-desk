@@ -137,29 +137,34 @@ function WeekView() {
   const s = data ? weekStats(data[ymd(sun)] ?? {}) : null
   const filled = s ? ALL_SLOTS.filter(([k]) => s[k] != null).length : 0
   const by = s?._by && staff.find((p) => p.id === s._by)
-  const cell = ([k, name]) => <div key={k} className="att-cell"><span>{name}</span><b>{fmt(s?.[k])}</b></div>
+  // 스케치 모양: 왼쪽 예배(1~4부) + 장년, 오른쪽 교육부(다섯 부서) + 교육 합, 아래 합계
+  const line = ([k, name]) => <div key={k} className="att-line"><span>{name}</span><b>{fmt(s?.[k])}</b><em>명</em></div>
   return (
     <section className="block">
       <div className="block-head">
-        <h2 className="pill">{sun.getFullYear()}년 {sun.getMonth() + 1}월 {sun.getDate()}일 주일</h2>
         <div className="month-nav">
           <button type="button" className="icon-btn light" aria-label="이전 주일" onClick={() => setSun(addDays(sun, -7))}>‹</button>
           <button type="button" className="icon-btn light" aria-label="다음 주일" onClick={() => setSun(addDays(sun, 7))}>›</button>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => open(ymd(sun))}>{filled ? '인원 고치기' : '+ 인원 입력'}</button>
       </div>
-      <div className="card">
+      <div className="card att-sheet">
+        <h2 className="att-sheet-title">{sun.getMonth() + 1}월 {sun.getDate()}일 주일예배 출석현황</h2>
         {s === null ? <span className="skeleton" /> : <>
-          <div className="att-sec">
-            <h3>장년</h3>
-            <div className="att-row">{ADULT.map(cell)}<div className="att-cell is-sum"><span>장년 합</span><b>{fmt(s.adult)}</b></div></div>
+          <div className="att-cols">
+            <div className="att-col">
+              <h3>예배</h3>
+              {[['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부']].map(line)}
+              <div className="att-line is-sub"><span>장년</span><b>{fmt(s.adult)}</b><em>명</em></div>
+            </div>
+            <div className="att-col">
+              <h3>교육부</h3>
+              {EDU.map(line)}
+              <div className="att-line is-sub"><span>교육</span><b>{fmt(s.edu)}</b><em>명</em></div>
+            </div>
           </div>
-          <div className="att-sec">
-            <h3>교육</h3>
-            <div className="att-row">{EDU.map(cell)}<div className="att-cell is-sum"><span>교육 합{s.eduLegacy ? ' (옛 기록)' : ''}</span><b>{fmt(s.edu)}</b></div></div>
-          </div>
-          <div className="att-grand"><span>총합</span><b>{fmt(s.total)}</b></div>
-          <p className="small muted">{[s.total == null && `${filled}/9칸 입력`, by && `마지막 입력 ${by.name} ${by.title}`].filter(Boolean).join(' · ')}</p>
+          <div className="att-line is-total"><span>합계</span><b>{fmt(s.total)}</b><em>명</em></div>
+          {(s.total == null || by) && <p className="small muted">{[s.total == null && `${filled}/9칸 입력`, by && `마지막 입력 ${by.name} ${by.title}`].filter(Boolean).join(' · ')}</p>}
         </>}
       </div>
     </section>
