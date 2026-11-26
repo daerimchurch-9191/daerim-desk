@@ -8,7 +8,7 @@
   // 휴대폰 위 상태 표시줄·아래 버튼 줄 피하기.
   // 보통은 브라우저가 알려 주는 안전 여백(env(safe-area-inset-*))을 쓴다 (아이폰, 크롬).
   // 삼성 인터넷 등 일부 안드로이드 홈 화면 앱은 화면을 끝까지 그리면서 여백을 0으로 알려 준다.
-  // 그럴 때(앱 화면 높이 = 휴대폰 전체 높이)는 위 32px, 아래 48px를 직접 비운다. (--js-sat / --js-sab)
+  // 그럴 때(앱 화면 비율 = 휴대폰 전체 비율)는 위 32px, 아래 48px를 직접 비운다. (--js-sat / --js-sab)
   (function () {
     if (!/Android/i.test(navigator.userAgent)) return
     var root = document.documentElement
@@ -20,8 +20,11 @@
       var envTop = parseFloat(getComputedStyle(probe).paddingTop) || 0
       root.removeChild(probe)
       var portrait = innerHeight >= innerWidth
-      var screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height)
-      var full = app && envTop === 0 && innerHeight >= screenH - 8
+      // 삼성 인터넷은 화면 크기(screen)와 앱 크기(inner)를 서로 다른 배율로 알려 준다 (예: screen 384x832, inner 360x800).
+      // 그래서 크기 대신 세로/가로 비율로 본다: 앱 비율이 휴대폰 화면 비율만큼 길면 위아래 줄 밑까지 그리고 있는 것.
+      var sL = Math.max(screen.width, screen.height), sS = Math.min(screen.width, screen.height)
+      var iL = Math.max(innerWidth, innerHeight), iS = Math.min(innerWidth, innerHeight)
+      var full = app && envTop === 0 && iL / iS >= sL / sS - 0.03
       root.style.setProperty('--js-sat', full ? '32px' : '0px')
       root.style.setProperty('--js-sab', full && portrait ? '48px' : '0px')
     }
