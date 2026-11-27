@@ -90,7 +90,7 @@ export function AdsPage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">BULLETIN<span className="page-ko">주보 광고</span></h1>
+        <h1 className="page-title page-title-ko">주보 광고</h1>
       </header>
       <section className="block" aria-labelledby="ads-h">
         <div className="block-head">

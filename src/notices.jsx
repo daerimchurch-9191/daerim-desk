@@ -223,7 +223,7 @@ export function NoticesPage({ notices }) {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">NOTICE<span className="page-ko">공지</span></h1>
+        <h1 className="page-title page-title-ko">공지</h1>
       </header>
       <section className="block" aria-labelledby="notices-h">
         <div className="block-head">

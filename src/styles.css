@@ -1065,3 +1065,8 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .is-phone .mobile-bar .mobile-tools { flex-shrink: 0; margin-left: auto; }
 @media (max-width: 400px) { .is-phone .mobile-bar { gap: 8px; } .is-phone .mobile-bar .display.mobile-home { font-size: 22px; } }
 @media (max-width: 374px) { .is-phone .mobile-bar .display.mobile-home { font-size: 20px; } }
+
+/* 페이지 제목: 한글 한 번만 (2026-11-27) */
+.title h1.page-title-ko { font-family: 'Noto Sans KR', sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1.2; margin: 6px 0 8px; color: var(--ink); }
+@media (max-width: 700px) { .title h1.page-title.page-title-ko { font-size: 28px; margin: 4px 0 6px; } }
+.is-phone .title h1.page-title.page-title-ko { font-size: 28px; }

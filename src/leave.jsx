@@ -50,7 +50,7 @@ export function LeavePage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">LEAVE<span className="page-ko">연차</span></h1>
+        <h1 className="page-title page-title-ko">연차</h1>
       </header>
       {tabs.length > 1 && (
         <nav className="tabs admin-tabs" aria-label="연차 메뉴">

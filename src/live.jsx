@@ -793,7 +793,7 @@ export function CarsMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">VEHICLE<span className="page-ko">차량 현황</span></h1>
+        <h1 className="page-title page-title-ko">차량 현황</h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <CarsWeek inPage /> : <section className="block" aria-labelledby="month-h">
@@ -904,7 +904,7 @@ export function CalendarMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">CALENDAR<span className="page-ko">교회 캘린더</span></h1>
+        <h1 className="page-title page-title-ko">교회 캘린더</h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <WeekCalendar inPage /> : <section className="block" aria-labelledby="cal-h">

@@ -215,7 +215,7 @@ export function VisitsPage() {
   if (!rooms.length) {
     return (
       <>
-        <header className="title"><h1 className="display page-title">VISITS<span className="page-ko">심방보고</span></h1></header>
+        <header className="title"><h1 className="page-title page-title-ko">심방보고</h1></header>
         <div className="card"><div className="empty">볼 수 있는 심방보고가 없습니다. 관리자에게 권한을 요청해 주세요.</div></div>
       </>
     )
@@ -223,7 +223,7 @@ export function VisitsPage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">VISITS<span className="page-ko">심방보고</span></h1>
+        <h1 className="page-title page-title-ko">심방보고</h1>
       </header>
       <section className="block" aria-label="심방보고">
         <div className="block-head">

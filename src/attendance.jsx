@@ -185,8 +185,8 @@ function WeekView() {
             </div>
             <div className="att-col">
               <h3>교회학교 예배</h3>
-              {line(['infant', '유아'])}
-              {(s.infant_kid != null || s.infant_parent != null) && <div className="att-line is-part"><span>아이 {fmt(s.infant_kid)} · 부모 {fmt(s.infant_parent)}</span></div>}
+              {line(['infant_kid', '유아 (아이)'])}
+              {line(['infant_parent', '유아 (부모)'])}
               {EDU.slice(1).map(line)}
               <div className="att-line is-sub"><span>교회학교</span><b>{fmt(s.edu)}</b><em>명</em></div>
             </div>
@@ -414,7 +414,7 @@ export function AttendancePage() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">ATTENDANCE<span className="page-ko">출석현황</span></h1>
+        <h1 className="page-title page-title-ko">출석현황</h1>
         <div className="seg" role="group" aria-label="보기 방식">
           {[['week', '주일별'], ['year', '연별'], ['analysis', '분석']].map(([v, t]) => (
             <button key={v} type="button" className={view === v ? 'is-on' : ''} aria-pressed={view === v} onClick={() => set(v)}>{t}</button>

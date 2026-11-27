@@ -363,7 +363,7 @@ export function SermonsMonth() {
   return (
     <>
       <header className="title">
-        <h1 className="display page-title">SERMONS<span className="page-ko">예배 설교표</span></h1>
+        <h1 className="page-title page-title-ko">예배 설교표</h1>
         <ViewSwitch value={view} onChange={setView} />
       </header>
       {view === 'week' ? <SermonTable inPage /> : <section className="block" aria-labelledby="smonth-h">
