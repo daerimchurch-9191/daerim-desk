@@ -464,7 +464,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; display: flex; flex-direction
 .perm-table thead .perm-group.grp-start { border-left: 1px solid #d5dad7; }
 @media (max-width: 700px) {
   .perm-table td.grp-start { border-left: 0; flex-basis: 100%; text-align: left; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line-2); }
-  .perm-table td.grp-start::before { content: '심방보고'; display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .perm-table td.grp-start::before { content: attr(data-group); display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
   .perm-table td.grp-start::after { display: inline-flex; }
 }
 
@@ -1026,6 +1026,7 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .is-phone .att-line.is-total { padding: 14px 10px 0; }
 /* 출석 연별: 종이 출석현황표처럼 */
 .att-halves { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.att-halves > * { min-width: 0; }
 @media (max-width: 1180px) { .att-halves { grid-template-columns: 1fr; } }
 .att-paper { border: 1px solid var(--ink); }
 .att-paper th, .att-paper td { border: 1px solid #D5DAD7; padding: 6px 8px; text-align: right; }
@@ -1037,3 +1038,30 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .att-paper thead th:first-child { background: #F1E6DA; }
 .att-paper tbody th.att-month { background: #CFE3D9; }
 .att-pick { min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; font: inherit; font-size: 16px; background: #fff; }
+
+/* 휴대폰 연별: 표가 화면 밖으로 넘치지 않게 작게, 그래도 넘치면 표만 옆으로 밀기 */
+@media (max-width: 700px) {
+  .att-halves .scroll-x { overflow-x: auto; padding: 4px 0; }
+  .att-paper { font-size: 12.5px; width: 100%; }
+  .att-paper th, .att-paper td { padding: 5px 3px; }
+  .att-paper .att-month { font-size: 13px; }
+  .att-sheet { min-width: 0; max-width: 100%; }
+  body .card.att-sheet:has(.att-paper) { padding-left: 6px !important; padding-right: 6px !important; }
+  .att-table.att-paper, .att-table.att-paper thead th { font-size: 11.5px; }
+  .att-table.att-paper th, .att-table.att-paper td { padding: 5px 2px; }
+  .att-sheet .scroll-x { overflow-x: auto; padding: 4px 0; }
+}
+.att-line.is-part { grid-template-columns: 1fr; padding: 0 0 8px 12px; margin-top: -4px; }
+.att-line.is-part span { font-size: 13px; color: var(--muted); }
+
+.ph-br { display: none; }
+@media (max-width: 700px) { .ph-br { display: inline; } }
+
+/* 분석 '보는 값' 버튼이 좁은 화면에서 넘치지 않게 줄바꿈 */
+.seg.att-series { flex-wrap: wrap; max-width: 100%; }
+@media (max-width: 700px) { .seg.att-series button { padding: 7px 11px; } }
+/* 아주 좁은 휴대폰(360px 이하)에서 위쪽 바 글자 줄이기 (알림 버튼이 잘리지 않게) */
+.is-phone .mobile-bar .mobile-home { min-width: 0; overflow: hidden; flex: 1 1 auto; }
+.is-phone .mobile-bar .mobile-tools { flex-shrink: 0; margin-left: auto; }
+@media (max-width: 400px) { .is-phone .mobile-bar { gap: 8px; } .is-phone .mobile-bar .display.mobile-home { font-size: 22px; } }
+@media (max-width: 374px) { .is-phone .mobile-bar .display.mobile-home { font-size: 20px; } }

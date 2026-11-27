@@ -9,8 +9,8 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | events | 교회 공용 일정 | 승인된 사역자 | 등록한 사람, 관리자 |
 | sermons | 예배 설교표(공개)와 직접 추가한 내 설교(비공개). 새벽·수요·금요는 날짜마다 한 칸. 초하루 새벽은 host_id/host_name(사회자) | 공개는 모두, 비공개는 본인 | 공개는 모두, 비공개는 본인 |
 | devotions | 아침경건회 순서 (날짜가 기본키, leader_id 또는 leader_name, note). 본문은 저장하지 않고 그날 새벽 설교 본문을 화면에서 씀 | 승인된 사역자 | 승인된 사역자 누구나 (등록은 created_by 본인) |
-| attendance | 주일예배 출석 (sunday, slot, count). slot: p1 p2 p3 youth infant kinder child elem teen edu(옛 기록 교육 합계) | 승인된 사역자 | 승인된 사역자 누구나 (updated_by·updated_at 자동) |
-| attendance_weeks | 아홉 칸이 다 채워진 주일 (알림 한 번용, 트리거 `attendance_check_full`이 만듦) | 승인된 사역자 | 없음 (트리거만) |
+| attendance | 주일예배 출석 (sunday, slot, count). slot: p1 p2 p3 youth(장년 예배) / infant_kid infant_parent(유아 아이·부모) kinder child elem teen(교회학교) / edu(옛 기록 교육 합계) | 승인된 사역자 | 칸마다 권한 `att_can(slot)`: 장년 칸 = `att_adult`, 교회학교 칸 = `att_edu`, 관리자는 모두 (updated_by·updated_at 자동) |
+| attendance_weeks | 열 칸이 다 채워진 주일 (알림 한 번용, 트리거 `attendance_check_full`이 만듦) | 승인된 사역자 | 없음 (트리거만) |
 | vehicles | 차량 | 승인된 사역자 | 관리자 |
 | vehicle_bookings | 차량 예약 (같은 차량 시간 겹침은 거부) | 승인된 사역자 | 신청한 사람, 관리자 |
 | todos | 내 할 일 (repeat_dow 만 있으면 매주, repeat_week 까지 있으면 매월 n째·마지막 주 반복) | 본인만 | 본인만 |

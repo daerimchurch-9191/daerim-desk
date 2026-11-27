@@ -8,7 +8,7 @@ import { AdminHub } from './adminhub.jsx'
 import { AdsPage } from './ads.jsx'
 import { LeavePage } from './leave.jsx'
 import { DevotionsPage } from './devotions.jsx'
-import { AttendancePage, useOpenAttendance } from './attendance.jsx'
+import { AttendancePage, useOpenAttendance, useCanAttend } from './attendance.jsx'
 import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO, useIsPhone, TodayCard } from './live.jsx'
 import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
 import { Todos } from './personal.jsx'
@@ -45,6 +45,7 @@ function Sidebar({ open, onClose, page, notices }) {
   const { profile, signOut } = useAuth()
   const { openModal, departments } = useData()
   const openAttendance = useOpenAttendance()
+  const canAtt = useCanAttend()
   const [gearOpen, setGearOpen] = useState(false)
   useEffect(() => {
     if (!gearOpen) return
@@ -97,7 +98,7 @@ function Sidebar({ open, onClose, page, notices }) {
         <a href="#devotions" onClick={onClose} className={`nav-item${page === 'devotions' ? ' is-current' : ''}`} aria-current={page === 'devotions' ? 'page' : undefined}>아침경건회</a>
         <div className="nav-split">
           <a href="#attendance" onClick={onClose} className={`nav-item${page === 'attendance' ? ' is-current' : ''}`} aria-current={page === 'attendance' ? 'page' : undefined}>출석현황</a>
-          <button type="button" className="nav-plus" aria-label="출석 보고" title="출석 보고" onClick={() => { onClose(); openAttendance() }}><Icon name="plus" size={16} width={2.2} /></button>
+          {canAtt.any && <button type="button" className="nav-plus" aria-label="출석 보고" title="출석 보고" onClick={() => { onClose(); openAttendance() }}><Icon name="plus" size={16} width={2.2} /></button>}
         </div>
       </div>
 
@@ -167,6 +168,7 @@ function PlusSheet({ onClose }) {
   const { profile } = useAuth()
   const { openModal, departments } = useData()
   const openAttendance = useOpenAttendance()
+  const canAtt = useCanAttend()
   const canVisit = visitRooms(profile, departments).length > 0
   const pick = (fn) => () => { onClose(); fn() }
   return (
@@ -177,7 +179,7 @@ function PlusSheet({ onClose }) {
         <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'event' }))}><b>일정 등록</b><span>교회·부서·개인</span></button>
         <button type="button" className="sheet-opt" onClick={pick(() => openModal({ type: 'car' }))}><b>차량 신청</b><span>겹치면 신청할 수 없어요</span></button>
         {canVisit && <button type="button" className="sheet-opt" onClick={pick(() => { location.hash = '#visits' })}><b>심방보고 쓰기</b><span>교구 방으로 이동</span></button>}
-        <button type="button" className="sheet-opt" onClick={pick(() => openAttendance())}><b>출석 보고</b><span>주일예배 인원</span></button>
+        {canAtt.any && <button type="button" className="sheet-opt" onClick={pick(() => openAttendance())}><b>출석 보고</b><span>주일예배 인원</span></button>}
       </div>
     </div>
   )

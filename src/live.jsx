@@ -164,7 +164,7 @@ export const deptNames = (ids, departments) => (ids ?? []).map((id) => departmen
 
 // 소속 부서 여러 개 고르기 (가입·정보 수정)
 // 직분 (시스템): 부목사의 호칭은 "목사"
-export const RANKS = ['담임목사', '부목사', '전도사', '직원']
+export const RANKS = ['담임목사', '부목사', '전도사', '사모', '직원']
 // 직분마다 고를 수 있는 소속: 부목사 = 기획·교구·교육, 전도사 = 수련·심방(교구 고름)·교육
 const RANK_ROLES = {
   부목사: [{ id: 'r_plan', name: '기획' }, { id: 'parish', name: '교구', sub: 'parish' }, { id: 'edu', name: '교육', sub: 'edu' }],

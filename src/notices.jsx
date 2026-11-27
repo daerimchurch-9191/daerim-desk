@@ -11,6 +11,7 @@ export const AUDIENCES = [
   { id: 'edu', name: '교육부' },
   { id: 'rank:부목사', name: '부목사' },
   { id: 'rank:전도사', name: '전도사' },
+  { id: 'rank:사모', name: '사모' },
   { id: 'rank:직원', name: '직원' },
 ]
 const audienceName = (id) => AUDIENCES.find((a) => a.id === id)?.name ?? '전체'

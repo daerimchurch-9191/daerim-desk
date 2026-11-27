@@ -1,6 +1,6 @@
 // 새 내용 알림 (웹 푸시). 데이터베이스 트리거(kick_notify)가 새 글이 생길 때 부른다.
 // { type: 'visit' | 'ads' | 'cars' | 'calendar' | 'leave_new' | 'leave_decided' | 'attendance', id }
-//  - 출석: 한 주일의 아홉 칸이 다 채워지면 한 번 (attendance_weeks id). 다 채운 사람은 뺀다.
+//  - 출석: 한 주일의 열 칸이 다 채워지면 한 번 (attendance_weeks id). 다 채운 사람은 뺀다.
 // 받을 사람: 각자 알림 설정(notification_prefs, 없으면 기본값)에서 그 항목을 켠 승인된 사역자. 쓴 사람은 뺀다.
 //  - 심방보고: 그 교구 방 권한이 있는 사람만. 성도 개인정보라 내용은 알림에 넣지 않는다.
 //  - 캘린더: 교회 전체 / 내 부서 / 교육부 / 교구 중 켠 것. 개인 일정은 알리지 않는다.
@@ -96,10 +96,10 @@ Deno.serve(async (req) => {
     if (!w) return json({ skipped: 'gone' })
     const { data: rows } = await db.from('attendance').select('slot, count').eq('sunday', w.sunday)
     const n = (k: string[]) => (rows ?? []).filter((r) => k.includes(r.slot)).reduce((a, r) => a + r.count, 0)
-    const adult = n(['p1', 'p2', 'p3', 'youth']), edu = n(['infant', 'kinder', 'child', 'elem', 'teen'])
+    const adult = n(['p1', 'p2', 'p3', 'youth']), edu = n(['infant_kid', 'infant_parent', 'kinder', 'child', 'elem', 'teen'])
     const [, m, d] = w.sunday.split('-').map(Number)
     to = all.filter((p) => p.id !== w.completed_by && pref(p.id).attendance !== false).map((p) => p.id)
-    payload = { title: `[출석] ${m}월 ${d}일 주일 ${(adult + edu).toLocaleString('ko-KR')}명`, body: `장년 ${adult.toLocaleString('ko-KR')} · 교육 ${edu.toLocaleString('ko-KR')}`, url: './#attendance', tag: `att-${w.sunday}` }
+    payload = { title: `[출석] ${m}월 ${d}일 주일 ${(adult + edu).toLocaleString('ko-KR')}명`, body: `장년 ${adult.toLocaleString('ko-KR')} · 교회학교 ${edu.toLocaleString('ko-KR')}`, url: './#attendance', tag: `att-${w.sunday}` }
   } else return json({ error: 'unknown type' }, 400)
 
   if (!to.length || !payload) return json({ ok: true, sent: 0 })

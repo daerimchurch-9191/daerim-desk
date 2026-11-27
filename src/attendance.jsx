@@ -1,14 +1,24 @@
 // 주일예배 출석현황 (2026-11-26)
-// 주일마다 칸별 인원: 장년(1·2·3부, 청년=4부), 교육(유아·유치·유년·초등·청소년). 승인된 사역자 누구나 입력·수정.
+// 주일마다 칸별 인원: 장년 예배(1·2·3부, 청년=4부), 교회학교(유아[아이+부모]·유치·유년·초등·청소년).
+// 보기는 승인된 사역자 누구나, 입력은 권한: att_adult(장년 칸), att_edu(교회학교 칸). 관리자는 둘 다.
 // 옛 종이 기록은 교육 부서별 숫자가 없어 'edu'(교육 합계) 한 칸으로 들어 있다. 부서 칸이 하나라도 있으면 부서 합을 쓴다.
 // 보기: 주일별(종이 양식 모양) / 연별(종이 출석현황표처럼 한 해 주일 전부, 상반기|하반기) / 분석(평균 카드·추이 그래프·부서별 비교·작년 같은 달 비교)
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, toKorean } from './auth.jsx'
+import { supabase, toKorean, useAuth, can } from './auth.jsx'
 import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
 
 export const ADULT = [['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '청년']]
+// 화면에 보이는 교회학교 부서 (유아 = 아이 + 부모)
 export const EDU = [['infant', '유아'], ['kinder', '유치'], ['child', '유년'], ['elem', '초등'], ['teen', '청소년']]
-const ALL_SLOTS = [...ADULT, ...EDU]
+// 입력하는 칸: 유아부는 아이·부모 두 칸
+const EDU_IN = [['infant_kid', '유아 (아이)'], ['infant_parent', '유아 (부모)'], ['kinder', '유치'], ['child', '유년'], ['elem', '초등'], ['teen', '청소년']]
+const ALL_SLOTS = [...ADULT, ...EDU_IN]
+// 출석 입력 권한 (화면용. 실제로 막는 것은 데이터베이스 규칙 att_can)
+export function useCanAttend() {
+  const { profile } = useAuth()
+  const adult = can(profile, 'att_adult'), edu = can(profile, 'att_edu')
+  return { adult, edu, any: adult || edu }
+}
 
 const fmt = (n) => (n == null ? '–' : Math.round(n).toLocaleString('ko-KR'))
 const toDate = (s) => new Date(`${s}T00:00`)
@@ -24,12 +34,13 @@ export function weekStats(w, loose = false) {
   if (!w) return null
   const v = (k) => (w[k] ?? null)
   const add = loose ? sum : all
-  const depts = EDU.map(([k]) => v(k))
-  const anyDept = depts.some((x) => x != null)
+  const infant = add([v('infant_kid'), v('infant_parent')])
+  const depts = [infant, ...EDU.slice(1).map(([k]) => v(k))]
+  const anyDept = EDU_IN.some(([k]) => v(k) != null)
   const edu = anyDept ? add(depts) : v('edu')
   const main = add([v('p1'), v('p2'), v('p3')])
   const adult = add([main, v('youth')])
-  return { ...w, main, adult, edu, eduLegacy: !anyDept && v('edu') != null, total: add([adult, edu]) }
+  return { ...w, infant, main, adult, edu, eduLegacy: !anyDept && v('edu') != null, total: add([adult, edu]) }
 }
 
 // 기간 안의 출석 불러오기 → { 'YYYY-MM-DD': { p1: 150, ..., _by, _at } }
@@ -61,6 +72,8 @@ function AttModal({ sunday, onClose }) {
   const [f, setF] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const perm = useCanAttend()
+  const allowed = (k) => (ADULT.some(([a]) => a === k) ? perm.adult : perm.edu)
   const base = lastSunday()
   const days = [...Array(9)].map((_, i) => ymd(addDays(base, (1 - i) * 7)))
   if (!days.includes(day)) days.push(day)
@@ -79,8 +92,8 @@ function AttModal({ sunday, onClose }) {
   async function save(e) {
     e.preventDefault()
     if (ALL_SLOTS.some(([k]) => f[k] !== '' && !/^\d{1,5}$/.test(f[k]))) return setError('인원은 숫자로만 적어 주세요.')
-    const up = ALL_SLOTS.filter(([k]) => f[k] !== '' && Number(f[k]) !== old[k]).map(([k]) => ({ sunday: day, slot: k, count: Number(f[k]) }))
-    const del = ALL_SLOTS.filter(([k]) => f[k] === '' && old[k] != null).map(([k]) => k)
+    const up = ALL_SLOTS.filter(([k]) => allowed(k) && f[k] !== '' && Number(f[k]) !== old[k]).map(([k]) => ({ sunday: day, slot: k, count: Number(f[k]) }))
+    const del = ALL_SLOTS.filter(([k]) => allowed(k) && f[k] === '' && old[k] != null).map(([k]) => k)
     if (!up.length && !del.length) return onClose()
     setBusy(true)
     const r1 = up.length ? await supabase.from('attendance').upsert(up, { onConflict: 'sunday,slot' }) : {}
@@ -94,7 +107,7 @@ function AttModal({ sunday, onClose }) {
   const field = ([k, name]) => (
     <label key={k} className="att-in">
       <span>{name}</span>
-      <input inputMode="numeric" pattern="[0-9]*" value={f[k] ?? ''} disabled={old === null}
+      <input inputMode="numeric" pattern="[0-9]*" value={f[k] ?? ''} disabled={old === null || !allowed(k)}
         onChange={(e) => { setF({ ...f, [k]: e.target.value.replace(/[^0-9]/g, '') }); setError('') }} />
     </label>
   )
@@ -110,12 +123,12 @@ function AttModal({ sunday, onClose }) {
         </select>
       </label>
       <fieldset className="att-group">
-        <legend>장년 <b>{fmt(live?.adult)}</b></legend>
+        <legend>장년 예배 <b>{fmt(live?.adult)}</b>{!perm.adult && <small> (입력 권한 없음)</small>}</legend>
         <div className="att-grid">{ADULT.map(field)}</div>
       </fieldset>
       <fieldset className="att-group">
-        <legend>교육 <b>{fmt(live?.edu)}</b>{live?.eduLegacy && <small> (옛 기록: 교육 합계만)</small>}</legend>
-        <div className="att-grid">{EDU.map(field)}</div>
+        <legend>교회학교 예배 <b>{fmt(live?.edu)}</b>{live?.eduLegacy && <small> (옛 기록: 합계만)</small>}{!perm.edu && <small> (입력 권한 없음)</small>}</legend>
+        <div className="att-grid">{EDU_IN.map(field)}</div>
       </fieldset>
       <p className="att-total">총합 <b>{fmt(live?.total)}</b></p>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -134,6 +147,7 @@ function WeekView() {
   const [sun, setSun] = useState(lastSunday())
   const data = useAttendance(sun, addDays(sun, 1))
   const open = useOpenAttendance()
+  const perm = useCanAttend()
   const s = data ? weekStats(data[ymd(sun)] ?? {}) : null
   // 주일 고르기 목록: 작년 1월부터 다음 주일까지, 최근 것이 위 (합계가 있으면 함께 보여줌)
   const listFrom = useMemo(() => new Date(new Date().getFullYear() - 1, 0, 1), [])
@@ -158,25 +172,27 @@ function WeekView() {
             return <option key={ymd(d)} value={ymd(d)}>{d.getFullYear()}. {d.getMonth() + 1}. {d.getDate()}.{t != null ? ` · ${fmt(t)}명` : ''}</option>
           })}
         </select>
-        <button type="button" className="btn btn-primary" onClick={() => open(ymd(sun))}>{filled ? '인원 고치기' : '+ 인원 입력'}</button>
+        {perm.any && <button type="button" className="btn btn-primary" onClick={() => open(ymd(sun))}>{filled ? '인원 고치기' : '+ 인원 입력'}</button>}
       </div>
       <div className="card att-sheet">
         <h2 className="att-sheet-title">{sun.getMonth() + 1}월 {sun.getDate()}일 주일예배 출석현황</h2>
         {s === null ? <span className="skeleton" /> : <>
           <div className="att-cols">
             <div className="att-col">
-              <h3>예배</h3>
+              <h3>장년 예배</h3>
               {[['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부 (청년)']].map(line)}
               <div className="att-line is-sub"><span>장년</span><b>{fmt(s.adult)}</b><em>명</em></div>
             </div>
             <div className="att-col">
-              <h3>교육부</h3>
-              {EDU.map(line)}
-              <div className="att-line is-sub"><span>교육</span><b>{fmt(s.edu)}</b><em>명</em></div>
+              <h3>교회학교 예배</h3>
+              {line(['infant', '유아'])}
+              {(s.infant_kid != null || s.infant_parent != null) && <div className="att-line is-part"><span>아이 {fmt(s.infant_kid)} · 부모 {fmt(s.infant_parent)}</span></div>}
+              {EDU.slice(1).map(line)}
+              <div className="att-line is-sub"><span>교회학교</span><b>{fmt(s.edu)}</b><em>명</em></div>
             </div>
           </div>
           <div className="att-line is-total"><span>합계</span><b>{fmt(s.total)}</b><em>명</em></div>
-          {(s.total == null || by) && <p className="small muted">{[s.total == null && `${filled}/9칸 입력`, by && `마지막 입력 ${by.name} ${by.title}`].filter(Boolean).join(' · ')}</p>}
+          {(s.total == null || by) && <p className="small muted">{[s.total == null && `${filled}/${ALL_SLOTS.length}칸 입력`, by && `마지막 입력 ${by.name} ${by.title}`].filter(Boolean).join(' · ')}</p>}
         </>}
       </div>
     </section>
@@ -198,18 +214,20 @@ const monthAvgs = (weeks) => [...Array(12)].map((_, i) => {
   return { month: i, n: ws.length, main: a('main'), youth: a('youth'), adult: a('adult'), edu: a('edu'), total: a('total') }
 })
 // 연별: 종이 출석현황표처럼 한 해 주일을 모두 한 줄씩 (상반기 | 하반기 나란히), 맨 아래 주일 평균
-const PAPER_COLS = [['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부'], ['adult', '장년'], ['edu', '교육'], ['total', '합계']]
+const PAPER_COLS = [['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '4부'], ['adult', '장년'], ['edu', '교회학교'], ['total', '합계']]
+// 휴대폰에서는 '교회학교' 머리글을 두 줄로
+const colHead = (n) => (n === '교회학교' ? <>교회<br className="ph-br" />학교</> : n)
 const isSumCol = (k) => k === 'adult' || k === 'edu' || k === 'total'
 
 function YearHalf({ weeks, months, open }) {
   return (
     <table className="att-table att-paper">
-      <thead><tr><th>월</th><th>일</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
+      <thead><tr><th>월</th><th>일</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{colHead(n)}</th>)}</tr></thead>
       <tbody>
         {months.map((mi) => {
           const ws = weeks.filter((w) => w.d.getMonth() === mi)
           return ws.map((w, i) => (
-            <tr key={ymd(w.d)} className={`is-click${i === 0 ? ' month-start' : ''}`} onClick={() => open(ymd(w.d))} title="눌러서 입력·고치기">
+            <tr key={ymd(w.d)} className={`${open ? 'is-click' : ''}${i === 0 ? ' month-start' : ''}`} onClick={open ? () => open(ymd(w.d)) : undefined} title={open ? '눌러서 입력·고치기' : undefined}>
               {i === 0 && <th rowSpan={ws.length} className="att-month">{mi + 1}</th>}
               <th>{w.d.getDate()}</th>
               {PAPER_COLS.map(([k]) => <td key={k} className={isSumCol(k) ? 'is-sum' : ''}>{w.s[k] == null ? '' : fmt(w.s[k])}</td>)}
@@ -225,7 +243,8 @@ function YearView() {
   const [year, setYear] = useState(new Date().getFullYear())
   const from = useMemo(() => new Date(year, 0, 1), [year]), to = useMemo(() => new Date(year + 1, 0, 1), [year])
   const data = useAttendance(from, to)
-  const open = useOpenAttendance()
+  const openAtt = useOpenAttendance()
+  const open = useCanAttend().any ? openAtt : null
   const weeks = data ? sundaysBetween(from, to).map((d) => ({ d, s: weekStats(data[ymd(d)] ?? {}) })) : null
   const has = (weeks ?? []).filter((w) => w.s.total != null)
   return (
@@ -246,7 +265,7 @@ function YearView() {
           {has.length > 0 && (
             <div className="scroll-x">
               <table className="att-table att-paper">
-                <thead><tr><th>주일 평균</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{n}</th>)}</tr></thead>
+                <thead><tr><th>주일<br className="ph-br" /> 평균</th>{PAPER_COLS.map(([k, n]) => <th key={k} className={isSumCol(k) ? 'is-sum' : ''}>{colHead(n)}</th>)}</tr></thead>
                 <tbody><tr><th>{has.length}주</th>{PAPER_COLS.map(([k]) => <td key={k} className={isSumCol(k) ? 'is-sum' : ''}>{fmt(avg(has.map((w) => w.s[k])))}</td>)}</tr></tbody>
               </table>
             </div>
@@ -258,7 +277,7 @@ function YearView() {
 }
 
 /* ---------- 분석 ---------- */
-const SERIES = [['total', '합계'], ['adult', '장년 합'], ['main', '1~3부'], ['youth', '청년'], ['edu', '교육']]
+const SERIES = [['total', '합계'], ['adult', '장년 합'], ['main', '1~3부'], ['youth', '청년'], ['edu', '교회학교']]
 
 function LineChart({ points, label }) {
   // points: [{ x: 이름, y: 값 }] — 한 줄만 그린다 (크기가 다른 값을 한 축에 섞지 않으려고 고르게 함)
@@ -316,13 +335,13 @@ function AnalysisView() {
   const lastM = [...months].reverse().find((r) => r.n)?.month ?? 0
   const cur = months[lastM], before = lastM > 0 ? months[lastM - 1] : prevMonths[11]
   const yAvg = (k) => avg(weeks.map((w) => w.s[k]))
-  const cards = [['total', '합계'], ['adult', '장년 합'], ['youth', '청년'], ['edu', '교육']]
+  const cards = [['total', '합계'], ['adult', '장년 합'], ['youth', '청년'], ['edu', '교회학교']]
   const label = SERIES.find(([k]) => k === series)[1]
   const points = unit === 'week'
     ? weeks.map((w) => ({ x: `${w.d.getMonth() + 1}/${w.d.getDate()}`, y: w.s[series] }))
     : months.map((r) => ({ x: `${r.month + 1}월`, full: `${r.month + 1}월 평균`, y: r[series] }))
   // 부서별 비교: 그 부서 숫자가 있는 주일만으로 평균
-  const depts = ALL_SLOTS.map(([k, n]) => ({ k, n, v: avg(weeks.map((w) => w.s[k])) }))
+  const depts = [...ADULT, ...EDU].map(([k, n]) => ({ k, n, v: avg(weeks.map((w) => w.s[k])) }))
   const maxD = Math.max(1, ...depts.map((x) => x.v ?? 0))
   const hasPrev = prev.length > 0
   return (
@@ -350,7 +369,7 @@ function AnalysisView() {
       <section className="block">
         <div className="block-head">
           <h2 className="pill">추이</h2>
-          <div className="seg" role="group" aria-label="보는 값">
+          <div className="seg att-series" role="group" aria-label="보는 값">
             {SERIES.map(([k, n]) => <button key={k} type="button" className={series === k ? 'is-on' : ''} aria-pressed={series === k} onClick={() => setSeries(k)}>{n}</button>)}
           </div>
           <div className="seg" role="group" aria-label="단위">

@@ -20,6 +20,8 @@ export function PermissionsPage() {
     ...PERMS.map((p) => ({ ...p, group: '관리' })),
     { key: 'visit_all', start: true, name: '모든 교구', hint: '모든 교구 심방보고 보기·쓰기 (담임목사님)', group: '심방보고' },
     ...parishes.map((d) => ({ key: `visit:${d.id}`, name: d.name, hint: `${d.name} 심방보고 보기·쓰기`, group: '심방보고' })),
+    { key: 'att_adult', start: true, name: '장년', hint: '출석 입력: 1~3부·4부(청년)', group: '출석보고' },
+    { key: 'att_edu', name: '교회학교', hint: '출석 입력: 유아(아이·부모)·유치·유년·초등·청소년', group: '출석보고' },
   ], [parishes.length])
 
   async function load() {
@@ -82,6 +84,7 @@ export function PermissionsPage() {
                   <th rowSpan={2} className="perm-name">사역자</th>
                   <th colSpan={1 + PERMS.length} className="perm-group">관리</th>
                   <th colSpan={1 + parishes.length} className="perm-group grp-start">심방보고</th>
+                  <th colSpan={2} className="perm-group grp-start">출석보고</th>
                 </tr>
                 <tr>{columns.map((c) => <th key={c.key} className={c.start ? 'grp-start' : undefined}>{c.name}</th>)}</tr>
               </thead>
