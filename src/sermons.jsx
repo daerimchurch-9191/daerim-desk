@@ -28,16 +28,29 @@ export const isChoharu = (date) => {
 const CHO_TIME = '05:30'
 const isCho = (s) => s?.service === 'dawn' && isChoharu(s.date)
 
-// 사역자 이름 칸 하나: 목록에서 고르거나(자동 완성) 그냥 적는다. 목록 이름과 같으면 그 사역자로 연결.
+// 사역자 이름 칸 하나: 기본은 데스크 사용자 목록에서 고르고(▾), 목록에 없을 때만 맨 끝 "직접 입력"으로 이름을 적는다.
+// 값은 글자(사역자면 "이름 호칭")로 주고받고, 저장할 때 resolvePerson이 사역자와 같으면 그 사역자로 연결한다.
 const staffLabel = (p) => `${p.name} ${p.title ?? ''}`.trim()
-export function PersonInput({ label, value, onChange, placeholder, autoFocus }) {
+export function PersonInput({ label, value, onChange, autoFocus }) {
   const { staff } = useData()
-  const id = `pl-${label}`
+  const matched = resolvePerson(staff, value ?? '').id
+  const [typing, setTyping] = useState(false)
+  const direct = typing || (!matched && Boolean(value?.trim()))
+  const pick = (v) => {
+    if (v === 'text') { setTyping(true); onChange('') }
+    else { setTyping(false); const p = staff.find((x) => x.id === v); onChange(p ? staffLabel(p) : '') }
+  }
   return (
-    <label className="field">{label}
-      <input list={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder ?? '이름을 적거나 목록에서 고르기'} autoFocus={autoFocus} autoComplete="off" />
-      <datalist id={id}>{staff.map((p) => <option key={p.id} value={staffLabel(p)} />)}</datalist>
-    </label>
+    <>
+      <label className="field">{label}
+        <select value={direct ? 'text' : matched ?? ''} onChange={(e) => pick(e.target.value)} autoFocus={autoFocus}>
+          <option value="">선택</option>
+          {staff.map((p) => <option key={p.id} value={p.id}>{staffLabel(p)}</option>)}
+          <option value="text">직접 입력</option>
+        </select>
+      </label>
+      {direct && <label className="field">{label} 이름<input value={value} onChange={(e) => onChange(e.target.value)} placeholder="목록에 없는 이름 적기" autoFocus={typing} autoComplete="off" /></label>}
+    </>
   )
 }
 // 적은 글 → { id, name } (사역자와 같으면 id, 아니면 글자 그대로)
