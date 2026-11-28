@@ -1106,3 +1106,46 @@ html.page-lock, html.page-lock body { overflow: hidden; overscroll-behavior: non
 .is-phone .visit-page .chat-compose { padding: 10px 12px; }
 .is-phone .visit-page .chat-search.chat-tools { padding: 10px 12px; gap: 6px; }
 .is-phone .parish-toggle { order: 99; min-height: 32px; }
+
+/* =========================================================
+   홈 위젯 맞춤 설정 (2026-11-28)
+   두 칸 판: .hw.is-full = 한 줄, .hw = 반 칸. 휴대폰·좁은 화면은 모두 한 줄.
+   ========================================================= */
+.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.hw { min-width: 0; display: flex; flex-direction: column; }
+.hw > .hc { flex: 1; }
+.hw.is-full { grid-column: 1 / -1; }
+.hw:empty { display: none; }
+@media (max-width: 860px) { .home-grid { grid-template-columns: minmax(0, 1fr); } .hw { grid-column: 1 / -1; } }
+.is-phone .home-grid { gap: 12px; }
+.notice-strip.is-always { display: flex; width: 100%; }
+.home-edit { align-self: center; min-height: 40px; padding: 0 18px; border: 1.5px dashed #d3d8d5; border-radius: 10px; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--t2); cursor: pointer; }
+.home-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 홈 편집 창 */
+.he-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.he-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--soft); }
+.he-row.is-off .he-name b { color: var(--t3); }
+.he-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.he-name input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+.he-name span { display: flex; flex-direction: column; min-width: 0; }
+.he-name b { font-size: 14px; white-space: nowrap; }
+.he-name small { font-size: 12px; color: var(--t3); }
+.he-row .hc-seg { background: #fff; }
+.he-row .hc-seg button.is-on { background: var(--soft); }
+.he-fixed { font-size: 12px; color: var(--t3); padding: 0 10px; white-space: nowrap; }
+.he-move { display: flex; gap: 4px; flex: none; }
+.he-move button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: #fff; font: inherit; font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.he-move button:disabled { opacity: .35; cursor: default; }
+
+/* 출석 위젯 */
+.att-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.att-mini > div { background: var(--soft); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.att-mini span { font-size: 12px; color: var(--t3); font-weight: 600; }
+.att-mini b { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.att-mini .is-total { background: var(--ink); color: #fff; }
+.att-mini .is-total span { color: #a9b3ae; }
+.att-up { color: var(--accent); font-weight: 700; font-size: 12px; }
+.att-down { color: #8a1c12; font-weight: 700; font-size: 12px; }
+.att-mini .is-total .att-up { color: #7fd1b5; }
+.att-mini .is-total .att-down { color: #f2a49b; }

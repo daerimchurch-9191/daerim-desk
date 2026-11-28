@@ -9,12 +9,12 @@ import { AdsPage } from './ads.jsx'
 import { LeavePage } from './leave.jsx'
 import { DevotionsPage } from './devotions.jsx'
 import { AttendancePage, useOpenAttendance, useCanAttend } from './attendance.jsx'
-import { DataProvider, useData, deptNames, WeekCalendar, CarsWeek, CarsMonth, CalendarMonth, DOW_KO, useIsPhone, TodayCard } from './live.jsx'
-import { MySermons, SermonTable, SermonsMonth } from './sermons.jsx'
-import { Todos } from './personal.jsx'
+import { DataProvider, useData, deptNames, CarsMonth, CalendarMonth, DOW_KO, useIsPhone } from './live.jsx'
+import { SermonsMonth } from './sermons.jsx'
+import { HomeWidgets } from './homelayout.jsx'
 import { links } from './data.js'
 import { HomeTools, PhoneTools } from './home.jsx'
-import { useNotices, SideNotices, NoticeStrip, NoticesPage } from './notices.jsx'
+import { useNotices, SideNotices, NoticesPage } from './notices.jsx'
 
 const logoWhite = new URL('../public/logo-white.png', import.meta.url).href
 
@@ -130,37 +130,6 @@ function usePage() {
 }
 
 /* ---------- 휴대폰 ---------- */
-// 사람마다 홈 순서: 직분 '목사' → 목사님, 교구 소속 → 교구(심방) 전도사님, 그 외 → 교육부
-function roleOf(profile, departments) {
-  if ((profile.title ?? '').includes('목사')) return 'pastor'
-  const grps = (profile.dept_ids ?? []).map((id) => departments.find((d) => d.id === id)?.grp)
-  return grps.includes('parish') ? 'parish' : 'edu'
-}
-
-function VisitRoomsCard() {
-  const { profile } = useAuth()
-  const { departments } = useData()
-  const rooms = visitRooms(profile, departments)
-  if (!rooms.length) return null
-  return (
-    <section className="hc" aria-labelledby="vr-h">
-      <div className="hc-head"><h2 id="vr-h" className="hc-title"><a href="#visits">심방보고</a></h2><span className="hc-right"><a href="#visits" className="hc-more">심방보고 →</a></span></div>
-      <div className="vr-grid">
-        {rooms.map((r) => <a key={r.id} href="#visits" className="vr-room"><b>{r.name}</b><span>방 들어가기</span></a>)}
-      </div>
-    </section>
-  )
-}
-
-function PhoneHome() {
-  const { profile } = useAuth()
-  const { departments } = useData()
-  const role = roleOf(profile, departments)
-  if (role === 'pastor') return <div className="home-v2"><MySermons /><Todos /><TodayCard /><VisitRoomsCard /></div>
-  if (role === 'parish') return <div className="home-v2"><Todos /><TodayCard /><VisitRoomsCard /></div>
-  return <div className="home-v2"><Todos /><TodayCard /><MySermons /></div>
-}
-
 const TAB_PAGES = ['home', 'calendar', 'cars', 'sermons']
 const TAB_HASH = { home: '#home', calendar: '#calendar', cars: '#cars', sermons: '#sermons' }
 
@@ -212,10 +181,10 @@ function PhoneTabs({ page }) {
 // 휴대폰: 아이폰 홈 화면처럼 네 화면(홈·캘린더·차량·설교표)을 옆으로 나란히 두고,
 // 손가락을 따라 현재 화면과 옆 화면이 함께 움직인다. 놓으면 남은 거리만큼 부드럽게 미끄러진다.
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const PANELS = { home: () => <PhoneHome />, calendar: () => <CalendarMonth />, cars: () => <CarsMonth />, sermons: () => <SermonsMonth /> }
+const PANELS = { home: ({ notices }) => <HomeWidgets phone notices={notices} />, calendar: () => <CalendarMonth />, cars: () => <CarsMonth />, sermons: () => <SermonsMonth /> }
 const EASE = 'transform .34s cubic-bezier(.22,.8,.24,1)'
 
-function SwipeTrack({ page, enabled }) {
+function SwipeTrack({ page, enabled, notices }) {
   const idx = TAB_PAGES.indexOf(page)
   const track = useRef(null)
   const panels = useRef([])
@@ -307,7 +276,7 @@ function SwipeTrack({ page, enabled }) {
         {TAB_PAGES.map((id, i) => (
           <section key={id} ref={(n) => { panels.current[i] = n }} className={`swipe-panel${i === idx ? ' is-active' : ''}`}
             aria-hidden={i !== idx} inert={i !== idx ? '' : undefined}>
-            {mounted.has(i) && PANELS[id]()}
+            {mounted.has(i) && PANELS[id]({ notices })}
           </section>
         ))}
       </div>
@@ -339,7 +308,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'attendance' ? <AttendancePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} notices={notices} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'attendance' ? <AttendancePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <div className="home-top">
           <header className="title">
@@ -349,16 +318,7 @@ function Desk() {
           <HomeTools notices={notices} />
         </div>
 
-        <NoticeStrip notices={notices} />
-        <div className="home-v2">
-          <div className="hc-pair">
-            <MySermons />
-            <Todos />
-          </div>
-          <WeekCalendar />
-          <SermonTable />
-          <CarsWeek />
-        </div>
+        <HomeWidgets phone={false} notices={notices} />
           </>
         )}
         </div>

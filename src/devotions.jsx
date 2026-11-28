@@ -3,7 +3,7 @@
 // 또 "내 설교"와 "내 경건회 순서"를 교회 캘린더의 개인 일정처럼 보여주는 useMyDuties 도 여기 있다.
 import { useEffect, useState } from 'react'
 import { supabase, useAuth, toKorean } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, sameDay, DOW_KO, ViewSwitch, useView, useIsPhone, weekRange } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek, sameDay, DOW_KO, ViewSwitch, useView, useIsPhone, weekRange, HomeHead } from './live.jsx'
 import { SERVICES, useOpenSermon } from './sermons.jsx'
 
 const toDate = (s) => new Date(`${s}T00:00`)
@@ -252,5 +252,43 @@ export function DevotionsPage() {
         )}
       </section>}
     </>
+  )
+}
+
+/* ---------- 홈 위젯: 이번 주 아침경건회 ---------- */
+export function DevotionCard() {
+  const { profile } = useAuth()
+  const [week0, setWeek0] = useState(startOfWeek())
+  const data = useDevotions(week0, addDays(week0, 7))
+  const open = useOpenDevotion()
+  const nameOf = useLeaderName()
+  const today = new Date()
+  const days = DAYS.map((i) => addDays(week0, i))
+  return (
+    <section className="hc" aria-labelledby="dev-h">
+      <HomeHead id="dev-h" title="아침경건회" href="#devotions" range={weekRange(week0)} week0={week0} setWeek0={setWeek0}>
+        <a href="#devotions" className="hc-more">아침경건회 →</a>
+      </HomeHead>
+      {data === null && <span className="skeleton" />}
+      {data && (
+        <div className="hc-list">
+          {days.map((d) => {
+            const v = data.dev[ymd(d)]
+            const passage = data.dawn[ymd(d)]
+            const mine = v?.leader_id === profile.id
+            return (
+              <button key={ymd(d)} type="button" className="hc-row hc-rowbtn" onClick={() => open(ymd(d))}>
+                <span className={`hc-date${sameDay(d, today) ? ' is-next' : ''}`}><b>{d.getDate()}</b><span>{DOW_KO[d.getDay()]}</span></span>
+                <span className="hc-text">
+                  <b>{v ? nameOf(v) : <span className="muted">아직 비어 있음</span>}</b>
+                  <span>{passage || '새벽 본문 없음'}</span>
+                </span>
+                <span className="hc-end">{mine && <span className="hc-chip">내 순서</span>}<span className="chev">›</span></span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
