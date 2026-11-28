@@ -200,12 +200,12 @@ export function SideNotices({ notices, onNavigate }) {
 }
 
 /* ---------- 휴대폰 홈 위쪽: 안 읽은 최신 공지 한 줄 ---------- */
-export function NoticeStrip({ notices, always }) {
+export function NoticeStrip({ notices }) {
   const { view } = useNoticeActions(notices)
   const n = notices.unread[0]
   if (!n) return null
   return (
-    <button type="button" className={`notice-strip ${always ? 'is-always' : 'only-mobile'}`} onClick={() => view(n)}>
+    <button type="button" className="notice-strip only-mobile" onClick={() => view(n)}>
       <span className="badge-new">새 공지 {notices.unread.length}</span>
       <span className="grow"><strong>{n.title}</strong><small>{audienceName(n.audience)} · {dateLabel(n.created_at)}</small></span>
     </button>

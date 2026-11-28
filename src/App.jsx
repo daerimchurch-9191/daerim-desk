@@ -181,10 +181,10 @@ function PhoneTabs({ page }) {
 // 휴대폰: 아이폰 홈 화면처럼 네 화면(홈·캘린더·차량·설교표)을 옆으로 나란히 두고,
 // 손가락을 따라 현재 화면과 옆 화면이 함께 움직인다. 놓으면 남은 거리만큼 부드럽게 미끄러진다.
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const PANELS = { home: ({ notices }) => <HomeWidgets phone notices={notices} />, calendar: () => <CalendarMonth />, cars: () => <CarsMonth />, sermons: () => <SermonsMonth /> }
+const PANELS = { home: () => <HomeWidgets phone />, calendar: () => <CalendarMonth />, cars: () => <CarsMonth />, sermons: () => <SermonsMonth /> }
 const EASE = 'transform .34s cubic-bezier(.22,.8,.24,1)'
 
-function SwipeTrack({ page, enabled, notices }) {
+function SwipeTrack({ page, enabled }) {
   const idx = TAB_PAGES.indexOf(page)
   const track = useRef(null)
   const panels = useRef([])
@@ -276,7 +276,7 @@ function SwipeTrack({ page, enabled, notices }) {
         {TAB_PAGES.map((id, i) => (
           <section key={id} ref={(n) => { panels.current[i] = n }} className={`swipe-panel${i === idx ? ' is-active' : ''}`}
             aria-hidden={i !== idx} inert={i !== idx ? '' : undefined}>
-            {mounted.has(i) && PANELS[id]({ notices })}
+            {mounted.has(i) && PANELS[id]()}
           </section>
         ))}
       </div>
@@ -308,7 +308,7 @@ function Desk() {
           {'DAERIM CHURCH · MINISTRY DESK · 복음의 커다란 숲 · '.repeat(6)}
         </div>
 
-        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} notices={notices} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'attendance' ? <AttendancePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
+        {phone && TAB_PAGES.includes(page) ? <SwipeTrack page={page} enabled={!menuOpen} /> : page === 'admin' ? <AdminHub /> : page === 'leave' ? <LeavePage /> : page === 'devotions' ? <DevotionsPage /> : page === 'attendance' ? <AttendancePage /> : page === 'ads' ? <AdsPage /> : page === 'visits' ? <VisitsPage /> : page === 'notices' ? <NoticesPage notices={notices} /> : page === 'sermons' ? <SermonsMonth /> : page === 'calendar' ? <CalendarMonth /> : page === 'cars' ? <CarsMonth /> : (
           <>
         <div className="home-top">
           <header className="title">
@@ -318,7 +318,7 @@ function Desk() {
           <HomeTools notices={notices} />
         </div>
 
-        <HomeWidgets phone={false} notices={notices} />
+        <HomeWidgets phone={false} />
           </>
         )}
         </div>
