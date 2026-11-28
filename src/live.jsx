@@ -118,6 +118,29 @@ export const useOpenEvent = () => {
   return (e) => (e.open ? e.open() : openModal({ type: 'event', initial: e }))
 }
 // 일정 + 내 설교·경건회 순서 (둘 다 불러와야 보여준다)
+// 교구 일정은 그 교구 소속만 본다(데이터베이스 규칙). 관리자는 규칙상 다 보이지만, 평소엔 숨기고
+// 교회 캘린더의 "다른 교구 일정 보기"를 켰을 때만 보인다(기기마다 기억, localStorage cal.otherParish).
+const PARISH_KEY = 'cal.otherParish'
+export function useOtherParish() {
+  const [on, setOn] = useState(() => { try { return localStorage.getItem(PARISH_KEY) === '1' } catch { return false } })
+  useEffect(() => {
+    const f = () => { try { setOn(localStorage.getItem(PARISH_KEY) === '1') } catch {} }
+    window.addEventListener('other-parish', f)
+    return () => window.removeEventListener('other-parish', f)
+  }, [])
+  const set = (v) => { try { localStorage.setItem(PARISH_KEY, v ? '1' : '0') } catch {} ; window.dispatchEvent(new Event('other-parish')) }
+  return [on, set]
+}
+export function useParishFilter() {
+  const { profile } = useAuth()
+  const { departments } = useData()
+  const [other] = useOtherParish()
+  const mine = profile?.dept_ids ?? []
+  return useCallback((list) => {
+    if (!list || (other && profile?.role === 'admin')) return list
+    return list.filter((e) => e.duty || e.created_by === profile?.id || mine.includes(e.dept_id) || departments.find((d) => d.id === e.dept_id)?.grp !== 'parish')
+  }, [other, profile?.id, profile?.role, mine.join(), departments])
+}
 const withDuties = (events, duties) => (events && duties ? [...events, ...duties].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)) : null)
 const whenText = (e, d) => (!sameDay(new Date(e.starts_at), d) ? '이어짐' : e.no_time ? '' : e.all_day ? '종일' : hm(new Date(e.starts_at)))
 
@@ -546,7 +569,7 @@ export function WeekCalendar({ inPage }) {
   const days = [...Array(7)].map((_, i) => addDays(week0, i))
   const today = new Date()
   const openEv = useOpenEvent()
-  const events = withDuties(raw, useMyDuties(week0, addDays(week0, 7)))
+  const events = useParishFilter()(withDuties(raw, useMyDuties(week0, addDays(week0, 7))))
 
   useEffect(() => {
     setEvents(null)
@@ -618,7 +641,7 @@ export function TodayCard() {
   const today = new Date()
   const d0 = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const openEv = useOpenEvent()
-  const list = withDuties(raw, useMyDuties(d0, addDays(d0, 1)))
+  const list = useParishFilter()(withDuties(raw, useMyDuties(d0, addDays(d0, 1))))
   useEffect(() => {
     overlapping(supabase.from('events').select('*'), d0, addDays(d0, 1)).order('starts_at')
       .then(({ data }) => setList(data ?? []))
@@ -872,6 +895,7 @@ export function VehicleAdmin() {
 /* ---------- 교회 캘린더 (월별) ---------- */
 export function CalendarMonth() {
   const { departments, version, openModal } = useData()
+  const { profile } = useAuth()
   const now = new Date()
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
   const [group, setGroup] = useState('every') // every | all | edu | parish
@@ -879,7 +903,8 @@ export function CalendarMonth() {
   const [raw, setEvents] = useState(null)
   const next = new Date(month.getFullYear(), month.getMonth() + 1, 1)
   const openEv = useOpenEvent()
-  const events = withDuties(raw, useMyDuties(month, next))
+  const events = useParishFilter()(withDuties(raw, useMyDuties(month, next)))
+  const [otherParish, setOtherParish] = useOtherParish()
 
   useEffect(() => {
     setEvents(null)
@@ -928,6 +953,9 @@ export function CalendarMonth() {
               <optgroup label="교구">{deptsOf('parish').map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>
             </select>
           </label>
+          {profile?.role === 'admin' && (
+            <label className="check-inline parish-toggle"><input type="checkbox" checked={otherParish} onChange={(e) => setOtherParish(e.target.checked)} /> 다른 교구 일정 보기</label>
+          )}
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'event', initial: { date: ymd(month.getMonth() === now.getMonth() ? now : month) } })}>+ 일정 등록</button>
         </div>
         <div className="card scroll-x">

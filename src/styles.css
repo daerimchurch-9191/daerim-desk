@@ -1105,3 +1105,4 @@ html.page-lock, html.page-lock body { overflow: hidden; overscroll-behavior: non
 @media (max-width: 374px) { .is-phone .visit-rooms { gap: 4px; } .is-phone .visit-rooms .tab { padding: 0 6px; } .is-phone .title.visit-title { gap: 6px; } .is-phone .title.visit-title h1.page-title-ko { font-size: 22px; } }
 .is-phone .visit-page .chat-compose { padding: 10px 12px; }
 .is-phone .visit-page .chat-search.chat-tools { padding: 10px 12px; gap: 6px; }
+.is-phone .parish-toggle { order: 99; min-height: 32px; }

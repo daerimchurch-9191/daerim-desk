@@ -3,7 +3,7 @@
 //  - 출석: 한 주일의 열 칸이 다 채워지면 한 번 (attendance_weeks id). 다 채운 사람은 뺀다.
 // 받을 사람: 각자 알림 설정(notification_prefs, 없으면 기본값)에서 그 항목을 켠 승인된 사역자. 쓴 사람은 뺀다.
 //  - 심방보고: 그 교구 방 권한이 있는 사람만. 성도 개인정보라 내용은 알림에 넣지 않는다.
-//  - 캘린더: 교회 전체 / 내 부서 / 교육부 / 교구 중 켠 것. 개인 일정은 알리지 않는다.
+//  - 캘린더: 교회 전체 / 내 부서 / 교육부 중 켠 것. 교구 일정은 그 교구 소속에게만. 개인 일정은 알리지 않는다.
 //  - 연차: 새 신청은 연차 관리자(관리자 포함)에게, 승인·반려는 신청한 사람에게.
 // 요청 머리에 x-notify-token(금고 notify_token)이 맞아야 한다.
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
       if (f.cal_mine && myDepts(p.id).includes(ev.dept_id)) return true
       // "교육부"(교육부 전체) 일정은 교육부 소속 누구에게나 내 부서 일정
       if (f.cal_mine && ev.dept_id === 'edu' && myDepts(p.id).some((d) => dept.get(d)?.grp === 'edu')) return true
-      return (grp === 'edu' && f.cal_edu) || (grp === 'parish' && f.cal_parish)
+      // 교구 일정은 그 교구 소속에게만 (위 '내 부서 일정'에서 처리)
+      return grp === 'edu' && f.cal_edu
     }).map((p) => p.id)
     payload = { title: `[캘린더] ${cut(ev.title, 40)}`, body: `${md(ev.starts_at)}${ev.all_day ? ' 종일' : ' ' + hm(ev.starts_at)} · ${dept.get(ev.dept_id)?.name ?? ''}`, url: './#calendar', tag: `event-${ev.id}` }
   } else if (type === 'leave_new' || type === 'leave_decided') {

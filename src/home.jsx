@@ -3,7 +3,7 @@
 // 그래서 권한 없는 심방보고·남의 연차·남의 개인 일정은 처음부터 오지 않는다.
 import { useEffect, useRef, useState } from 'react'
 import { supabase, useAuth } from './auth.jsx'
-import { useData, DOW_KO, parseRange } from './live.jsx'
+import { useData, DOW_KO, parseRange, useParishFilter } from './live.jsx'
 import { useOpenSermon, SERVICES } from './sermons.jsx'
 import { TodoModal } from './personal.jsx'
 import { useNoticeActions } from './notices.jsx'
@@ -116,6 +116,7 @@ const DAYS = 14
 function useFeed() {
   const { profile } = useAuth()
   const { staff, departments, vehicles, version } = useData()
+  const parishFilter = useParishFilter()
   const [items, setItems] = useState(null)
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 5 * 60000); return () => clearInterval(t) }, [])
@@ -134,7 +135,7 @@ function useFeed() {
     ]).then(([nt, ev, cb, ad, vi, lv]) => {
       const list = []
       ;(nt.data ?? []).filter(notMine).forEach((n) => list.push({ key: `n${n.id}`, kind: '공지', at: n.created_at, title: n.title, row: n }))
-      ;(ev.data ?? []).filter(notMine).forEach((e) => list.push({ key: `e${e.id}`, kind: '일정', at: e.created_at, title: e.title, sub: `${dept(e.dept_id)} · ${shortDate(e.starts_at)}`, row: e }))
+      ;(parishFilter(ev.data) ?? []).filter(notMine).forEach((e) => list.push({ key: `e${e.id}`, kind: '일정', at: e.created_at, title: e.title, sub: `${dept(e.dept_id)} · ${shortDate(e.starts_at)}`, row: e }))
       ;(cb.data ?? []).filter(notMine).forEach((b) => list.push({ key: `c${b.id}`, kind: '차량', at: b.created_at, title: `${vehicles.find((v) => v.id === b.vehicle_id)?.name ?? '차량'} 신청`, sub: `${b.dept_text || dept(b.dept_id)} · ${shortDate(parseRange(b.during)[0])}`, row: b }))
       ;(ad.data ?? []).filter(notMine).forEach((a) => list.push({ key: `a${a.id}`, kind: '주보 광고', at: a.created_at, title: a.title, sub: a.dept || '' }))
       // 심방은 내용을 보여주지 않는다 (성도 개인정보)

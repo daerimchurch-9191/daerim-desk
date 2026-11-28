@@ -40,7 +40,6 @@ function NotifyItems() {
     { key: 'cal_all', name: '교회 전체 일정', sub: true },
     { key: 'cal_mine', name: '내 부서 일정', sub: true, hint: '내가 속한 부서의 일정' },
     { key: 'cal_edu', name: '교육부 일정 모두', sub: true },
-    { key: 'cal_parish', name: '교구 일정 모두', sub: true },
   ].filter(Boolean)
   const dirty = Object.keys(PREF_DEFAULTS).some((k) => draft[k] !== saved[k])
   async function save() {
