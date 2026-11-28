@@ -122,11 +122,11 @@ function AttModal({ sunday, onClose }) {
           {days.map((d) => { const x = toDate(d); return <option key={d} value={d}>{x.getFullYear()}년 {x.getMonth() + 1}월 {x.getDate()}일</option> })}
         </select>
       </label>
-      <fieldset className="att-group">
+      <fieldset className="att-inf">
         <legend>장년 예배 <b>{fmt(live?.adult)}</b>{!perm.adult && <small> (입력 권한 없음)</small>}</legend>
         <div className="att-grid">{ADULT.map(field)}</div>
       </fieldset>
-      <fieldset className="att-group">
+      <fieldset className="att-inf">
         <legend>교회학교 예배 <b>{fmt(live?.edu)}</b>{live?.eduLegacy && <small> (옛 기록: 합계만)</small>}{!perm.edu && <small> (입력 권한 없음)</small>}</legend>
         <div className="att-grid">{EDU_IN.map(field)}</div>
       </fieldset>
@@ -185,8 +185,10 @@ function WeekView() {
             </div>
             <div className="att-col">
               <h3>교회학교 예배</h3>
-              {line(['infant_kid', '유아 (아이)'])}
-              {line(['infant_parent', '유아 (부모)'])}
+              <div className="att-inf">
+                <span className="att-inf-name">유아</span>
+                <div>{line(['infant_kid', '아이'])}{line(['infant_parent', '부모'])}</div>
+              </div>
               {EDU.slice(1).map(line)}
               <div className="att-line is-sub"><span>교회학교</span><b>{fmt(s.edu)}</b><em>명</em></div>
             </div>

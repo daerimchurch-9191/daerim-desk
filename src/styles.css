@@ -1070,3 +1070,11 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .title h1.page-title-ko { font-family: 'Noto Sans KR', sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1.2; margin: 6px 0 8px; color: var(--ink); }
 @media (max-width: 700px) { .title h1.page-title.page-title-ko { font-size: 28px; margin: 4px 0 6px; } }
 .is-phone .title h1.page-title.page-title-ko { font-size: 28px; }
+
+/* 주일별: 유아 = 왼쪽 이름 하나 + 오른쪽 아이·부모 두 줄 (사용자 스케치 2026-11-28) */
+.att-inf { display: grid; grid-template-columns: auto 1fr; border-bottom: 1px dashed var(--line); }
+.att-inf-name { font-size: 15px; white-space: nowrap; padding-right: 14px; margin-right: 12px; border-right: 1px solid var(--line); display: flex; align-items: center; }
+.att-inf > div { min-width: 0; }
+.att-inf .att-line span { white-space: nowrap; }
+.att-inf .att-line:last-child { border-bottom: 0; }
+.is-phone .att-inf-name { font-size: 14px; padding-right: 8px; margin-right: 8px; }
