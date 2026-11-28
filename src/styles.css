@@ -1078,3 +1078,30 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .att-inf .att-line span { white-space: nowrap; }
 .att-inf .att-line:last-child { border-bottom: 0; }
 .is-phone .att-inf-name { font-size: 14px; padding-right: 8px; margin-right: 8px; }
+
+/* 심방보고 (2026-11-28): 페이지는 고정, 대화창이 화면을 꽉 채움, 교구 버튼은 제목 오른쪽 */
+html.page-lock, html.page-lock body { overflow: hidden; overscroll-behavior: none; }
+.visit-page { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.title.visit-title { flex-direction: row; align-items: center; gap: 14px; flex-wrap: nowrap; }
+.title.visit-title h1.page-title-ko { margin: 0; flex: none; }
+.visit-rooms { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.visit-rooms::-webkit-scrollbar { display: none; }
+.visit-search-btn { flex: none; margin-left: auto; }
+.visit-search-btn.is-on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.visit-page .chat-card { display: flex; flex-direction: column; }
+.visit-page .chat, .is-phone .visit-page .chat { height: auto; min-height: 0; flex: 1; }
+.visit-page .chat-list, .visit-page .chat-results { min-height: 0; }
+.visit-page .chat-card { min-height: 0; flex: none; }
+.chat-search.chat-tools { flex: none; flex-wrap: nowrap; align-items: center; }
+.chat-row { display: flex; align-items: flex-end; gap: 8px; }
+.chat-row textarea { flex: 1; min-width: 0; }
+.chat-row .btn { flex: none; min-height: 44px; }
+.is-phone .visit-page { gap: 10px; }
+.is-phone .title.visit-title { gap: 8px; }
+.is-phone .visit-rooms { gap: 6px; }
+.is-phone .visit-rooms .tab { min-height: 36px; padding: 0 9px; font-size: 13px; }
+.is-phone .title.visit-title h1.page-title-ko { font-size: 24px; }
+.is-phone .visit-search-btn { width: 40px; height: 40px; min-height: 40px; }
+@media (max-width: 374px) { .is-phone .visit-rooms { gap: 4px; } .is-phone .visit-rooms .tab { padding: 0 6px; } .is-phone .title.visit-title { gap: 6px; } .is-phone .title.visit-title h1.page-title-ko { font-size: 22px; } }
+.is-phone .visit-page .chat-compose { padding: 10px 12px; }
+.is-phone .visit-page .chat-search.chat-tools { padding: 10px 12px; gap: 6px; }
