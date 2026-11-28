@@ -13,7 +13,7 @@ export function PermissionsPage() {
   const [draft, setDraft] = useState({}) // id -> { admin, perms[] }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const parishes = departments.filter((d) => d.grp === 'parish')
+  const parishes = departments.filter((d) => d.grp === 'parish' && d.id !== 'parish')
 
   const columns = useMemo(() => [
     { key: 'admin', name: '관리자', hint: '회원 관리·권한 관리, 공지·교회 전체 일정·연차 관리 권한 포함 (심방보고는 따로)', group: '관리' },

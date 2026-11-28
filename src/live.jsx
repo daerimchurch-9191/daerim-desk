@@ -118,8 +118,9 @@ export const useOpenEvent = () => {
   return (e) => (e.open ? e.open() : openModal({ type: 'event', initial: e }))
 }
 // 일정 + 내 설교·경건회 순서 (둘 다 불러와야 보여준다)
-// 교구 일정은 그 교구 소속만 본다(데이터베이스 규칙). 관리자는 규칙상 다 보이지만, 평소엔 숨기고
-// 교회 캘린더의 "다른 교구 일정 보기"를 켰을 때만 보인다(기기마다 기억, localStorage cal.otherParish).
+// 교육부·교구의 세부 부서 일정(유년부, 3교구 등)은 그 부서 소속만 본다(데이터베이스 규칙 can_see_event_dept).
+// 교회 전체·교육부 전체(edu)·교구 전체(parish)는 모두가 본다. 관리자는 규칙상 다 보이지만 평소엔 숨기고
+// 교회 캘린더의 "다른 부서 일정 보기"를 켰을 때만 보인다(기기마다 기억, localStorage cal.otherParish).
 const PARISH_KEY = 'cal.otherParish'
 export function useOtherParish() {
   const [on, setOn] = useState(() => { try { return localStorage.getItem(PARISH_KEY) === '1' } catch { return false } })
@@ -138,7 +139,8 @@ export function useParishFilter() {
   const mine = profile?.dept_ids ?? []
   return useCallback((list) => {
     if (!list || (other && profile?.role === 'admin')) return list
-    return list.filter((e) => e.duty || e.created_by === profile?.id || mine.includes(e.dept_id) || departments.find((d) => d.id === e.dept_id)?.grp !== 'parish')
+    const sub = (id) => id !== 'edu' && id !== 'parish' && ['edu', 'parish'].includes(departments.find((d) => d.id === id)?.grp)
+    return list.filter((e) => e.duty || e.created_by === profile?.id || mine.includes(e.dept_id) || !sub(e.dept_id))
   }, [other, profile?.id, profile?.role, mine.join(), departments])
 }
 const withDuties = (events, duties) => (events && duties ? [...events, ...duties].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)) : null)
@@ -954,7 +956,7 @@ export function CalendarMonth() {
             </select>
           </label>
           {profile?.role === 'admin' && (
-            <label className="check-inline parish-toggle"><input type="checkbox" checked={otherParish} onChange={(e) => setOtherParish(e.target.checked)} /> 다른 교구 일정 보기</label>
+            <label className="check-inline parish-toggle"><input type="checkbox" checked={otherParish} onChange={(e) => setOtherParish(e.target.checked)} /> 다른 부서 일정 보기</label>
           )}
           <button type="button" className="btn btn-primary" onClick={() => openModal({ type: 'event', initial: { date: ymd(month.getMonth() === now.getMonth() ? now : month) } })}>+ 일정 등록</button>
         </div>

@@ -72,7 +72,7 @@ export function can(profile, key) {
 }
 // 볼 수 있는 심방보고(교구 부서 id 목록)
 export function visitRooms(profile, departments) {
-  const parishes = departments.filter((d) => d.grp === 'parish')
+  const parishes = departments.filter((d) => d.grp === 'parish' && d.id !== 'parish')
   if (can(profile, 'visit_all')) return parishes
   return parishes.filter((d) => can(profile, `visit:${d.id}`))
 }

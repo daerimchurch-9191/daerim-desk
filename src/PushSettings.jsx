@@ -39,7 +39,7 @@ function NotifyItems() {
     { group: '캘린더 — 어떤 일정이 새로 생길 때 받을까요?' },
     { key: 'cal_all', name: '교회 전체 일정', sub: true },
     { key: 'cal_mine', name: '내 부서 일정', sub: true, hint: '내가 속한 부서의 일정' },
-    { key: 'cal_edu', name: '교육부 일정 모두', sub: true },
+    { key: 'cal_edu', name: '교육부 전체 일정', sub: true, hint: '교육부 소속이 아니어도 받기' },
   ].filter(Boolean)
   const dirty = Object.keys(PREF_DEFAULTS).some((k) => draft[k] !== saved[k])
   async function save() {
