@@ -321,7 +321,7 @@ export function HomeWidgets({ phone }) {
         {shown.map((x) => <div key={x.id} className={`hw${!phone && x.w === 'half' && BY_ID[x.id].half ? '' : ' is-full'}`}>{BY_ID[x.id].render()}</div>)}
       </div>
       {shown.length === 0 && <div className="empty">홈에 올린 위젯이 없어요. 아래 "홈 편집"에서 올려 보세요.</div>}
-      <button type="button" className="home-edit" onClick={edit}>홈 편집 · 위젯 넣고 빼기·순서·넓이</button>
+      <button type="button" className="home-edit" onClick={edit}>홈 편집</button>
     </div>
   )
 }
