@@ -62,7 +62,7 @@ export function LoginPage() {
         </label>
         {isSignup && (
           <>
-            <label className="field">이름<input value={form.name} onChange={set('name')} placeholder="예: 박수아" /></label>
+            <label className="field">이름<input value={form.name} onChange={set('name')} /></label>
             <label className="field">직분
               <select value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value, dept_ids: keepDeptsForRank(e.target.value, form.dept_ids, depts) })}>
                 <option value="">고르기</option>

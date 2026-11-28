@@ -5,7 +5,7 @@
 // 보기: 주일별(종이 양식 모양) / 연별(종이 출석현황표처럼 한 해 주일 전부, 상반기|하반기) / 분석(평균 카드·추이 그래프·부서별 비교·작년 같은 달 비교)
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, toKorean, useAuth, can } from './auth.jsx'
-import { useData, Modal, ymd, addDays, startOfWeek, HomeHead } from './live.jsx'
+import { useData, Modal, ymd, addDays, startOfWeek } from './live.jsx'
 
 export const ADULT = [['p1', '1부'], ['p2', '2부'], ['p3', '3부'], ['youth', '청년']]
 // 화면에 보이는 교회학교 부서 (유아 = 아이 + 부모)
@@ -428,47 +428,3 @@ export function AttendancePage() {
   )
 }
 
-/* ---------- 홈 위젯: 지난 주일 출석 ---------- */
-// 최근 8주 중 숫자가 들어온 마지막 주일을 보여 주고, 그 전 주일과 비교한다.
-export function AttendanceCard() {
-  const base = lastSunday()
-  const data = useAttendance(addDays(base, -7 * 8), addDays(base, 1))
-  const open = useOpenAttendance()
-  const perm = useCanAttend()
-  const days = data ? Object.keys(data).sort().reverse() : []
-  const cur = data && days[0] ? weekStats(data[days[0]]) : null
-  const prev = data && days[1] ? weekStats(data[days[1]]) : null
-  const d = days[0] ? toDate(days[0]) : null
-  const diff = (k) => {
-    if (cur?.[k] == null || prev?.[k] == null) return null
-    const n = Math.round(cur[k] - prev[k])
-    return <small className={n > 0 ? 'att-up' : n < 0 ? 'att-down' : 'muted'}>{n > 0 ? `▲${n}` : n < 0 ? `▼${-n}` : '–'}</small>
-  }
-  const nums = [['adult', '장년 예배'], ['edu', '교회학교'], ['total', '합계']]
-  return (
-    <section className="hc" aria-labelledby="atth-h">
-      <HomeHead id="atth-h" title={<>출석 {d && <span className="hc-sub">{d.getMonth() + 1}월 {d.getDate()}일 주일</span>}</>} href="#attendance">
-        {perm.any && <button type="button" className="hc-btn is-green" onClick={() => open()}>+ 출석 보고</button>}
-        <a href="#attendance" className="hc-more">출석현황 →</a>
-      </HomeHead>
-      {data === null && <span className="skeleton" />}
-      {data && !cur && <div className="empty">최근 8주 동안 들어온 출석이 없습니다.</div>}
-      {cur && (
-        <>
-          <div className="att-mini">
-            {nums.map(([k, name]) => (
-              <div key={k} className={k === 'total' ? 'is-total' : ''}>
-                <span>{name}</span>
-                <b>{fmt(cur[k])}</b>
-                {diff(k)}
-              </div>
-            ))}
-          </div>
-          <p className="muted small">
-            {ADULT.map(([k, n]) => `${n} ${fmt(cur[k])}`).join(' · ')}{prev && ' · ▲▼ 전 주일 대비'}
-          </p>
-        </>
-      )}
-    </section>
-  )
-}

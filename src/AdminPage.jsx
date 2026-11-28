@@ -100,7 +100,7 @@ function EditMemberModal({ person, onClose, onDone }) {
         <label className="field">직분
           <select value={f.rank} onChange={(e) => { setF({ ...f, rank: e.target.value, dept_ids: keepDeptsForRank(e.target.value, f.dept_ids, departments) }); setError('') }}>
             <option value="">고르기</option>
-            {RANKS.map((r) => <option key={r} value={r}>{r}{r === '부목사' ? ' (호칭: 목사)' : ''}</option>)}
+            {RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </label>
       </div>

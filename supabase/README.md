@@ -16,7 +16,7 @@ Supabase 프로젝트 `pvxhzpuoijazqsgjgmne` 에 적용된 표와 권한 규칙.
 | todos | 내 할 일 (repeat_dow 만 있으면 매주, repeat_week 까지 있으면 매월 n째·마지막 주 반복) | 본인만 | 본인만 |
 | profile_depts | 사역자 ↔ 부서 (여러 개, 기본키 profile_id+dept_id) | 승인된 사역자 | 관리자(set_member_depts), 가입 처리 |
 | notices | 공지 (audience: all·parish·edu·rank:<직분>, until 지나면 화면에서 숨김) | 전체 공지는 모두, 교구·교육부 공지는 그 소속(profile_depts → departments.grp, 여러 부서 중 하나라도)과 관리자 | 관리자 |
-| home_layouts | 홈 위젯 배치 (profile_id 기본키, layout = [{id, on, w}] 순서대로). 없으면 기본 배치 | 본인만 | 본인만 |
+| home_layouts | 홈 위젯 배치 (profile_id 기본키, layout = 컴퓨터, phone_layout = 휴대폰, 각각 [{id, on, w}] 순서대로). null이면 직분별 기본 배치 | 본인만 | 본인만 |
 | notice_reads | 읽은 공지 (새 글 개수용) | 본인만 | 본인만 |
 
 승인 대기(pending) 상태인 사람은 자기 정보 외에는 아무것도 볼 수 없다.
